@@ -22,6 +22,15 @@ class UserService {
   async findByEmail(email) {
     return prisma.user.findUnique({
       where: { email },
+      include: {
+        customerProfile: {
+          include: {
+            pricingTier: true,
+          },
+        },
+        driverProfile: true,
+        managerProfile: true,
+      },
     });
   }
 
@@ -45,13 +54,15 @@ class UserService {
         phone: true,
         profilePicture: true,
         isActive: true,
-        depotAddress: true,
-        loginId: true,
-        pricingTier: true,
-        customBasePrice: true,
-        customVatRate: true,
         createdAt: true,
         lastLogin: true,
+        customerProfile: {
+          include: {
+            pricingTier: true,
+          },
+        },
+        driverProfile: true,
+        managerProfile: true,
       },
     });
   }

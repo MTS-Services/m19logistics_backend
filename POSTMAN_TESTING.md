@@ -4,9 +4,247 @@ Base URL: `http://localhost:3000`
 
 ---
 
-## 📋 Table of Contents
-- [Authentication Routes](#authentication-routes)
-- [User Management Routes](#user-management-routes)
+## � Profile Management Routes
+
+### 1. Get My Profile
+**GET** `/api/profile`
+
+**Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Response (Customer Example):**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": 3,
+      "email": "topps022@toppstiles.co.uk",
+      "username": "T022",
+      "fullName": "Topps Chester Manager",
+      "role": "CUSTOMER",
+      "isActive": true,
+      "profilePicture": null,
+      "customerProfile": {...},
+      "driverProfile": null,
+      "managerProfile": null
+    },
+    "profile": {
+      "id": 1,
+      "userId": 3,
+      "storeName": "Topps Chester",
+      "depotAddress": "4 Bumpers Lane, Sealand Ind Est, Chester, CH1 4LY",
+      "loginId": "C0001",
+      "pricingTierId": 1,
+      "customBasePrice": null,
+      "customVatRate": "20.00",
+      "accessScope": "deliveries:create,deliveries:view,invoices:view",
+      "pricingTier": {
+        "id": 1,
+        "name": "Tier A",
+        "tierCode": "TIER_A",
+        "basePrice": "35.00",
+        "vatRate": "20.00"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 2. Update Customer Profile
+**PATCH** `/api/profile/customer`
+
+**Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+**Body (JSON) - Partial Update:**
+```json
+{
+  "storeName": "Topps Tiles Chester - Updated",
+  "depotAddress": "New Address, Chester, CH1 4LY",
+  "pricingTierId": 2,
+  "customVatRate": 20.00,
+  "accessScope": "deliveries:create,deliveries:view,deliveries:edit,invoices:view"
+}
+```
+
+**Note:** 
+- Only customers can update customer profiles
+- All fields are optional - only send fields you want to update
+- `loginId` cannot be changed (auto-generated and immutable)
+
+**Available Fields:**
+- `storeName` - Store/Business name
+- `depotAddress` - Full depot address
+- `pricingTierId` - Pricing tier ID (1 or 2)
+- `customBasePrice` - Custom base price override
+- `customVatRate` - Custom VAT rate
+- `accessScope` - Access permissions
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Customer profile updated successfully.",
+  "data": {
+    "id": 1,
+    "userId": 3,
+    "storeName": "Topps Tiles Chester - Updated",
+    "depotAddress": "New Address, Chester, CH1 4LY",
+    "loginId": "C0001",
+    "pricingTierId": 2,
+    "customBasePrice": null,
+    "customVatRate": "20.00",
+    "accessScope": "deliveries:create,deliveries:view,deliveries:edit,invoices:view",
+    "pricingTier": {
+      "id": 2,
+      "name": "Tier B",
+      "tierCode": "TIER_B",
+      "basePrice": "45.00",
+      "vatRate": "20.00"
+    },
+    "createdAt": "2026-01-25T10:00:00.000Z",
+    "updatedAt": "2026-01-26T06:15:00.000Z"
+  }
+}
+```
+
+**Error Response (Wrong Role):**
+```json
+{
+  "success": false,
+  "message": "Only customers can update customer profile."
+}
+```
+
+---
+
+### 3. Update Driver Profile
+**PATCH** `/api/profile/driver`
+
+**Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+**Body (JSON) - Partial Update:**
+```json
+{
+  "vehicleRegistration": "XY99 ZZZ",
+  "driverLicenseNumber": "DL987654",
+  "address": "456 New Street, Wrexham, LL11 2AB",
+  "isActiveDriver": true,
+  "enableSmsNotifications": true,
+  "enableEmailNotifications": false
+}
+```
+
+**Note:** 
+- Only drivers can update driver profiles
+- All fields are optional - only send fields you want to update
+
+**Available Fields:**
+- `vehicleRegistration` - Vehicle registration number
+- `driverLicenseNumber` - Driver's license number
+- `address` - Home address
+- `isActiveDriver` - Can receive delivery assignments (true/false)
+- `enableSmsNotifications` - Enable SMS notifications (true/false)
+- `enableEmailNotifications` - Enable email notifications (true/false)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Driver profile updated successfully.",
+  "data": {
+    "id": 2,
+    "userId": 4,
+    "vehicleRegistration": "XY99 ZZZ",
+    "driverLicenseNumber": "DL987654",
+    "address": "456 New Street, Wrexham, LL11 2AB",
+    "isActiveDriver": true,
+    "enableSmsNotifications": true,
+    "enableEmailNotifications": false,
+    "createdAt": "2026-01-25T10:00:00.000Z",
+    "updatedAt": "2026-01-26T06:20:00.000Z"
+  }
+}
+```
+
+**Error Response (Wrong Role):**
+```json
+{
+  "success": false,
+  "message": "Only drivers can update driver profile."
+}
+```
+
+---
+
+### 4. Update Manager Profile
+**PATCH** `/api/profile/manager`
+
+**Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+**Body (JSON) - Partial Update:**
+```json
+{
+  "officeAddress": "Regional Office, Manchester, M1 1AA",
+  "accessScope": "All Northern Topps Tiles stores",
+  "assignedStoreCount": 8
+}
+```
+
+**Note:** 
+- Only managers can update manager profiles
+- All fields are optional - only send fields you want to update
+
+**Available Fields:**
+- `officeAddress` - Manager's office address
+- `accessScope` - Access scope description
+- `assignedStoreCount` - Number of stores managed
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Manager profile updated successfully.",
+  "data": {
+    "id": 1,
+    "userId": 5,
+    "officeAddress": "Regional Office, Manchester, M1 1AA",
+    "accessScope": "All Northern Topps Tiles stores",
+    "assignedStoreCount": 8,
+    "createdAt": "2026-01-25T10:00:00.000Z",
+    "updatedAt": "2026-01-26T06:25:00.000Z"
+  }
+}
+```
+
+**Error Response (Wrong Role):**
+```json
+{
+  "success": false,
+  "message": "Only managers can update manager profile."
+}
+```
+
+---
+
+## �📋 Table of Contents
+- [Authentication Routes](#authentication-routes)- [Profile Management Routes](#profile-management-routes)- [User Management Routes](#user-management-routes)
 - [Testing Workflow](#testing-workflow)
 
 ---
@@ -32,7 +270,7 @@ None required
 
 ---
 
-### 2. Register New User
+### 2. Register New User (Single API for All Roles)
 **POST** `/api/auth/register`
 
 **Headers:**
@@ -40,38 +278,219 @@ None required
 Content-Type: application/json
 ```
 
-**Body (JSON):**
+---
+
+#### 2.1 Register Customer
+
+**Body (JSON) - Full Customer Registration:**
 ```json
 {
-  "email": "test@example.com",
-  "username": "testuser",
-  "password": "password123",
-  "fullName": "Test User",
-  "phone": "07971234567",
-  "role": "CUSTOMER"
+  "email": "topps.manchester@toppstiles.co.uk",
+  "username": "toppsmanchester",
+  "password": "SecurePass123!",
+  "fullName": "Manchester Topps Store Manager",
+  "phone": "01612345678",
+  "role": "CUSTOMER",
+  "storeName": "Topps Tiles Manchester",
+  "depotAddress": "45 Oxford Road, Manchester, M1 5AN",
+  "pricingTierId": 1,
+  "accessScope": "deliveries:create,deliveries:view,invoices:view"
 }
 ```
 
-**Roles:** `ADMIN`, `DRIVER`, `CUSTOMER`, `MANAGER`
+**Required Fields (Customer):**
+- `email`, `username`, `password`, `fullName`, `role`
 
-**Response:**
+**Optional Customer Fields:**
+- `phone` - Contact phone number
+- `storeName` - Store/Business name
+- `depotAddress` - Full depot address for delivery calculations
+- `pricingTierId` - Pricing tier ID (1 = Tier A, 2 = Tier B)
+- `customBasePrice` - Custom base price override
+- `customVatRate` - Custom VAT rate (default 20.00)
+- `accessScope` - Permissions scope
+
+**Auto-Generated Fields:**
+- `loginId` - Unique login identifier (auto-generated format: C0001, C0002, etc.)
+
+---
+
+#### 2.2 Register Driver
+
+**Body (JSON) - Full Driver Registration:**
+```json
+{
+  "email": "john.driver@m19logistics.com",
+  "username": "johndriver",
+  "password": "Driver123!",
+  "fullName": "John Driver",
+  "phone": "07123456789",
+  "role": "DRIVER",
+  "vehicleRegistration": "AB12 CDE",
+  "driverLicenseNumber": "DL123456",
+  "address": "123 Driver Street, Wrexham, LL12 7VJ",
+  "isActiveDriver": true,
+  "enableSmsNotifications": true,
+  "enableEmailNotifications": true
+}
+```
+
+**Required Fields (Driver):**
+- `email`, `username`, `password`, `fullName`, `role`
+
+**Optional Driver Fields:**
+- `phone` - Contact phone number
+- `vehicleRegistration` - Vehicle registration number
+- `driverLicenseNumber` - Driver's license number
+- `address` - Driver's home address
+- `isActiveDriver` - Can receive deliveries (default: true)
+- `enableSmsNotifications` - SMS alerts (default: false)
+- `enableEmailNotifications` - Email alerts (default: true)
+
+---
+
+#### 2.3 Register Manager
+
+**Body (JSON) - Full Manager Registration:**
+```json
+{
+  "email": "rob.myers@toppstiles.com",
+  "username": "robmyers",
+  "password": "Manager123!",
+  "fullName": "Rob Myers",
+  "phone": "07725957625",
+  "role": "MANAGER",
+  "officeAddress": "Area Manager Office, Wrexham",
+  "accessScope": "All Topps Tiles stores",
+  "assignedStoreCount": 6
+}
+```
+
+**Required Fields (Manager):**
+- `email`, `username`, `password`, `fullName`, `role`
+
+**Optional Manager Fields:**
+- `phone` - Contact phone number
+- `officeAddress` - Manager's office address
+- `accessScope` - Access scope description
+- `assignedStoreCount` - Number of stores managed
+
+---
+
+#### 2.4 Register Admin
+
+**Body (JSON) - Admin Registration:**
+```json
+{
+  "email": "newadmin@m19logistics.com",
+  "username": "newadmin",
+  "password": "Admin123!",
+  "fullName": "New Admin User",
+  "phone": "07971234567",
+  "role": "ADMIN"
+}
+```
+
+**Required Fields (Admin):**
+- `email`, `username`, `password`, `fullName`, `role`
+
+---
+
+**Response Example (Customer):**
 ```json
 {
   "success": true,
   "message": "Registration successful.",
   "data": {
     "user": {
-      "id": 1,
-      "email": "test@example.com",
-      "username": "testuser",
-      "fullName": "Test User",
+      "id": 5,
+      "email": "topps.manchester@toppstiles.co.uk",
+      "username": "toppsmanchester",
+      "fullName": "Manchester Topps Store Manager",
       "role": "CUSTOMER",
-      "phone": "07971234567",
+      "phone": "01612345678",
       "profilePicture": null,
-      "createdAt": "2026-01-25T10:30:00.000Z"
+      "createdAt": "2026-01-26T05:30:00.000Z",
+      "profile": {
+        "id": 3,
+        "userId": 5,
+        "storeName": "Topps Tiles Manchester",
+        "depotAddress": "45 Oxford Road, Manchester, M1 5AN",
+        "loginId": "C0001",
+        "pricingTierId": 1,
+        "customBasePrice": null,
+        "customVatRate": "20.00",
+        "accessScope": "deliveries:create,deliveries:view,invoices:view",
+        "pricingTier": {
+          "id": 1,
+          "name": "Tier A",
+          "tierCode": "TIER_A",
+          "basePrice": "35.00",
+          "vatRate": "20.00"
+        }
+      }
     },
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
+}
+```
+
+**Note:** The `loginId` field (e.g., "C0001") is automatically generated during registration and cannot be manually specified.
+
+**Response Example (Driver):**
+```json
+{
+  "success": true,
+  "message": "Registration successful.",
+  "data": {
+    "user": {
+      "id": 6,
+      "email": "john.driver@m19logistics.com",
+      "username": "johndriver",
+      "fullName": "John Driver",
+      "role": "DRIVER",
+      "phone": "07123456789",
+      "profilePicture": null,
+      "createdAt": "2026-01-26T05:35:00.000Z",
+      "profile": {
+        "id": 2,
+        "userId": 6,
+        "vehicleRegistration": "AB12 CDE",
+        "driverLicenseNumber": "DL123456",
+        "address": "123 Driver Street, Wrexham, LL12 7VJ",
+        "isActiveDriver": true,
+        "enableSmsNotifications": true,
+        "enableEmailNotifications": true
+      }
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+**Error Responses:**
+
+Email already exists:
+```json
+{
+  "success": false,
+  "message": "Email already registered."
+}
+```
+
+Username already taken:
+```json
+{
+  "success": false,
+  "message": "Username already taken."
+}
+```
+
+Invalid role:
+```json
+{
+  "success": false,
+  "message": "Invalid role specified."
 }
 ```
 
@@ -85,34 +504,44 @@ Content-Type: application/json
 Content-Type: application/json
 ```
 
-**Body (JSON) - Admin:**
+**Body (JSON):**
 ```json
 {
-  "username": "admin",
+  "email": "user@example.com",
+  "password": "YourPassword123!"
+}
+```
+
+**Example Logins:**
+
+Admin:
+```json
+{
+  "email": "admin@m19logistics.com",
   "password": "Admin123!"
 }
 ```
 
-**Body (JSON) - Driver (BK):**
+Driver (BK):
 ```json
 {
-  "username": "BK01",
+  "email": "bk@m19logistics.com",
   "password": "M1901"
 }
 ```
 
-**Body (JSON) - Customer (Topps Chester):**
+Customer (Topps Chester):
 ```json
 {
-  "username": "T022",
+  "email": "topps022@toppstiles.co.uk",
   "password": "Password022"
 }
 ```
 
-**Body (JSON) - Area Manager (Rob):**
+Area Manager (Rob):
 ```json
 {
-  "username": "Rob01",
+  "email": "rob@m19logistics.com",
   "password": "Topps01"
 }
 ```
@@ -124,21 +553,36 @@ Content-Type: application/json
   "message": "Login successful.",
   "data": {
     "user": {
-      "id": 1,
-      "email": "admin@m19logistics.com",
-      "username": "admin",
-      "fullName": "M19 Admin",
-      "phone": "07971415430",
-      "role": "ADMIN",
+      "id": 3,
+      "email": "topps022@toppstiles.co.uk",
+      "username": "T022",
+      "fullName": "Topps Chester Manager",
+      "phone": "01244398888",
+      "role": "CUSTOMER",
       "profilePicture": null,
       "isActive": true,
-      "depotAddress": null,
-      "loginId": null,
-      "pricingTier": null,
-      "customBasePrice": null,
-      "customVatRate": null,
       "createdAt": "2026-01-25T10:00:00.000Z",
-      "lastLogin": "2026-01-25T10:30:00.000Z"
+      "lastLogin": "2026-01-26T05:30:00.000Z",
+      "customerProfile": {
+        "id": 1,
+        "userId": 3,
+        "storeName": "Topps Chester",
+        "depotAddress": "4 Bumpers Lane, Sealand Ind Est, Chester, CH1 4LY",
+        "loginId": "T022",
+        "pricingTierId": 1,
+        "customBasePrice": null,
+        "customVatRate": "20.00",
+        "accessScope": "deliveries:create,deliveries:view,invoices:view",
+        "pricingTier": {
+          "id": 1,
+          "name": "Tier A",
+          "tierCode": "TIER_A",
+          "basePrice": "35.00",
+          "vatRate": "20.00"
+        }
+      },
+      "driverProfile": null,
+      "managerProfile": null
     },
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "requirePasswordReset": false
@@ -162,21 +606,36 @@ Content-Type: application/json
 {
   "success": true,
   "data": {
-    "id": 1,
-    "email": "admin@m19logistics.com",
-    "username": "admin",
-    "fullName": "M19 Admin",
-    "role": "ADMIN",
-    "phone": "07971415430",
+    "id": 3,
+    "email": "topps022@toppstiles.co.uk",
+    "username": "T022",
+    "fullName": "Topps Chester Manager",
+    "role": "CUSTOMER",
+    "phone": "01244398888",
     "profilePicture": null,
     "isActive": true,
-    "depotAddress": null,
-    "loginId": null,
-    "pricingTier": null,
-    "customBasePrice": null,
-    "customVatRate": null,
     "createdAt": "2026-01-25T10:00:00.000Z",
-    "lastLogin": "2026-01-25T10:30:00.000Z"
+    "lastLogin": "2026-01-26T05:30:00.000Z",
+    "customerProfile": {
+      "id": 1,
+      "userId": 3,
+      "storeName": "Topps Chester",
+      "depotAddress": "4 Bumpers Lane, Sealand Ind Est, Chester, CH1 4LY",
+      "loginId": "T022",
+      "pricingTierId": 1,
+      "customBasePrice": null,
+      "customVatRate": "20.00",
+      "accessScope": "deliveries:create,deliveries:view,invoices:view",
+      "pricingTier": {
+        "id": 1,
+        "name": "Tier A",
+        "tierCode": "TIER_A",
+        "basePrice": "35.00",
+        "vatRate": "20.00"
+      }
+    },
+    "driverProfile": null,
+    "managerProfile": null
   }
 }
 ```
@@ -229,6 +688,261 @@ Content-Type: application/json
 {
   "success": true,
   "message": "Logout successful."
+}
+```
+
+---
+
+## 👤 Profile Management
+
+### 1. Get My Profile
+**GET** `/api/auth/me`
+
+**Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Description:** Gets the authenticated user's profile with role-specific data. Role is automatically detected from the access token.
+
+**Response (Customer Example):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 3,
+    "email": "topps022@toppstiles.co.uk",
+    "username": "T022",
+    "fullName": "Topps Chester Manager",
+    "role": "CUSTOMER",
+    "phone": "01244398888",
+    "profilePicture": null,
+    "isActive": true,
+    "createdAt": "2026-01-25T10:00:00.000Z",
+    "lastLogin": "2026-01-26T05:30:00.000Z",
+    "customerProfile": {
+      "id": 1,
+      "userId": 3,
+      "storeName": "Topps Chester",
+      "depotAddress": "4 Bumpers Lane, Sealand Ind Est, Chester, CH1 4LY",
+      "loginId": "C0001",
+      "pricingTierId": 1,
+      "customBasePrice": null,
+      "customVatRate": "20.00",
+      "accessScope": "deliveries:create,deliveries:view,invoices:view",
+      "pricingTier": {
+        "id": 1,
+        "name": "Tier A",
+        "tierCode": "TIER_A",
+        "basePrice": "35.00",
+        "vatRate": "20.00"
+      }
+    },
+    "driverProfile": null,
+    "managerProfile": null
+  }
+}
+```
+
+---
+
+### 2. Update My Profile
+**PATCH** `/api/auth/profile`
+
+**Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+**Description:** Updates the authenticated user's complete profile including base user information and role-specific fields. The system automatically detects the user's role from the access token. Only send the fields you want to update.
+
+---
+
+#### Base User Fields (All Roles)
+
+**Available for all users:**
+- `email` - Email address (must be unique)
+- `username` - Username (must be unique)
+- `fullName` - Full name
+- `phone` - Phone number
+- `profilePicture` - Profile picture URL
+
+**Note:** Password cannot be changed through this route. Use `/api/auth/change-password` instead.
+
+---
+
+#### For Customers (role: CUSTOMER)
+
+**Request Body Example (Full Update):**
+```json
+{
+  "email": "updated.email@toppstiles.co.uk",
+  "username": "toppschester",
+  "fullName": "Updated Manager Name",
+  "phone": "01244398888",
+  "storeName": "Topps Tiles Chester - Updated",
+  "depotAddress": "New Address, Chester, CH1 4LY",
+  "pricingTierId": 2,
+  "customVatRate": 20.00,
+  "accessScope": "deliveries:create,deliveries:view,deliveries:edit,invoices:view"
+}
+```
+
+**Additional Customer-Specific Fields:**
+- `storeName` - Store/Business name
+- `depotAddress` - Full depot address
+- `pricingTierId` - Pricing tier ID (1 or 2)
+- `customBasePrice` - Custom base price override
+- `customVatRate` - Custom VAT rate
+- `accessScope` - Access permissions
+- **Note:** `loginId` cannot be changed (auto-generated and immutable)
+
+---
+
+#### For Drivers (role: DRIVER)
+
+**Request Body Example (Full Update):**
+```json
+{
+  "email": "john.updated@m19logistics.com",
+  "username": "johndriver",
+  "fullName": "John Updated Driver",
+  "phone": "07123456789",
+  "vehicleRegistration": "XY99 ZZZ",
+  "driverLicenseNumber": "DL987654",
+  "address": "456 New Street, Wrexham, LL11 2AB",
+  "isActiveDriver": true,
+  "enableSmsNotifications": true,
+  "enableEmailNotifications": false
+}
+```
+
+**Additional Driver-Specific Fields:**
+- `vehicleRegistration` - Vehicle registration number
+- `driverLicenseNumber` - Driver's license number
+- `address` - Home address
+- `isActiveDriver` - Can receive delivery assignments (true/false)
+- `enableSmsNotifications` - Enable SMS notifications (true/false)
+- `enableEmailNotifications` - Enable email notifications (true/false)
+
+---
+
+#### For Managers (role: MANAGER)
+
+**Request Body Example (Full Update):**
+```json
+{
+  "email": "rob.updated@toppstiles.com",
+  "username": "robmyers",
+  "fullName": "Rob Myers Updated",
+  "phone": "07725957625",
+  "officeAddress": "Regional Office, Manchester, M1 1AA",
+  "accessScope": "All Northern Topps Tiles stores",
+  "assignedStoreCount": 8
+}
+```
+
+**Additional Manager-Specific Fields:**
+- `officeAddress` - Manager's office address
+- `accessScope` - Access scope description
+- `assignedStoreCount` - Number of stores managed
+
+---
+
+#### For Admins (role: ADMIN)
+
+**Request Body Example:**
+```json
+{
+  "email": "admin.updated@m19logistics.com",
+  "username": "adminuser",
+  "fullName": "Updated Admin Name",
+  "phone": "07971234567"
+}
+```
+
+Admins can only update base user fields (no role-specific profile).
+
+---
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully.",
+  "data": {
+    "user": {
+      "id": 3,
+      "email": "updated.email@toppstiles.co.uk",
+      "username": "toppschester",
+      "fullName": "Updated Manager Name",
+      "role": "CUSTOMER",
+      "phone": "01244398888",
+      "profilePicture": null,
+      "isActive": true,
+      "createdAt": "2026-01-25T10:00:00.000Z",
+      "lastLogin": "2026-01-26T05:30:00.000Z",
+      "customerProfile": {
+        "id": 1,
+        "userId": 3,
+        "storeName": "Topps Tiles Chester - Updated",
+        "depotAddress": "New Address, Chester, CH1 4LY",
+        "loginId": "C0001",
+        "pricingTierId": 2,
+        "customBasePrice": null,
+        "customVatRate": "20.00",
+        "accessScope": "deliveries:create,deliveries:view,deliveries:edit,invoices:view",
+        "pricingTier": {
+          "id": 2,
+          "name": "Tier B",
+          "tierCode": "TIER_B",
+          "basePrice": "45.00",
+          "vatRate": "20.00"
+        }
+      },
+      "driverProfile": null,
+      "managerProfile": null
+    },
+    "updatedFields": {
+      "userFields": ["email", "username", "fullName", "phone"],
+      "profileFields": ["storeName", "depotAddress", "pricingTierId", "accessScope"]
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+Email already registered:
+```json
+{
+  "success": false,
+  "message": "Email already registered."
+}
+```
+
+Username already taken:
+```json
+{
+  "success": false,
+  "message": "Username already taken."
+}
+```
+
+No fields to update:
+```json
+{
+  "success": false,
+  "message": "No fields to update."
+}
+```
+
+Profile not found:
+```json
+{
+  "success": false,
+  "message": "Profile not found."
 }
 ```
 

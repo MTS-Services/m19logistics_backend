@@ -49,4 +49,7 @@ router.post(
   authController.changePassword
 );
 
+// Update user's own profile
+router.patch('/profile', authenticate, authController.updateProfile);
+
 module.exports = router;

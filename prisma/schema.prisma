@@ -46,26 +46,21 @@ model User {
   isActive          Boolean   @default(true)
   requirePasswordReset Boolean @default(false)
   
-
-  depotAddress      String?
-  loginId           String?   @unique 
-  pricingTierId     Int?
-  customBasePrice   Decimal?  @db.Decimal(10, 2)
-  customVatRate     Decimal?  @db.Decimal(5, 2) @default(20.00)
-  
- 
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   lastLogin         DateTime?
   
- 
-  pricingTier       PricingTier?       @relation(fields: [pricingTierId], references: [id])
+  // Role-specific profiles (one-to-one relationships)
+  customerProfile   CustomerProfile?
+  driverProfile     DriverProfile?
+  managerProfile    ManagerProfile?
+  
+  // Relations
   deliveriesRequested Delivery[]       @relation("CustomerDeliveries")
   deliveriesAssigned  Delivery[]       @relation("DriverDeliveries")
   invoices          Invoice[]
   auditLogs         AuditLog[]
   driverFeedback    DriverFeedback[]
-  accessTokens      AccessToken[]
   
   @@index([email])
   @@index([username])
@@ -73,19 +68,69 @@ model User {
 }
 
 
-model AccessToken {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  token       String   @unique @db.Text
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  isRevoked   Boolean  @default(false)
+
+model CustomerProfile {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @unique
   
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeName         String?   
+  depotAddress      String?   
+  loginId           String?   @unique 
+  pricingTierId     Int?      
+  customBasePrice   Decimal?  @db.Decimal(10, 2)
+  customVatRate     Decimal?  @db.Decimal(5, 2) @default(20.00)
+  accessScope       String?   
   
-  @@index([token])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pricingTier       PricingTier? @relation(fields: [pricingTierId], references: [id])
+  
+  @@index([loginId])
   @@index([userId])
 }
+
+
+
+model DriverProfile {
+  id                    Int       @id @default(autoincrement())
+  userId                Int       @unique
+  
+  vehicleRegistration   String?   
+  driverLicenseNumber   String?   
+  address               String?   
+  
+
+  isActiveDriver        Boolean   @default(true) 
+  enableSmsNotifications Boolean  @default(false) 
+  enableEmailNotifications Boolean @default(true) 
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
+
+model ManagerProfile {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @unique
+  
+  officeAddress     String?   
+  accessScope       String?   
+  assignedStoreCount Int?     
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
 
 
 model PricingTier {
@@ -100,7 +145,7 @@ model PricingTier {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
-  users           User[]
+  customerProfiles CustomerProfile[]
   
   @@index([tierCode])
 }

@@ -1,11 +1,47 @@
 const authService = require('../services/authService');
 const userService = require('../services/userService');
+const customerService = require('../services/customerService');
+const driverService = require('../services/driverService');
+const managerService = require('../services/managerService');
 
 class AuthController {
 
   async register(req, res) {
     try {
-      const { email, username, password, fullName, phone, role } = req.body;
+      const { 
+        email, 
+        username, 
+        password, 
+        fullName, 
+        phone, 
+        role,
+        // Customer-specific fields
+        storeName,
+        depotAddress,
+        pricingTierId,
+        customBasePrice,
+        customVatRate,
+        accessScope,
+        // Driver-specific fields
+        vehicleRegistration,
+        driverLicenseNumber,
+        address,
+        isActiveDriver,
+        enableSmsNotifications,
+        enableEmailNotifications,
+        // Manager-specific fields
+        officeAddress,
+        assignedStoreCount,
+      } = req.body;
+
+      // Validate role
+      const validRoles = ['ADMIN', 'DRIVER', 'CUSTOMER', 'MANAGER'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid role specified.',
+        });
+      }
 
       // Check if user already exists
       const existingEmail = await userService.findByEmail(email);
@@ -24,18 +60,61 @@ class AuthController {
         });
       }
 
-      
+      // Hash password
       const hashedPassword = await authService.hashPassword(password);
 
-    
-      const user = await userService.createUser({
+      // Prepare base user data
+      const userData = {
         email,
         username,
         password: hashedPassword,
         fullName,
         phone,
-        role: role || 'CUSTOMER',
-      });
+        role,
+        requirePasswordReset: true, // User must reset password on first login
+      };
+
+      // Create user
+      const user = await userService.createUser(userData);
+
+      // Create role-specific profile
+      let profile = null;
+      
+      switch (role) {
+        case 'CUSTOMER':
+          profile = await customerService.createProfile(user.id, {
+            storeName,
+            depotAddress,
+            pricingTierId: pricingTierId ? parseInt(pricingTierId) : null,
+            customBasePrice: customBasePrice ? parseFloat(customBasePrice) : null,
+            customVatRate: customVatRate ? parseFloat(customVatRate) : 20.00,
+            accessScope,
+          });
+          break;
+
+        case 'DRIVER':
+          profile = await driverService.createProfile(user.id, {
+            vehicleRegistration,
+            driverLicenseNumber,
+            address,
+            isActiveDriver: isActiveDriver !== undefined ? isActiveDriver : true,
+            enableSmsNotifications: enableSmsNotifications !== undefined ? enableSmsNotifications : false,
+            enableEmailNotifications: enableEmailNotifications !== undefined ? enableEmailNotifications : true,
+          });
+          break;
+
+        case 'MANAGER':
+          profile = await managerService.createProfile(user.id, {
+            officeAddress,
+            accessScope,
+            assignedStoreCount: assignedStoreCount ? parseInt(assignedStoreCount) : null,
+          });
+          break;
+
+        case 'ADMIN':
+          // Admin doesn't need a profile
+          break;
+      }
 
       // Generate token
       const token = await authService.generateToken(user.id);
@@ -44,7 +123,10 @@ class AuthController {
         success: true,
         message: 'Registration successful.',
         data: {
-          user,
+          user: {
+            ...user,
+            profile,
+          },
           token,
         },
       });
@@ -125,14 +207,11 @@ class AuthController {
 
   async logout(req, res) {
     try {
-      const token = req.token;
-
-      // Revoke token
-      await authService.revokeToken(token);
-
+      // With stateless JWT, logout is handled client-side by removing the token
+      // Server doesn't need to track tokens anymore
       res.json({
         success: true,
-        message: 'Logout successful.',
+        message: 'Logout successful. Please remove the token from client.',
       });
     } catch (error) {
       console.error('Logout error:', error);
@@ -188,15 +267,13 @@ class AuthController {
       // Hash new password
       const hashedPassword = await authService.hashPassword(newPassword);
 
-      
+      // Update password
       await userService.updateUser(userId, {
         password: hashedPassword,
         requirePasswordReset: false,
       });
 
-      
-      await authService.revokeAllUserTokens(userId);
-
+      // Generate new token
       const token = await authService.generateToken(userId);
 
       res.json({
@@ -209,6 +286,173 @@ class AuthController {
       res.status(500).json({
         success: false,
         message: 'Failed to change password.',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update user's own profile based on their role
+   * PATCH /api/auth/profile
+   */
+  async updateProfile(req, res) {
+    try {
+      const userId = req.user.id;
+      const { role } = req.user;
+
+      const {
+        // Base user fields
+        email,
+        username,
+        fullName,
+        phone,
+        profilePicture,
+        // Customer-specific fields
+        storeName,
+        depotAddress,
+        pricingTierId,
+        customBasePrice,
+        customVatRate,
+        accessScope,
+        // Driver-specific fields
+        vehicleRegistration,
+        driverLicenseNumber,
+        address,
+        isActiveDriver,
+        enableSmsNotifications,
+        enableEmailNotifications,
+        // Manager-specific fields
+        officeAddress,
+        assignedStoreCount,
+      } = req.body;
+
+      // Update base user information
+      const userUpdateData = {};
+      
+      // Check if email is being changed and if it's already taken
+      if (email !== undefined && email !== req.user.email) {
+        const existingEmail = await userService.findByEmail(email);
+        if (existingEmail) {
+          return res.status(400).json({
+            success: false,
+            message: 'Email already registered.',
+          });
+        }
+        userUpdateData.email = email;
+      }
+
+      // Check if username is being changed and if it's already taken
+      if (username !== undefined && username !== req.user.username) {
+        const existingUsername = await userService.findByUsername(username);
+        if (existingUsername) {
+          return res.status(400).json({
+            success: false,
+            message: 'Username already taken.',
+          });
+        }
+        userUpdateData.username = username;
+      }
+
+      if (fullName !== undefined) userUpdateData.fullName = fullName;
+      if (phone !== undefined) userUpdateData.phone = phone;
+      if (profilePicture !== undefined) userUpdateData.profilePicture = profilePicture;
+
+      // Update base user if there are changes
+      let updatedUser = null;
+      if (Object.keys(userUpdateData).length > 0) {
+        updatedUser = await userService.updateUser(userId, userUpdateData);
+      }
+
+      // Update role-specific profile
+      let updatedProfile = null;
+
+      switch (role) {
+        case 'CUSTOMER': {
+          const profileUpdateData = {};
+          if (storeName !== undefined) profileUpdateData.storeName = storeName;
+          if (depotAddress !== undefined) profileUpdateData.depotAddress = depotAddress;
+          if (pricingTierId !== undefined) profileUpdateData.pricingTierId = parseInt(pricingTierId);
+          if (customBasePrice !== undefined) profileUpdateData.customBasePrice = parseFloat(customBasePrice);
+          if (customVatRate !== undefined) profileUpdateData.customVatRate = parseFloat(customVatRate);
+          if (accessScope !== undefined) profileUpdateData.accessScope = accessScope;
+
+          if (Object.keys(profileUpdateData).length > 0) {
+            updatedProfile = await customerService.updateProfile(userId, profileUpdateData);
+          }
+          break;
+        }
+
+        case 'DRIVER': {
+          const profileUpdateData = {};
+          if (vehicleRegistration !== undefined) profileUpdateData.vehicleRegistration = vehicleRegistration;
+          if (driverLicenseNumber !== undefined) profileUpdateData.driverLicenseNumber = driverLicenseNumber;
+          if (address !== undefined) profileUpdateData.address = address;
+          if (isActiveDriver !== undefined) profileUpdateData.isActiveDriver = isActiveDriver;
+          if (enableSmsNotifications !== undefined) profileUpdateData.enableSmsNotifications = enableSmsNotifications;
+          if (enableEmailNotifications !== undefined) profileUpdateData.enableEmailNotifications = enableEmailNotifications;
+
+          if (Object.keys(profileUpdateData).length > 0) {
+            updatedProfile = await driverService.updateProfile(userId, profileUpdateData);
+          }
+          break;
+        }
+
+        case 'MANAGER': {
+          const profileUpdateData = {};
+          if (officeAddress !== undefined) profileUpdateData.officeAddress = officeAddress;
+          if (accessScope !== undefined) profileUpdateData.accessScope = accessScope;
+          if (assignedStoreCount !== undefined) profileUpdateData.assignedStoreCount = parseInt(assignedStoreCount);
+
+          if (Object.keys(profileUpdateData).length > 0) {
+            updatedProfile = await managerService.updateProfile(userId, profileUpdateData);
+          }
+          break;
+        }
+
+        case 'ADMIN':
+          // Admin can only update base user info, no profile
+          if (Object.keys(userUpdateData).length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'No fields to update.',
+            });
+          }
+          break;
+
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid user role.',
+          });
+      }
+
+      // Fetch complete updated user data
+      const completeUser = await userService.findById(userId);
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully.',
+        data: {
+          user: completeUser,
+          updatedFields: {
+            userFields: Object.keys(userUpdateData),
+            profileFields: updatedProfile ? Object.keys(updatedProfile).filter(k => k !== 'id' && k !== 'userId' && k !== 'createdAt' && k !== 'updatedAt') : [],
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Update profile error:', error);
+      
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'Profile not found.',
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update profile.',
         error: error.message,
       });
     }

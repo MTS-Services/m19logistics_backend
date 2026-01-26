@@ -23,46 +23,35 @@ const authenticate = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, config.jwt.secret);
 
-    // Check if token exists in database and is not revoked
-    const accessToken = await prisma.accessToken.findUnique({
-      where: { token },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            username: true,
-            fullName: true,
-            role: true,
-            isActive: true,
-            profilePicture: true,
+    // Fetch user from database
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        fullName: true,
+        role: true,
+        isActive: true,
+        profilePicture: true,
+        customerProfile: {
+          include: {
+            pricingTier: true,
           },
         },
+        driverProfile: true,
+        managerProfile: true,
       },
     });
 
-    if (!accessToken) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Invalid token.',
       });
     }
 
-    if (accessToken.isRevoked) {
-      return res.status(401).json({
-        success: false,
-        message: 'Token has been revoked.',
-      });
-    }
-
-    if (new Date() > accessToken.expiresAt) {
-      return res.status(401).json({
-        success: false,
-        message: 'Token has expired.',
-      });
-    }
-
-    if (!accessToken.user.isActive) {
+    if (!user.isActive) {
       return res.status(401).json({
         success: false,
         message: 'User account is inactive.',
@@ -70,7 +59,7 @@ const authenticate = async (req, res, next) => {
     }
 
     // Attach user to request
-    req.user = accessToken.user;
+    req.user = user;
     req.token = token;
 
     next();
