@@ -1,0 +1,314 @@
+// Prisma Schema for M19 Logistics Courier Management System
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  DRIVER
+  CUSTOMER
+  MANAGER
+}
+
+enum DeliveryStatus {
+  RECEIVED
+  ALLOCATED
+  DELIVERED
+  CANCELLED
+}
+
+enum TimeSlot {
+  AM
+  PM
+  SAME_DAY
+}
+
+enum TierType {
+  TIER_A
+  TIER_B
+}
+
+
+model User {
+  id                Int       @id @default(autoincrement())
+  email             String    @unique
+  username          String    @unique
+  password          String
+  fullName          String
+  phone             String?
+  role              UserRole
+  profilePicture    String?
+  isActive          Boolean   @default(true)
+  requirePasswordReset Boolean @default(false)
+  
+
+  depotAddress      String?
+  loginId           String?   @unique 
+  pricingTierId     Int?
+  customBasePrice   Decimal?  @db.Decimal(10, 2)
+  customVatRate     Decimal?  @db.Decimal(5, 2) @default(20.00)
+  
+ 
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastLogin         DateTime?
+  
+ 
+  pricingTier       PricingTier?       @relation(fields: [pricingTierId], references: [id])
+  deliveriesRequested Delivery[]       @relation("CustomerDeliveries")
+  deliveriesAssigned  Delivery[]       @relation("DriverDeliveries")
+  invoices          Invoice[]
+  auditLogs         AuditLog[]
+  driverFeedback    DriverFeedback[]
+  accessTokens      AccessToken[]
+  
+  @@index([email])
+  @@index([username])
+  @@index([role])
+}
+
+
+model AccessToken {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  token       String   @unique @db.Text
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  isRevoked   Boolean  @default(false)
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([userId])
+}
+
+
+model PricingTier {
+  id              Int       @id @default(autoincrement())
+  name            String    @unique 
+  tierCode        TierType  @unique
+  basePrice       Decimal   @db.Decimal(10, 2) 
+  vatRate         Decimal   @db.Decimal(5, 2) @default(20.00)
+  description     String?
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  users           User[]
+  
+  @@index([tierCode])
+}
+
+
+model Delivery {
+  id                    Int             @id @default(autoincrement())
+  
+ 
+  customerId            Int
+  driverId              Int?
+  
+  deliveryDate          DateTime
+  timeSlot              TimeSlot
+  weight                Decimal         @db.Decimal(10, 2) 
+  deliveryAddress       String
+  customerName          String
+  customerPhone         String
+  spoNumber             String
+  requestedBy           String
+  specialInstructions   String?
+  
+  status                DeliveryStatus  @default(RECEIVED)
+  isAdditionalDelivery  Boolean         @default(false)
+  parentDeliveryId      Int?
+  
+
+  distanceFromDepot     Decimal?        @db.Decimal(10, 2) 
+  calculatedBasePrice   Decimal?        @db.Decimal(10, 2)
+  distanceSurcharge     Decimal?        @db.Decimal(10, 2)
+  subtotal              Decimal?        @db.Decimal(10, 2)
+  vatAmount             Decimal?        @db.Decimal(10, 2)
+  totalPrice            Decimal?        @db.Decimal(10, 2)
+  
+
+  deliveredAt           DateTime?
+  receivedBy            String?
+  signatureUrl          String?
+  photoUrl              String?
+  
+
+  cancelledAt           DateTime?
+  cancellationReason    String?
+  cancelledBy           Int?
+  
+ 
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  
+  customer              User            @relation("CustomerDeliveries", fields: [customerId], references: [id])
+  driver                User?           @relation("DriverDeliveries", fields: [driverId], references: [id])
+  parentDelivery        Delivery?       @relation("AdditionalDeliveries", fields: [parentDeliveryId], references: [id])
+  additionalDeliveries  Delivery[]      @relation("AdditionalDeliveries")
+  extraCharges          ExtraCharge[]
+  auditLogs             AuditLog[]
+  driverFeedback        DriverFeedback?
+  invoiceItem           InvoiceItem?
+  
+  @@index([customerId])
+  @@index([driverId])
+  @@index([status])
+  @@index([deliveryDate])
+  @@index([spoNumber])
+}
+
+
+model ExtraCharge {
+  id          Int      @id @default(autoincrement())
+  deliveryId  Int
+  description String   
+  amount      Decimal  @db.Decimal(10, 2)
+  vatAmount   Decimal  @db.Decimal(10, 2)
+  totalAmount Decimal  @db.Decimal(10, 2)
+  
+  createdAt   DateTime @default(now())
+  createdBy   Int?
+  
+  delivery    Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  
+  @@index([deliveryId])
+}
+
+model Invoice {
+  id              Int           @id @default(autoincrement())
+  invoiceNumber   String        @unique 
+  customerId      Int
+  
+  
+  weekStartDate   DateTime
+  weekEndDate     DateTime
+  invoiceDate     DateTime      @default(now())
+  
+  
+  subtotal        Decimal       @db.Decimal(10, 2)
+  vatTotal        Decimal       @db.Decimal(10, 2)
+  grandTotal      Decimal       @db.Decimal(10, 2)
+  
+  
+  paymentTerms    String        @default("30 Days (End of Month)")
+  isPaid          Boolean       @default(false)
+  paidAt          DateTime?
+  
+ 
+  pdfUrl          String?
+  
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+ 
+  customer        User          @relation(fields: [customerId], references: [id])
+  items           InvoiceItem[]
+  
+  @@index([customerId])
+  @@index([invoiceNumber])
+  @@index([weekStartDate])
+}
+
+model InvoiceItem {
+  id          Int      @id @default(autoincrement())
+  invoiceId   Int
+  deliveryId  Int      @unique
+  
+  description String   
+  quantity    Int      @default(1)
+  unitCost    Decimal  @db.Decimal(10, 2)
+  vatAmount   Decimal  @db.Decimal(10, 2)
+  total       Decimal  @db.Decimal(10, 2)
+  
+  isAdditional Boolean @default(false) 
+  
+  createdAt   DateTime @default(now())
+  
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  delivery    Delivery @relation(fields: [deliveryId], references: [id])
+  
+  @@index([invoiceId])
+  @@index([deliveryId])
+}
+
+
+model DriverFeedback {
+  id          Int      @id @default(autoincrement())
+  deliveryId  Int      @unique
+  driverId    Int
+  
+  notes       String   @db.Text
+  
+  createdAt   DateTime @default(now())
+  
+  delivery    Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  driver      User     @relation(fields: [driverId], references: [id])
+  
+  @@index([driverId])
+  @@index([createdAt])
+}
+
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  deliveryId  Int?
+  
+  action      String   
+  description String   @db.Text 
+  reason      String?  
+  
+  beforeData  Json?    
+  afterData   Json?    
+  
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  user        User?    @relation(fields: [userId], references: [id])
+  delivery    Delivery? @relation(fields: [deliveryId], references: [id])
+  
+  @@index([userId])
+  @@index([deliveryId])
+  @@index([createdAt])
+}
+
+
+model SlotAvailability {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @db.Date
+  timeSlot    TimeSlot
+  
+  maxCapacity Int      @default(10) 
+  booked      Int      @default(0)  
+  isFull      Boolean  @default(false)
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([date, timeSlot])
+  @@index([date])
+}
+
+
+model SystemSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String   @db.Text
+  description String?
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@index([key])
+}
