@@ -4,6 +4,7 @@
   "description": "M19 Logistics - Courier Management System",
   "main": "src/server.js",
   "scripts": {
+    "build": "prisma generate",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "prisma:generate": "prisma generate",
@@ -11,6 +12,9 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
     "test": "jest"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [
     "courier",
