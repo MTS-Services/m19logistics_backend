@@ -948,6 +948,428 @@ Profile not found:
 
 ---
 
+## 📦 Delivery Management Routes
+
+### 1. Get Delivery Statistics
+**GET** `/api/deliveries/stats`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "pending": 1,
+    "allocated": 1,
+    "completed": 1,
+    "cancelled": 23,
+    "total": 26
+  }
+}
+```
+
+---
+
+### 2. Create Delivery Request
+**POST** `/api/deliveries`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Body (JSON):**
+```json
+{
+  "spoNumber": "SPO013349",
+  "deliveryDate": "2026-01-20",
+  "timeSlot": "AM",
+  "weight": 800,
+  "deliveryAddress": "4 Bumpers Lane, Chester, CH1 4LY",
+  "customerName": "John Smith",
+  "customerPhone": "07123456789",
+  "requestedBy": "Sarah Williams",
+  "specialInstructions": "Please call before arrival"
+}
+```
+
+**Time Slots:** `AM`, `PM`, `SAME_DAY`
+
+**Note:** For same-day delivery, use `SAME_DAY` time slot. System will show warning to call for confirmation.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Delivery request created successfully",
+  "data": {
+    "id": 1,
+    "spoNumber": "SPO013349",
+    "deliveryDate": "2026-01-20T00:00:00.000Z",
+    "timeSlot": "AM",
+    "weight": 800,
+    "deliveryAddress": "4 Bumpers Lane, Chester, CH1 4LY",
+    "customerName": "John Smith",
+    "customerPhone": "07123456789",
+    "requestedBy": "Sarah Williams",
+    "specialInstructions": "Please call before arrival",
+    "status": "RECEIVED",
+    "distanceFromDepot": 25,
+    "calculatedBasePrice": 37.50,
+    "distanceSurcharge": 0,
+    "subtotal": 37.50,
+    "vatAmount": 7.50,
+    "totalPrice": 45.00,
+    "createdAt": "2026-01-15T10:30:00.000Z",
+    "customer": {
+      "id": 2,
+      "fullName": "Topps Chester",
+      "email": "topps022@toppstiles.co.uk",
+      "loginId": "T022"
+    }
+  }
+}
+```
+
+---
+
+### 3. Get All My Deliveries (with filters)
+**GET** `/api/deliveries`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Query Parameters (all optional):**
+- `status`: `ALL`, `RECEIVED`, `ALLOCATED`, `DELIVERED`, `CANCELLED`
+- `startDate`: `2026-01-01`
+- `endDate`: `2026-01-31`
+- `search`: Search in SPO, address, or customer name
+
+**Examples:**
+- All deliveries: `/api/deliveries`
+- Pending only: `/api/deliveries?status=RECEIVED`
+- Completed: `/api/deliveries?status=DELIVERED`
+- Date range: `/api/deliveries?startDate=2026-01-01&endDate=2026-01-31`
+- Search: `/api/deliveries?search=SPO013349`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "spoNumber": "SPO013349",
+      "deliveryDate": "2026-01-20T00:00:00.000Z",
+      "timeSlot": "AM",
+      "weight": 800,
+      "deliveryAddress": "4 Bumpers Lane, Chester, CH1 4LY",
+      "customerName": "John Smith",
+      "status": "RECEIVED",
+      "totalPrice": 45.00,
+      "driver": null,
+      "extraCharges": [],
+      "createdAt": "2026-01-15T10:30:00.000Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### 4. Get Delivery Details by ID
+**GET** `/api/deliveries/:id`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Example:** `/api/deliveries/1`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "spoNumber": "SPO013349",
+    "deliveryDate": "2026-01-20T00:00:00.000Z",
+    "timeSlot": "AM",
+    "weight": 800,
+    "deliveryAddress": "4 Bumpers Lane, Chester, CH1 4LY",
+    "customerName": "John Smith",
+    "customerPhone": "07123456789",
+    "requestedBy": "Sarah Williams",
+    "specialInstructions": "Please call before arrival",
+    "status": "RECEIVED",
+    "distanceFromDepot": 25,
+    "calculatedBasePrice": 37.50,
+    "subtotal": 37.50,
+    "vatAmount": 7.50,
+    "totalPrice": 45.00,
+    "customer": {
+      "id": 2,
+      "fullName": "Topps Chester",
+      "email": "topps022@toppstiles.co.uk",
+      "depotAddress": "4 Bumpers Lane, Sealand Ind Est, Chester, CH1 4LY"
+    },
+    "driver": null,
+    "extraCharges": [],
+    "driverFeedback": null
+  }
+}
+```
+
+---
+
+### 5. Update Delivery
+**PUT** `/api/deliveries/:id`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Note:** Can only edit deliveries with `RECEIVED` status
+
+**Body (JSON) - Update any field:**
+```json
+{
+  "deliveryDate": "2026-01-21",
+  "timeSlot": "PM",
+  "deliveryAddress": "New Address, Chester, CH1 5XY",
+  "specialInstructions": "Updated instructions"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Delivery updated successfully",
+  "data": {
+    "id": 1,
+    "spoNumber": "SPO013349",
+    "deliveryDate": "2026-01-21T00:00:00.000Z",
+    "timeSlot": "PM",
+    "deliveryAddress": "New Address, Chester, CH1 5XY",
+    "specialInstructions": "Updated instructions",
+    "status": "RECEIVED"
+  }
+}
+```
+
+**Error Response (if not editable):**
+```json
+{
+  "success": false,
+  "message": "Cannot edit delivery once it has been allocated"
+}
+```
+
+---
+
+### 6. Cancel Delivery
+**POST** `/api/deliveries/:id/cancel`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Note:** Can only cancel `RECEIVED` or `ALLOCATED` deliveries
+
+**Body (JSON):**
+```json
+{
+  "reason": "Customer requested cancellation due to closure"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Delivery cancelled successfully",
+  "data": {
+    "id": 1,
+    "spoNumber": "SPO013349",
+    "status": "CANCELLED",
+    "cancelledAt": "2026-01-15T11:00:00.000Z",
+    "cancellationReason": "Customer requested cancellation due to closure"
+  }
+}
+```
+
+---
+
+### 7. Delete Delivery
+**DELETE** `/api/deliveries/:id`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Note:** Can only delete deliveries with `RECEIVED` status
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Delivery deleted successfully"
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "Can only delete pending deliveries"
+}
+```
+
+---
+
+## 🧾 Invoice Routes
+
+### 1. Get All My Invoices
+**GET** `/api/invoices`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Query Parameters (all optional):**
+- `startDate`: `2026-01-01`
+- `endDate`: `2026-01-31`
+- `isPaid`: `true` or `false`
+
+**Examples:**
+- All invoices: `/api/invoices`
+- Unpaid only: `/api/invoices?isPaid=false`
+- Date range: `/api/invoices?startDate=2026-01-01&endDate=2026-01-31`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "invoiceNumber": "T0326",
+      "invoiceDate": "2026-01-12T00:00:00.000Z",
+      "weekStartDate": "2026-01-06T00:00:00.000Z",
+      "weekEndDate": "2026-01-12T00:00:00.000Z",
+      "subtotal": 112.50,
+      "vatTotal": 22.50,
+      "grandTotal": 135.00,
+      "isPaid": true,
+      "paidAt": "2026-01-15T10:00:00.000Z",
+      "paymentTerms": "30 Days (End of Month)",
+      "items": [
+        {
+          "id": 1,
+          "description": "Cust. Ref: SPO013349 / 1/10/2026 / 4 Bumpers Lane, Chester, CH1 4LY",
+          "quantity": 1,
+          "unitCost": 37.50,
+          "vatAmount": 7.50,
+          "total": 45.00,
+          "delivery": {
+            "spoNumber": "SPO013349",
+            "deliveryDate": "2026-01-10T00:00:00.000Z",
+            "deliveryAddress": "4 Bumpers Lane, Chester, CH1 4LY"
+          }
+        }
+      ]
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### 2. Get Invoice by ID
+**GET** `/api/invoices/:id`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Example:** `/api/invoices/1`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "invoiceNumber": "T0326",
+    "invoiceDate": "2026-01-12T00:00:00.000Z",
+    "weekStartDate": "2026-01-06T00:00:00.000Z",
+    "weekEndDate": "2026-01-12T00:00:00.000Z",
+    "subtotal": 112.50,
+    "vatTotal": 22.50,
+    "grandTotal": 135.00,
+    "isPaid": true,
+    "customer": {
+      "fullName": "Topps Chester",
+      "email": "topps022@toppstiles.co.uk",
+      "depotAddress": "4 Bumpers Lane, Sealand Ind Est, Chester, CH1 4LY"
+    },
+    "items": [
+      {
+        "description": "Cust. Ref: SPO013349 / 1/10/2026 / 4 Bumpers Lane, Chester",
+        "unitCost": 37.50,
+        "vatAmount": 7.50,
+        "total": 45.00,
+        "delivery": {
+          "spoNumber": "SPO013349",
+          "deliveryDate": "2026-01-10T00:00:00.000Z"
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 3. Get Invoice by Number
+**GET** `/api/invoices/number/:invoiceNumber`
+
+**Headers:**
+```
+Authorization: Bearer <customer-token>
+Content-Type: application/json
+```
+
+**Example:** `/api/invoices/number/T0326`
+
+**Response:** Same as Get Invoice by ID
+
+---
+
 ## 🧪 Testing Workflow
 
 ### Step 1: Test Health Check

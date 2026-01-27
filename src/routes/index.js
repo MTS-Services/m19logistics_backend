@@ -1,5 +1,8 @@
 const express = require('express');
 const authRoutes = require('./authRoutes');
+const deliveryRoutes = require('./deliveryRoutes');
+const invoiceRoutes = require('./invoiceRoutes');
+const adminRoutes = require('./adminRoutes');
 
 const router = express.Router();
 
@@ -14,6 +17,9 @@ router.get('/health', (req, res) => {
 
 // Mount routes
 router.use('/auth', authRoutes);
+router.use('/deliveries', deliveryRoutes);
+router.use('/invoices', invoiceRoutes);
+router.use('/admin', adminRoutes);
 
 
 router.use((req, res) => {

@@ -46,50 +46,68 @@ async function main() {
     {
       email: 'topps022@toppstiles.co.uk',
       username: 'T022',
-      loginId: 'T022',
       fullName: 'Topps Chester',
-      depotAddress: '4 Bumpers Lane, Sealand Ind Est, Chester, CH1 4LY',
-      pricingTierId: tierB.id,
+      profile: {
+        storeName: 'Topps Chester',
+        loginId: 'T022',
+        depotAddress: '4 Bumpers Lane, Sealand Ind Est, Chester, CH1 4LY',
+        pricingTierId: tierB.id,
+      }
     },
     {
       email: 'topps226@toppstiles.co.uk',
       username: 'T226',
-      loginId: 'T226',
       fullName: 'Topps Nantwich',
-      depotAddress: 'Unit 1, Nantwich Trade Park, CW5 6HL',
-      pricingTierId: tierB.id,
+      profile: {
+        storeName: 'Topps Nantwich',
+        loginId: 'T226',
+        depotAddress: 'Unit 1, Nantwich Trade Park, CW5 6HL',
+        pricingTierId: tierB.id,
+      }
     },
     {
       email: 'topps167@toppstiles.co.uk',
       username: 'T167',
-      loginId: 'T167',
       fullName: 'Topps Newcastle',
-      depotAddress: 'Unit 4, Lyme Court, ST5 3TF',
-      pricingTierId: tierA.id, // Custom pricing
+      profile: {
+        storeName: 'Topps Newcastle',
+        loginId: 'T167',
+        depotAddress: 'Unit 4, Lyme Court, ST5 3TF',
+        pricingTierId: tierA.id, // Custom pricing
+      }
     },
     {
       email: 'topps143@toppstiles.co.uk',
       username: 'T143',
-      loginId: 'T143',
       fullName: 'Topps Northwich',
-      depotAddress: 'Wadebrook Retail Park, CW9 5NN',
-      pricingTierId: tierB.id,
+      profile: {
+        storeName: 'Topps Northwich',
+        loginId: 'T143',
+        depotAddress: 'Wadebrook Retail Park, CW9 5NN',
+        pricingTierId: tierB.id,
+      }
     },
     {
       email: 'topps211@toppstiles.co.uk',
       username: 'T211',
-      loginId: 'T211',
       fullName: 'Topps Rhyl',
-      depotAddress: '152 Vale Road, Rhyl, LL18 2PD',
-      pricingTierId: tierB.id,
+      profile: {
+        storeName: 'Topps Rhyl',
+        loginId: 'T211',
+        depotAddress: '152 Vale Road, Rhyl, LL18 2PD',
+        pricingTierId: tierB.id,
+      }
     },
     {
       email: 'topps217@toppstiles.co.uk',
       username: 'T217',
-      loginId: 'T217',
       fullName: 'Topps Wrexham',
-      depotAddress: 'Unit 7-9 Cambrian Price Ind. Est., Wrexham LL13 8DL',
-      pricingTierId: tierB.id,
+      profile: {
+        storeName: 'Topps Wrexham',
+        loginId: 'T217',
+        depotAddress: 'Unit 7-9 Cambrian Price Ind. Est., Wrexham LL13 8DL',
+        pricingTierId: tierB.id,
+      }
     },
   ];
 
@@ -98,11 +116,16 @@ async function main() {
       where: { email: customer.email },
       update: {},
       create: {
-        ...customer,
+        email: customer.email,
+        username: customer.username,
+        fullName: customer.fullName,
         password: defaultPassword,
         role: 'CUSTOMER',
         requirePasswordReset: true,
         phone: '01244398888', // Default phone, can be updated
+        customerProfile: {
+          create: customer.profile
+        }
       },
     });
   }
@@ -123,6 +146,12 @@ async function main() {
       phone: '07971415430',
       requirePasswordReset: true,
       profilePicture: '/uploads/profile_pics/bk.jpg', // Will need to upload actual image
+      driverProfile: {
+        create: {
+          isActiveDriver: true,
+          enableEmailNotifications: true,
+        }
+      }
     },
   });
 

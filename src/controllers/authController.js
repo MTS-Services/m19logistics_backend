@@ -60,10 +60,9 @@ class AuthController {
         });
       }
 
-      // Hash password
       const hashedPassword = await authService.hashPassword(password);
 
-      // Prepare base user data
+      
       const userData = {
         email,
         username,
@@ -74,10 +73,8 @@ class AuthController {
         requirePasswordReset: true, // User must reset password on first login
       };
 
-      // Create user
       const user = await userService.createUser(userData);
 
-      // Create role-specific profile
       let profile = null;
       
       switch (role) {
@@ -112,11 +109,9 @@ class AuthController {
           break;
 
         case 'ADMIN':
-          // Admin doesn't need a profile
+         
           break;
       }
-
-      // Generate token
       const token = await authService.generateToken(user.id);
 
       res.status(201).json({
@@ -155,7 +150,6 @@ class AuthController {
         });
       }
 
-      // Check if user is active
       if (!user.isActive) {
         return res.status(401).json({
           success: false,
@@ -163,7 +157,6 @@ class AuthController {
         });
       }
 
-      // Verify password
       const isPasswordValid = await authService.comparePassword(
         password,
         user.password
@@ -176,13 +169,10 @@ class AuthController {
         });
       }
 
-      // Generate token
       const token = await authService.generateToken(user.id);
 
-      // Update last login
       await userService.updateLastLogin(user.id);
 
-      // Remove password from response
       delete user.password;
 
       res.json({
@@ -207,8 +197,6 @@ class AuthController {
 
   async logout(req, res) {
     try {
-      // With stateless JWT, logout is handled client-side by removing the token
-      // Server doesn't need to track tokens anymore
       res.json({
         success: true,
         message: 'Logout successful. Please remove the token from client.',
@@ -264,16 +252,13 @@ class AuthController {
         });
       }
 
-      // Hash new password
       const hashedPassword = await authService.hashPassword(newPassword);
 
-      // Update password
       await userService.updateUser(userId, {
         password: hashedPassword,
         requirePasswordReset: false,
       });
 
-      // Generate new token
       const token = await authService.generateToken(userId);
 
       res.json({
@@ -291,10 +276,6 @@ class AuthController {
     }
   }
 
-  /**
-   * Update user's own profile based on their role
-   * PATCH /api/auth/profile
-   */
   async updateProfile(req, res) {
     try {
       const userId = req.user.id;
@@ -326,10 +307,9 @@ class AuthController {
         assignedStoreCount,
       } = req.body;
 
-      // Update base user information
+      
       const userUpdateData = {};
       
-      // Check if email is being changed and if it's already taken
       if (email !== undefined && email !== req.user.email) {
         const existingEmail = await userService.findByEmail(email);
         if (existingEmail) {
@@ -341,7 +321,6 @@ class AuthController {
         userUpdateData.email = email;
       }
 
-      // Check if username is being changed and if it's already taken
       if (username !== undefined && username !== req.user.username) {
         const existingUsername = await userService.findByUsername(username);
         if (existingUsername) {
@@ -357,13 +336,11 @@ class AuthController {
       if (phone !== undefined) userUpdateData.phone = phone;
       if (profilePicture !== undefined) userUpdateData.profilePicture = profilePicture;
 
-      // Update base user if there are changes
       let updatedUser = null;
       if (Object.keys(userUpdateData).length > 0) {
         updatedUser = await userService.updateUser(userId, userUpdateData);
       }
 
-      // Update role-specific profile
       let updatedProfile = null;
 
       switch (role) {
@@ -409,8 +386,7 @@ class AuthController {
           break;
         }
 
-        case 'ADMIN':
-          // Admin can only update base user info, no profile
+        case 'ADMIN':    
           if (Object.keys(userUpdateData).length === 0) {
             return res.status(400).json({
               success: false,
@@ -425,8 +401,6 @@ class AuthController {
             message: 'Invalid user role.',
           });
       }
-
-      // Fetch complete updated user data
       const completeUser = await userService.findById(userId);
 
       res.json({

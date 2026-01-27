@@ -1,9 +1,7 @@
 const prisma = require('../config/database');
 
 class ManagerService {
-  /**
-   * Create manager profile
-   */
+
   async createProfile(userId, profileData) {
     return prisma.managerProfile.create({
       data: {
@@ -13,18 +11,12 @@ class ManagerService {
     });
   }
 
-  /**
-   * Get manager profile by user ID
-   */
   async getProfileByUserId(userId) {
     return prisma.managerProfile.findUnique({
       where: { userId },
     });
   }
 
-  /**
-   * Update manager profile
-   */
   async updateProfile(userId, updateData) {
     return prisma.managerProfile.update({
       where: { userId },
@@ -32,9 +24,7 @@ class ManagerService {
     });
   }
 
-  /**
-   * Get all managers
-   */
+
   async getAllManagers() {
     return prisma.managerProfile.findMany({
       include: {

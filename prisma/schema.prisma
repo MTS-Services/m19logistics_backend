@@ -46,16 +46,15 @@ model User {
   isActive          Boolean   @default(true)
   requirePasswordReset Boolean @default(false)
   
+ 
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   lastLogin         DateTime?
   
-  // Role-specific profiles (one-to-one relationships)
+ 
   customerProfile   CustomerProfile?
   driverProfile     DriverProfile?
   managerProfile    ManagerProfile?
-  
-  // Relations
   deliveriesRequested Delivery[]       @relation("CustomerDeliveries")
   deliveriesAssigned  Delivery[]       @relation("DriverDeliveries")
   invoices          Invoice[]
@@ -67,87 +66,79 @@ model User {
   @@index([role])
 }
 
-
-
 model CustomerProfile {
   id                Int       @id @default(autoincrement())
   userId            Int       @unique
-  
-  storeName         String?   
-  depotAddress      String?   
-  loginId           String?   @unique 
-  pricingTierId     Int?      
+  storeName         String?
+  depotAddress      String?
+  loginId           String?   @unique
+  pricingTierId     Int?
   customBasePrice   Decimal?  @db.Decimal(10, 2)
   customVatRate     Decimal?  @db.Decimal(5, 2) @default(20.00)
-  accessScope       String?   
+  accessScope       String?
   
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pricingTier       PricingTier? @relation(fields: [pricingTierId], references: [id])
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pricingTier       PricingTier?    @relation(fields: [pricingTierId], references: [id])
   
-  @@index([loginId])
   @@index([userId])
+  @@index([loginId])
 }
-
-
 
 model DriverProfile {
-  id                    Int       @id @default(autoincrement())
-  userId                Int       @unique
+  id                      Int       @id @default(autoincrement())
+  userId                  Int       @unique
+  vehicleRegistration     String?
+  driverLicenseNumber     String?
+  address                 String?
+  isActiveDriver          Boolean   @default(true)
+  enableSmsNotifications  Boolean   @default(false)
+  enableEmailNotifications Boolean  @default(true)
   
-  vehicleRegistration   String?   
-  driverLicenseNumber   String?   
-  address               String?   
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
   
-
-  isActiveDriver        Boolean   @default(true) 
-  enableSmsNotifications Boolean  @default(false) 
-  enableEmailNotifications Boolean @default(true) 
-  
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
 }
-
 
 model ManagerProfile {
-  id                Int       @id @default(autoincrement())
-  userId            Int       @unique
+  id                  Int       @id @default(autoincrement())
+  userId              Int       @unique
+  officeAddress       String?
+  accessScope         String?
+  assignedStoreCount  Int?
   
-  officeAddress     String?   
-  accessScope       String?   
-  assignedStoreCount Int?     
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
   
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
 }
-
 
 
 model PricingTier {
-  id              Int       @id @default(autoincrement())
-  name            String    @unique 
-  tierCode        TierType  @unique
-  basePrice       Decimal   @db.Decimal(10, 2) 
-  vatRate         Decimal   @db.Decimal(5, 2) @default(20.00)
-  description     String?
-  isActive        Boolean   @default(true)
+  id                Int       @id @default(autoincrement())
+  name              String    @unique 
+  description       String?
+  basePrice         Decimal   @db.Decimal(10, 2)
+  vatRate           Decimal   @db.Decimal(5, 2) @default(20.00)
+  weightUnit        Int       @default(800) // Weight per block in kg
+  maxDistance       Int       @default(45)  // Base distance in miles
+  surchargeRate     Decimal   @db.Decimal(3, 2) @default(0.5) // Rate for distance surcharge (0-1)
+  isDefault         Boolean   @default(false)
+  isActive          Boolean   @default(true)
   
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
   
-  customerProfiles CustomerProfile[]
+  customerProfiles  CustomerProfile[]
   
-  @@index([tierCode])
+  @@index([name])
 }
 
 

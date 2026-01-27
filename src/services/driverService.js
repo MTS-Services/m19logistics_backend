@@ -1,9 +1,7 @@
 const prisma = require('../config/database');
 
 class DriverService {
-  /**
-   * Create driver profile
-   */
+
   async createProfile(userId, profileData) {
     return prisma.driverProfile.create({
       data: {
@@ -13,18 +11,12 @@ class DriverService {
     });
   }
 
-  /**
-   * Get driver profile by user ID
-   */
   async getProfileByUserId(userId) {
     return prisma.driverProfile.findUnique({
       where: { userId },
     });
   }
 
-  /**
-   * Update driver profile
-   */
   async updateProfile(userId, updateData) {
     return prisma.driverProfile.update({
       where: { userId },
@@ -32,9 +24,6 @@ class DriverService {
     });
   }
 
-  /**
-   * Get all active drivers
-   */
   async getActiveDrivers() {
     return prisma.driverProfile.findMany({
       where: {
@@ -59,9 +48,7 @@ class DriverService {
     });
   }
 
-  /**
-   * Toggle driver active status
-   */
+
   async toggleActiveStatus(userId, isActive) {
     return prisma.driverProfile.update({
       where: { userId },
@@ -69,9 +56,7 @@ class DriverService {
     });
   }
 
-  /**
-   * Update notification preferences
-   */
+
   async updateNotificationPreferences(userId, smsEnabled, emailEnabled) {
     return prisma.driverProfile.update({
       where: { userId },
