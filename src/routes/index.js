@@ -3,6 +3,7 @@ const authRoutes = require('./authRoutes');
 const deliveryRoutes = require('./deliveryRoutes');
 const invoiceRoutes = require('./invoiceRoutes');
 const adminRoutes = require('./adminRoutes');
+const driverRoutes = require('./driverRoutes');
 
 const router = express.Router();
 
@@ -20,6 +21,7 @@ router.use('/auth', authRoutes);
 router.use('/deliveries', deliveryRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/admin', adminRoutes);
+router.use('/driver', driverRoutes);
 
 
 router.use((req, res) => {

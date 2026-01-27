@@ -229,6 +229,8 @@ model Invoice {
   weekStartDate   DateTime
   weekEndDate     DateTime
   invoiceDate     DateTime      @default(now())
+  dueDate         DateTime?
+  status          String        @default("Draft")
   
   
   subtotal        Decimal       @db.Decimal(10, 2)
@@ -237,6 +239,8 @@ model Invoice {
   
   
   paymentTerms    String        @default("30 Days (End of Month)")
+  customerRef     String?
+  notes           String?
   isPaid          Boolean       @default(false)
   paidAt          DateTime?
   
@@ -259,8 +263,9 @@ model Invoice {
 model InvoiceItem {
   id          Int      @id @default(autoincrement())
   invoiceId   Int
-  deliveryId  Int      @unique
+  deliveryId  Int?     @unique
   
+  spoNumber   String?
   description String   
   quantity    Int      @default(1)
   unitCost    Decimal  @db.Decimal(10, 2)
@@ -272,7 +277,7 @@ model InvoiceItem {
   createdAt   DateTime @default(now())
   
   invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  delivery    Delivery @relation(fields: [deliveryId], references: [id])
+  delivery    Delivery? @relation(fields: [deliveryId], references: [id])
   
   @@index([invoiceId])
   @@index([deliveryId])

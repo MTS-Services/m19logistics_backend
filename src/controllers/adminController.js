@@ -144,6 +144,52 @@ exports.updateDeliveryStatus = async (req, res, next) => {
   }
 };
 
+exports.addExtraCharge = async (req, res, next) => {
+  try {
+    const charge = await adminService.addExtraCharge(
+      parseInt(req.params.id),
+      req.body
+    );
+    
+    res.json({
+      success: true,
+      message: 'Extra charge added successfully',
+      data: charge,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.removeExtraCharge = async (req, res, next) => {
+  try {
+    await adminService.removeExtraCharge(parseInt(req.params.chargeId));
+    
+    res.json({
+      success: true,
+      message: 'Extra charge removed successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getDeliveryExtraCharges = async (req, res, next) => {
+  try {
+    const charges = await adminService.getDeliveryExtraCharges(
+      parseInt(req.params.id)
+    );
+    
+    res.json({
+      success: true,
+      data: charges,
+      count: charges.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ==================== PRICING TIER MANAGEMENT ====================
 
 exports.getAllPricingTiers = async (req, res, next) => {
@@ -225,6 +271,38 @@ exports.generateInvoice = async (req, res, next) => {
   }
 };
 
+exports.generateWeeklyInvoicesForAll = async (req, res, next) => {
+  try {
+    const invoiceGenerationService = require('../services/invoiceGenerationService');
+    const { weekStartDate, weekEndDate } = req.body;
+    
+    const result = await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
+      weekStartDate,
+      weekEndDate
+    );
+    
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.generateLastWeekInvoices = async (req, res, next) => {
+  try {
+    const invoiceGenerationService = require('../services/invoiceGenerationService');
+    const { weekStartDate, weekEndDate } = invoiceGenerationService.getLastWeekRange();
+    
+    const result = await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
+      weekStartDate,
+      weekEndDate
+    );
+    
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getAllInvoices = async (req, res, next) => {
   try {
     const invoices = await adminService.getAllInvoices(req.query);
@@ -264,6 +342,45 @@ exports.addExtraCharge = async (req, res, next) => {
       success: true,
       message: 'Extra charge added successfully',
       data: item,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==================== INVOICE EDITING ====================
+
+exports.getInvoiceById = async (req, res, next) => {
+  try {
+    const invoice = await adminService.getInvoiceById(parseInt(req.params.id));
+    
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: invoice,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateInvoice = async (req, res, next) => {
+  try {
+    const invoice = await adminService.updateInvoiceComplete(
+      parseInt(req.params.id),
+      req.body
+    );
+    
+    res.json({
+      success: true,
+      message: 'Invoice updated successfully',
+      data: invoice,
     });
   } catch (error) {
     next(error);

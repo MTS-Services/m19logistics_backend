@@ -367,6 +367,46 @@ class AdminService {
     });
   }
 
+  /**
+   * Add extra charge to a delivery
+   */
+  async addExtraCharge(deliveryId, chargeData) {
+    const delivery = await prisma.delivery.findUnique({
+      where: { id: deliveryId },
+    });
+
+    if (!delivery) {
+      throw new Error('Delivery not found');
+    }
+
+    return prisma.extraCharge.create({
+      data: {
+        deliveryId,
+        description: chargeData.description,
+        amount: chargeData.amount,
+      },
+    });
+  }
+
+  /**
+   * Remove extra charge from a delivery
+   */
+  async removeExtraCharge(chargeId) {
+    return prisma.extraCharge.delete({
+      where: { id: chargeId },
+    });
+  }
+
+  /**
+   * Get all extra charges for a delivery
+   */
+  async getDeliveryExtraCharges(deliveryId) {
+    return prisma.extraCharge.findMany({
+      where: { deliveryId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   // ==================== PRICING TIER MANAGEMENT ====================
 
  
@@ -597,6 +637,150 @@ class AdminService {
     });
 
     return item;
+  }
+
+  // ==================== INVOICE EDITING ====================
+
+  async getInvoiceById(invoiceId) {
+    return prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        customer: {
+          include: {
+            customerProfile: {
+              include: { pricingTier: true }
+            }
+          }
+        },
+        items: {
+          include: {
+            delivery: {
+              include: {
+                customer: {
+                  include: { customerProfile: true }
+                },
+                driver: {
+                  include: { driverProfile: true }
+                },
+                extraCharges: true,
+              }
+            }
+          },
+          orderBy: { id: 'asc' }
+        }
+      }
+    });
+  }
+
+  async updateInvoiceComplete(invoiceId, updateData) {
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { items: true }
+    });
+
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+
+    if (invoice.isPaid && !updateData.allowEditPaid) {
+      throw new Error('Cannot edit a paid invoice. Contact finance team for adjustments.');
+    }
+
+    // Validate invoice number uniqueness if provided
+    if (updateData.invoiceNumber && updateData.invoiceNumber !== invoice.invoiceNumber) {
+      const existing = await prisma.invoice.findFirst({
+        where: {
+          invoiceNumber: updateData.invoiceNumber,
+          id: { not: invoiceId }
+        }
+      });
+      if (existing) {
+        throw new Error(`Invoice number ${updateData.invoiceNumber} already exists`);
+      }
+    }
+
+    // Build invoice update data
+    const invoiceUpdateData = {};
+    const allowedFields = ['invoiceNumber', 'customerId', 'invoiceDate', 'dueDate', 'status', 'customerRef', 'notes', 'paymentTerms'];
+    
+    for (const field of allowedFields) {
+      if (updateData[field] !== undefined) {
+        if (field === 'invoiceDate' || field === 'dueDate') {
+          invoiceUpdateData[field] = new Date(updateData[field]);
+        } else {
+          invoiceUpdateData[field] = updateData[field];
+        }
+      }
+    }
+
+    // Handle items update if provided
+    if (updateData.items && Array.isArray(updateData.items)) {
+      // Delete all existing items
+      await prisma.invoiceItem.deleteMany({
+        where: { invoiceId }
+      });
+
+      // Create new items
+      const itemsToCreate = updateData.items.map(item => ({
+        invoiceId,
+        deliveryId: item.deliveryId || null,
+        spoNumber: item.spoNumber || null,
+        description: item.description,
+        quantity: item.quantity || 1,
+        unitCost: parseFloat(item.unitCost),
+        vatAmount: parseFloat(item.vatAmount),
+        total: parseFloat(item.total),
+        isAdditional: item.isAdditional || false,
+      }));
+
+      if (itemsToCreate.length > 0) {
+        await prisma.invoiceItem.createMany({
+          data: itemsToCreate
+        });
+      }
+
+      // Recalculate totals based on new items
+      let subtotal = 0;
+      let vatTotal = 0;
+      let grandTotal = 0;
+
+      itemsToCreate.forEach(item => {
+        const itemSubtotal = item.quantity * item.unitCost;
+        const itemVat = item.vatAmount;
+        const itemTotal = item.total;
+
+        subtotal += itemSubtotal;
+        vatTotal += itemVat;
+        grandTotal += itemTotal;
+      });
+
+      invoiceUpdateData.subtotal = subtotal.toFixed(2);
+      invoiceUpdateData.vatTotal = vatTotal.toFixed(2);
+      invoiceUpdateData.grandTotal = grandTotal.toFixed(2);
+    }
+
+    // Update the invoice
+    const updatedInvoice = await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: invoiceUpdateData,
+      include: {
+        customer: {
+          include: {
+            customerProfile: {
+              include: { pricingTier: true }
+            }
+          }
+        },
+        items: {
+          include: {
+            delivery: true
+          },
+          orderBy: { id: 'asc' }
+        }
+      }
+    });
+
+    return updatedInvoice;
   }
 
   // ==================== SLOT AVAILABILITY MANAGEMENT ====================

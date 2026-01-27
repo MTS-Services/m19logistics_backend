@@ -287,7 +287,6 @@ class AuthController {
         username,
         fullName,
         phone,
-        profilePicture,
         // Customer-specific fields
         storeName,
         depotAddress,
@@ -315,8 +314,7 @@ class AuthController {
         if (existingEmail) {
           return res.status(400).json({
             success: false,
-            message: 'Email already registered.',
-          });
+            message: 'Email already registered.',n          });
         }
         userUpdateData.email = email;
       }
@@ -334,7 +332,12 @@ class AuthController {
 
       if (fullName !== undefined) userUpdateData.fullName = fullName;
       if (phone !== undefined) userUpdateData.phone = phone;
-      if (profilePicture !== undefined) userUpdateData.profilePicture = profilePicture;
+      
+      // Handle uploaded profile picture
+      if (req.file) {
+        // Save relative path (e.g., '/uploads/profiles/1738051234567-5-avatar.jpg')
+        userUpdateData.profilePicture = `/uploads/profiles/${req.file.filename}`;
+      }
 
       let updatedUser = null;
       if (Object.keys(userUpdateData).length > 0) {

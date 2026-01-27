@@ -2,6 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const authController = require('../controllers/authController');
 const authenticate = require('../middleware/authenticate');
+const uploadMiddleware = require('../middleware/upload');
 const validate = require('../middleware/validate');
 
 const router = express.Router();
@@ -49,7 +50,7 @@ router.post(
   authController.changePassword
 );
 
-// Update user's own profile
-router.patch('/profile', authenticate, authController.updateProfile);
+// Update user's own profile (with optional profilePicture upload)
+router.patch('/profile', authenticate, uploadMiddleware.profilePicture, authController.updateProfile);
 
 module.exports = router;

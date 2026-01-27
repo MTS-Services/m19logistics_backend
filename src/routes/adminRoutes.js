@@ -66,6 +66,26 @@ router.put(
   adminController.updateDeliveryStatus
 );
 
+router.post(
+  '/deliveries/:id/extra-charges',
+  [
+    body('description').notEmpty().withMessage('Description is required'),
+    body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
+    validate,
+  ],
+  adminController.addExtraCharge
+);
+
+router.delete(
+  '/deliveries/:id/extra-charges/:chargeId',
+  adminController.removeExtraCharge
+);
+
+router.get(
+  '/deliveries/:id/extra-charges',
+  adminController.getDeliveryExtraCharges
+);
+
 // ==================== PRICING TIER MANAGEMENT ====================
 
 
@@ -120,6 +140,21 @@ router.post(
   adminController.generateInvoice
 );
 
+router.post(
+  '/invoices/generate-all',
+  [
+    body('weekStartDate').isISO8601().withMessage('Valid start date is required'),
+    body('weekEndDate').isISO8601().withMessage('Valid end date is required'),
+    validate,
+  ],
+  adminController.generateWeeklyInvoicesForAll
+);
+
+router.post(
+  '/invoices/generate-last-week',
+  adminController.generateLastWeekInvoices
+);
+
 router.post('/invoices/:id/mark-paid', adminController.markInvoiceAsPaid);
 
 router.post(
@@ -132,6 +167,38 @@ router.post(
     validate,
   ],
   adminController.addExtraCharge
+);
+
+// ==================== INVOICE EDITING ====================
+
+router.get('/invoices/:id', adminController.getInvoiceById);
+
+router.put(
+  '/invoices/:id',
+  [
+    body('invoiceNumber').optional().matches(/^T\d{4,}$/).withMessage('Invoice number must be in format T#### (e.g., T0326)'),
+    body('customerId').optional().isInt().withMessage('Customer ID must be an integer'),
+    body('invoiceDate').optional().isISO8601().withMessage('Valid invoice date is required'),
+    body('dueDate').optional().isISO8601().withMessage('Valid due date is required'),
+    body('status').optional().isString().trim(),
+    body('customerRef').optional().isString().trim(),
+    body('notes').optional().isString().trim(),
+    body('paymentTerms').optional().isString().trim(),
+    body('items').optional().isArray().withMessage('Items must be an array'),
+    body('items.*.deliveryId').optional().isInt().withMessage('Delivery ID must be an integer'),
+    body('items.*.spoNumber').optional().isString().trim(),
+    body('items.*.description').notEmpty().withMessage('Item description is required'),
+    body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+    body('items.*.unitCost').isFloat({ min: 0 }).withMessage('Unit cost must be a positive number'),
+    body('items.*.vatAmount').isFloat({ min: 0 }).withMessage('VAT amount must be a positive number'),
+    body('items.*.total').isFloat({ min: 0 }).withMessage('Total must be a positive number'),
+    body('items.*.deliveryDate').optional().isISO8601().withMessage('Valid delivery date is required'),
+    body('items.*.address').optional().isString().trim(),
+    body('items.*.basePrice').optional().isFloat({ min: 0 }).withMessage('Base price must be a positive number'),
+    body('items.*.distanceSurcharge').optional().isFloat({ min: 0 }).withMessage('Distance surcharge must be a positive number'),
+    validate,
+  ],
+  adminController.updateInvoice
 );
 
 // ==================== SLOT AVAILABILITY MANAGEMENT ====================
