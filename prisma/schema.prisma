@@ -353,3 +353,31 @@ model SystemSetting {
   
   @@index([key])
 }
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String?
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([createdAt])
+  @@index([isRead])
+}
+
+model Enquiry {
+  id          Int      @id @default(autoincrement())
+  fullName    String
+  companyName String?
+  email       String
+  phoneNumber String
+  subject     String
+  message     String   @db.Text
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  @@index([createdAt])
+  @@index([isRead])
+}

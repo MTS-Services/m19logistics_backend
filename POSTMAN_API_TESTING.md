@@ -19,10 +19,11 @@ Authorization: Bearer YOUR_JWT_TOKEN
 ## 📋 Table of Contents
 
 1. [Authentication](#authentication-endpoints)
-2. [Customer Endpoints](#customer-endpoints)
-3. [Driver Endpoints](#driver-endpoints)
-4. [Manager Endpoints](#manager-endpoints)
-5. [Admin Endpoints](#admin-endpoints)
+2. [Public Endpoints](#public-endpoints)
+3. [Customer Endpoints](#customer-endpoints)
+4. [Driver Endpoints](#driver-endpoints)
+5. [Manager Endpoints](#manager-endpoints)
+6. [Admin Endpoints](#admin-endpoints)
 
 ---
 
@@ -116,6 +117,66 @@ Headers: `Authorization: Bearer TOKEN`
 {
   "currentPassword": "Pass123!",
   "newPassword": "NewPass456!"
+}
+```
+
+---
+
+## Public Endpoints
+
+No authentication required for these endpoints.
+
+### 1. Submit Contact Form
+**POST** `/public/contact`
+
+**Use Case:** Anyone can send a contact message
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "phone": "+447700900123",
+  "message": "I would like to inquire about your delivery services for our business."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Thank you for contacting us. We will get back to you soon.",
+  "data": {
+    "id": 1,
+    "createdAt": "2026-01-28T00:00:00.000Z"
+  }
+}
+```
+
+### 2. Submit Enquiry Form
+**POST** `/public/enquiry`
+
+**Use Case:** Anyone can send a business enquiry
+
+```json
+{
+  "fullName": "John Doe",
+  "companyName": "Your Company Ltd",
+  "email": "john@example.com",
+  "phoneNumber": "07971 415430",
+  "subject": "What is your enquiry about?",
+  "message": "Please provide details about your enquiry..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Thank you for your enquiry. We will respond shortly.",
+  "data": {
+    "id": 1,
+    "createdAt": "2026-01-28T00:00:00.000Z"
+  }
 }
 ```
 
@@ -1067,6 +1128,75 @@ PORT=3000
 - Deliveries can only be edited in RECEIVED status
 - Drivers can only complete deliveries in ALLOCATED status
 - Extra charges can be added to deliveries and invoices
+
+---
+
+## Contact & Enquiry Management
+
+### Admin - View All Contacts
+**GET** `/admin/contacts?isRead=false`
+
+Headers: `Authorization: Bearer ADMIN_TOKEN`
+
+Query Parameters:
+- `isRead`: true/false
+- `startDate`: YYYY-MM-DD
+- `endDate`: YYYY-MM-DD
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "phone": "+447700900123",
+      "message": "I would like to inquire...",
+      "isRead": false,
+      "createdAt": "2026-01-28T10:30:00.000Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+### Admin - Mark Contact as Read
+**POST** `/admin/contacts/:id/mark-read`
+
+### Admin - Delete Contact
+**DELETE** `/admin/contacts/:id` (ADMIN only)
+
+### Admin - View All Enquiries
+**GET** `/admin/enquiries?isRead=false`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "fullName": "John Doe",
+      "companyName": "Your Company Ltd",
+      "email": "john@example.com",
+      "phoneNumber": "07971 415430",
+      "subject": "What is your enquiry about?",
+      "message": "Please provide details...",
+      "isRead": false,
+      "createdAt": "2026-01-28T10:30:00.000Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+### Admin - Mark Enquiry as Read
+**POST** `/admin/enquiries/:id/mark-read`
+
+### Admin - Delete Enquiry
+**DELETE** `/admin/enquiries/:id` (ADMIN only)
 
 ---
 

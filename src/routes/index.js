@@ -4,6 +4,7 @@ const deliveryRoutes = require('./deliveryRoutes');
 const invoiceRoutes = require('./invoiceRoutes');
 const adminRoutes = require('./adminRoutes');
 const driverRoutes = require('./driverRoutes');
+const publicRoutes = require('./publicRoutes');
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ router.get('/health', (req, res) => {
 });
 
 // Mount routes
+router.use('/public', publicRoutes);
 router.use('/auth', authRoutes);
 router.use('/deliveries', deliveryRoutes);
 router.use('/invoices', invoiceRoutes);

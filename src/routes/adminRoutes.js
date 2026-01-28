@@ -228,4 +228,24 @@ router.get('/analytics/drivers', adminController.getDriverPerformance);
 
 router.get('/analytics/customers', adminController.getCustomerAnalytics);
 
+//  CONTACT MANAGEMENT
+
+router.get('/contacts', adminController.getAllContacts);
+
+router.get('/contacts/:id', adminController.getContactById);
+
+router.post('/contacts/:id/mark-read', adminController.markContactAsRead);
+
+router.delete('/contacts/:id', authorize('ADMIN'), adminController.deleteContact);
+
+//  ENQUIRY MANAGEMENT 
+
+router.get('/enquiries', adminController.getAllEnquiries);
+
+router.get('/enquiries/:id', adminController.getEnquiryById);
+
+router.post('/enquiries/:id/mark-read', adminController.markEnquiryAsRead);
+
+router.delete('/enquiries/:id', authorize('ADMIN'), adminController.deleteEnquiry);
+
 module.exports = router;

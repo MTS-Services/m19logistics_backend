@@ -1,4 +1,6 @@
 const adminService = require('../services/adminService');
+const contactService = require('../services/contactService');
+const enquiryService = require('../services/enquiryService');
 
 // ==================== USER MANAGEMENT ====================
 
@@ -446,7 +448,131 @@ exports.getAnalytics = async (req, res, next) => {
     next(error);
   }
 };
+// ==================== CONTACT MANAGEMENT ====================
 
+exports.getAllContacts = async (req, res, next) => {
+  try {
+    const contacts = await contactService.getAllContacts(req.query);
+    
+    res.json({
+      success: true,
+      data: contacts,
+      count: contacts.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getContactById = async (req, res, next) => {
+  try {
+    const contact = await contactService.getContactById(parseInt(req.params.id));
+    
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contact not found',
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: contact,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.markContactAsRead = async (req, res, next) => {
+  try {
+    const contact = await contactService.markContactAsRead(parseInt(req.params.id));
+    
+    res.json({
+      success: true,
+      message: 'Contact marked as read',
+      data: contact,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteContact = async (req, res, next) => {
+  try {
+    await contactService.deleteContact(parseInt(req.params.id));
+    
+    res.json({
+      success: true,
+      message: 'Contact deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==================== ENQUIRY MANAGEMENT ====================
+
+exports.getAllEnquiries = async (req, res, next) => {
+  try {
+    const enquiries = await enquiryService.getAllEnquiries(req.query);
+    
+    res.json({
+      success: true,
+      data: enquiries,
+      count: enquiries.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getEnquiryById = async (req, res, next) => {
+  try {
+    const enquiry = await enquiryService.getEnquiryById(parseInt(req.params.id));
+    
+    if (!enquiry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enquiry not found',
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: enquiry,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.markEnquiryAsRead = async (req, res, next) => {
+  try {
+    const enquiry = await enquiryService.markEnquiryAsRead(parseInt(req.params.id));
+    
+    res.json({
+      success: true,
+      message: 'Enquiry marked as read',
+      data: enquiry,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteEnquiry = async (req, res, next) => {
+  try {
+    await enquiryService.deleteEnquiry(parseInt(req.params.id));
+    
+    res.json({
+      success: true,
+      message: 'Enquiry deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 exports.getDriverPerformance = async (req, res, next) => {
   try {
     const performance = await adminService.getDriverPerformance(req.query);
