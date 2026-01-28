@@ -417,6 +417,21 @@ exports.setSlotAvailability = async (req, res, next) => {
   }
 };
 
+// ==================== DASHBOARD ====================
+
+exports.getDashboard = async (req, res, next) => {
+  try {
+    const dashboard = await adminService.getDashboard();
+    
+    res.json({
+      success: true,
+      data: dashboard,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ==================== ANALYTICS DASHBOARD ====================
 
 exports.getAnalytics = async (req, res, next) => {

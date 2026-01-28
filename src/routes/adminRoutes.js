@@ -217,6 +217,8 @@ router.post(
   adminController.setSlotAvailability
 );
 
+router.get('/dashboard', adminController.getDashboard);
+
 // ==================== ANALYTICS DASHBOARD ====================
 
 

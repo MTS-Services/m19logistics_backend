@@ -832,6 +832,199 @@ class AdminService {
 
   // ==================== ANALYTICS DASHBOARD ====================
 
+  async getDashboard() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const [
+      
+      totalBookings,
+      totalBookingsLastMonth,
+      activeCustomers,
+      activeCustomersLastMonth,
+      activeDrivers,
+      activeDriversLastMonth,
+      revenueThisMonth,
+      revenueLastMonth,
+  
+      pendingBookings,
+      inProgressBookings,
+      completedToday,
+      
+    
+      recentBookings,
+    ] = await Promise.all([
+      
+      prisma.delivery.count(),
+      
+      
+      prisma.delivery.count({
+        where: { 
+          createdAt: { 
+            lt: startOfMonth
+          } 
+        }
+      }),
+      
+      prisma.user.count({
+        where: { 
+          role: 'CUSTOMER', 
+          isActive: true
+        }
+      }),
+      
+      
+      prisma.user.count({
+        where: { 
+          role: 'CUSTOMER', 
+          isActive: true,
+          createdAt: { 
+            lt: startOfMonth  
+          }
+        }
+      }),
+      
+      // Active drivers
+      prisma.user.count({
+        where: { 
+          role: 'DRIVER', 
+          isActive: true,
+          driverProfile: {
+            isActiveDriver: true
+          }
+        }
+      }),
+      
+     
+      prisma.user.count({
+        where: { 
+          role: 'DRIVER', 
+          isActive: true,
+          driverProfile: {
+            isActiveDriver: true
+          },
+          createdAt: { 
+            lt: startOfMonth 
+          }
+        }
+      }),
+      
+     
+      prisma.invoice.aggregate({
+        _sum: { grandTotal: true },
+        where: {
+          invoiceDate: { gte: startOfMonth }
+        }
+      }),
+      
+      prisma.invoice.aggregate({
+        _sum: { grandTotal: true },
+        where: {
+          invoiceDate: { 
+            gte: startOfLastMonth,
+            lte: endOfLastMonth
+          }
+        }
+      }),
+      
+   
+      prisma.delivery.count({
+        where: { status: 'RECEIVED' }
+      }),
+      
+      
+      prisma.delivery.count({
+        where: { status: 'ALLOCATED' }
+      }),
+      
+      prisma.delivery.count({
+        where: { 
+          status: 'DELIVERED'
+        }
+      }),
+      
+      // Recent bookings
+      prisma.delivery.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          customer: {
+            include: {
+              customerProfile: true
+            }
+          }
+        }
+      }),
+    ]);
+
+    const calculateChange = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+
+    const revenueThisMonthValue = parseFloat(revenueThisMonth._sum.grandTotal || 0);
+    const revenueLastMonthValue = parseFloat(revenueLastMonth._sum.grandTotal || 0);
+
+    return {
+      metrics: {
+        totalBookings: {
+          count: totalBookings,
+          change: calculateChange(totalBookings, totalBookingsLastMonth),
+          changeText: `${Math.abs(calculateChange(totalBookings, totalBookingsLastMonth))}% from last month`
+        },
+        activeCustomers: {
+          count: activeCustomers,
+          change: calculateChange(activeCustomers, activeCustomersLastMonth),
+          changeText: `${Math.abs(calculateChange(activeCustomers, activeCustomersLastMonth))}% from last month`
+        },
+        activeDrivers: {
+          count: activeDrivers,
+          change: calculateChange(activeDrivers, activeDriversLastMonth),
+          changeText: `${Math.abs(calculateChange(activeDrivers, activeDriversLastMonth))}% from last month`
+        },
+        revenue: {
+          amount: revenueThisMonthValue,
+          currency: 'GBP',
+          formatted: `£${revenueThisMonthValue.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+          change: calculateChange(revenueThisMonthValue, revenueLastMonthValue),
+          changeText: `${Math.abs(calculateChange(revenueThisMonthValue, revenueLastMonthValue))}% from last month`
+        }
+      },
+      statusCards: {
+        pending: {
+          count: pendingBookings,
+          label: 'Pending Bookings',
+          description: 'Requires allocation to drivers',
+          //color: 'teal'
+        },
+        inProgress: {
+          count: inProgressBookings,
+          label: 'In Progress',
+          description: 'Currently out for delivery',
+          //color: 'blue'
+        },
+        completedToday: {
+          count: completedToday,
+          label: 'Completed',
+          description: 'Successfully delivered',
+          //color: 'green'
+        }
+      },
+      recentBookings: recentBookings.map(booking => ({
+        invoiceNumber: booking.invoiceNumber || `T${String(booking.id).padStart(4, '0')}`,
+        customer: `${booking.customer.customerProfile?.storeName || booking.customer.fullName} (${booking.customer.customerProfile?.loginId || 'N/A'})`,
+        date: booking.deliveryDate,
+        timeSlot: booking.timeSlot,
+        weight: `${booking.weight}kg`,
+        status: booking.status,
+        deliveryId: booking.id
+      }))
+    };
+  }
+
   async getAnalytics(filters = {}) {
     const { startDate, endDate } = filters;
     
