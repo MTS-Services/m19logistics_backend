@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const emailService = require('./emailService');
 
 class DriverService {
 
@@ -199,6 +200,14 @@ class DriverService {
           },
         },
       },
+    }).then(async (delivery) => {
+      // Send email notification to customer
+      try {
+        await emailService.sendDriverAcceptanceNotification(delivery, delivery.customer);
+      } catch (emailError) {
+        console.error('Failed to send driver acceptance email:', emailError);
+      }
+      return delivery;
     });
   }
 
@@ -230,14 +239,14 @@ class DriverService {
       throw new Error('Rejection reason is required');
     }
 
-  
-    return prisma.delivery.update({
+    // Update delivery: reject + change status back to RECEIVED for admin reassignment
+    const result = await prisma.delivery.update({
       where: { id: deliveryId },
       data: {
         status: 'RECEIVED', // Back to RECEIVED so admin can reassign
         rejectedAt: new Date(),
         rejectionReason: reason,
-        driverId: null, 
+        driverId: null, // Unassign driver
       },
       include: {
         customer: {
@@ -250,6 +259,19 @@ class DriverService {
         },
       },
     });
+
+    // Send email notification to admin
+    try {
+      const driver = await prisma.user.findUnique({
+        where: { id: driverId },
+        select: { fullName: true, email: true }
+      });
+      await emailService.sendDriverRejectionNotification(result, result.customer, driver, reason);
+    } catch (emailError) {
+      console.error('Failed to send driver rejection email:', emailError);
+    }
+
+    return result;
   }
 
   // DELIVERY COMPLETION 
@@ -311,6 +333,21 @@ class DriverService {
         description: `Delivery marked as DELIVERED by driver ${updated.driver.fullName}. Received by: ${receivedBy}`,
       }
     });
+
+    // Send email with proof of delivery attachments
+    try {
+      await emailService.sendDeliveryCompletedNotification(
+        updated,
+        updated.customer,
+        updated.driver,
+        receivedBy,
+        completionData.driverNotes || null,
+        signatureUrl,
+        photoUrl
+      );
+    } catch (emailError) {
+      console.error('Failed to send delivery completion email:', emailError);
+    }
 
     return updated;
   }

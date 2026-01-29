@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const bcrypt = require('bcryptjs');
+const emailService = require('./emailService');
 
 class AdminService {
   // ==================== USER MANAGEMENT ====================
@@ -342,12 +343,29 @@ class AdminService {
       },
     });
 
+    // Send email notifications
+    try {
+      await emailService.sendDriverAssignmentNotification(updated, driver, updated.customer);
+    } catch (emailError) {
+      console.error('Failed to send driver assignment emails:', emailError);
+      // Don't fail the allocation if email fails
+    }
+
     return updated;
   }
 
   async updateDeliveryStatus(deliveryId, status, data = {}) {
     const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          }
+        }
+      }
     });
 
     if (!delivery) {
@@ -365,10 +383,26 @@ class AdminService {
       updateData.cancellationReason = data.reason || 'Cancelled by admin';
     }
 
-    return prisma.delivery.update({
+    const updated = await prisma.delivery.update({
       where: { id: deliveryId },
       data: updateData,
     });
+
+    // Send cancellation email if admin cancels delivery
+    if (status === 'CANCELLED') {
+      try {
+        await emailService.sendDeliveryCancellationNotification(
+          updated,
+          delivery.customer,
+          'Admin',
+          updateData.cancellationReason
+        );
+      } catch (emailError) {
+        console.error('Failed to send cancellation email:', emailError);
+      }
+    }
+
+    return updated;
   }
 
   /**

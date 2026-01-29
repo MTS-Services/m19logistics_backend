@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const config = require('../config');
+const emailService = require('./emailService');
 
 class DeliveryService {
 
@@ -40,6 +41,7 @@ class DeliveryService {
             id: true,
             fullName: true,
             email: true,
+            phone: true,
             customerProfile: {
               select: {
                 loginId: true,
@@ -53,6 +55,20 @@ class DeliveryService {
     // STEP 4: Increment slot booking count (skip for SAME_DAY)
     if (timeSlot !== 'SAME_DAY') {
       await this.incrementSlotBooking(deliveryDate, timeSlot);
+    }
+
+    // STEP 5: Send email notifications
+    try {
+      // Notify admin of new delivery request
+      await emailService.sendNewDeliveryNotification(delivery, delivery.customer);
+      
+      // If same-day delivery, send special alert
+      if (timeSlot === 'SAME_DAY') {
+        await emailService.sendSameDayDeliveryAlert(delivery, delivery.customer);
+      }
+    } catch (emailError) {
+      console.error('Failed to send delivery creation emails:', emailError);
+      // Don't fail the delivery creation if email fails
     }
     
     return delivery;
