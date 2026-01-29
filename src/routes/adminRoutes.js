@@ -217,6 +217,16 @@ router.post(
   adminController.setSlotAvailability
 );
 
+router.put(
+  '/slots/:id/capacity',
+  [
+    body('method').isIn(['increase', 'decrease']).withMessage('Method must be either "increase" or "decrease"'),
+    body('value').isInt({ min: 1 }).withMessage('Value must be a positive integer'),
+    validate,
+  ],
+  adminController.updateSlotCapacity
+);
+
 router.get('/dashboard', adminController.getDashboard);
 
 // ANALYTICS DASHBOARD 

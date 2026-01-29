@@ -420,7 +420,26 @@ exports.setSlotAvailability = async (req, res, next) => {
   }
 };
 
-// ==================== DASHBOARD ====================
+exports.updateSlotCapacity = async (req, res, next) => {
+  try {
+    const { method, value } = req.body;
+    const slot = await adminService.updateSlotCapacity(
+      parseInt(req.params.id),
+      method,
+      parseInt(value)
+    );
+    
+    res.json({
+      success: true,
+      message: `Slot capacity ${method}d by ${value} successfully`,
+      data: slot,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+//  DASHBOARD 
 
 exports.getDashboard = async (req, res, next) => {
   try {
@@ -435,7 +454,7 @@ exports.getDashboard = async (req, res, next) => {
   }
 };
 
-// ==================== ANALYTICS DASHBOARD ====================
+// ANALYTICS DASHBOARD 
 
 exports.getAnalytics = async (req, res, next) => {
   try {
@@ -449,7 +468,8 @@ exports.getAnalytics = async (req, res, next) => {
     next(error);
   }
 };
-// ==================== CONTACT MANAGEMENT ====================
+
+//  CONTACT MANAGEMENT 
 
 exports.getAllContacts = async (req, res, next) => {
   try {
@@ -512,7 +532,7 @@ exports.deleteContact = async (req, res, next) => {
   }
 };
 
-// ==================== ENQUIRY MANAGEMENT ====================
+//  ENQUIRY MANAGEMENT 
 
 exports.getAllEnquiries = async (req, res, next) => {
   try {
@@ -602,7 +622,7 @@ exports.getCustomerAnalytics = async (req, res, next) => {
   }
 };
 
-// ==================== AUDIT LOGS (ADMIN) ====================
+// AUDIT LOGS (ADMIN) 
 
 exports.getAllAuditLogs = async (req, res, next) => {
   try {

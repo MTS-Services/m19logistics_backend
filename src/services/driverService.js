@@ -158,6 +158,101 @@ class DriverService {
     return delivery;
   }
 
+  // DRIVER ACCEPTANCE/REJECTION
+
+  async acceptDelivery(deliveryId, driverId) {
+    const delivery = await prisma.delivery.findFirst({
+      where: {
+        id: deliveryId,
+        driverId,
+      },
+    });
+
+    if (!delivery) {
+      throw new Error('Delivery not found or not assigned to you');
+    }
+
+    if (delivery.status !== 'ALLOCATED') {
+      throw new Error('Can only accept deliveries with ALLOCATED status');
+    }
+
+    if (delivery.acceptedAt) {
+      throw new Error('Delivery already accepted');
+    }
+
+    if (delivery.rejectedAt) {
+      throw new Error('Delivery was already rejected');
+    }
+
+    return prisma.delivery.update({
+      where: { id: deliveryId },
+      data: {
+        acceptedAt: new Date(),
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    });
+  }
+
+  async rejectDelivery(deliveryId, driverId, reason) {
+    const delivery = await prisma.delivery.findFirst({
+      where: {
+        id: deliveryId,
+        driverId,
+      },
+    });
+
+    if (!delivery) {
+      throw new Error('Delivery not found or not assigned to you');
+    }
+
+    if (delivery.status !== 'ALLOCATED') {
+      throw new Error('Can only reject deliveries with ALLOCATED status');
+    }
+
+    if (delivery.acceptedAt) {
+      throw new Error('Cannot reject an already accepted delivery');
+    }
+
+    if (delivery.rejectedAt) {
+      throw new Error('Delivery was already rejected');
+    }
+
+    if (!reason || reason.trim().length === 0) {
+      throw new Error('Rejection reason is required');
+    }
+
+  
+    return prisma.delivery.update({
+      where: { id: deliveryId },
+      data: {
+        status: 'RECEIVED', // Back to RECEIVED so admin can reassign
+        rejectedAt: new Date(),
+        rejectionReason: reason,
+        driverId: null, 
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    });
+  }
+
+  // DELIVERY COMPLETION 
 
   async completeDelivery(deliveryId, driverId, completionData) {
     const delivery = await prisma.delivery.findFirst({
@@ -170,6 +265,11 @@ class DriverService {
 
     if (!delivery) {
       throw new Error('Delivery not found, not assigned to you, or already completed');
+    }
+
+    // Enforce acceptance before completion
+    if (!delivery.acceptedAt) {
+      throw new Error('You must accept the delivery before completing it');
     }
 
     const { receivedBy, signatureUrl, photoUrl } = completionData;

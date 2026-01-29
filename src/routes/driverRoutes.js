@@ -10,11 +10,6 @@ const driverController = require('../controllers/driverController');
 router.use(authenticate);
 router.use(authorize('DRIVER'));
 
-/**
- * @route   GET /api/driver/dashboard
- * @desc    Get driver dashboard with stats and today's schedule
- * @access  Driver
- */
 router.get('/dashboard', driverController.getDashboard);
 
 
@@ -26,6 +21,15 @@ router.get('/deliveries/:id',
   driverController.getDeliveryDetails
 );
 
+
+router.post('/deliveries/:id/respond',
+  [
+    param('id').isInt().withMessage('Delivery ID must be an integer'),
+    body('action').isIn(['accept', 'reject']).withMessage('Action must be "accept" or "reject"'),
+    body('reason').if(body('action').equals('reject')).notEmpty().withMessage('Rejection reason is required'),
+  ],
+  driverController.respondToDelivery
+);
 
 router.post('/deliveries/:id/upload-proof',
   param('id').isInt().withMessage('Delivery ID must be an integer'),
@@ -71,5 +75,7 @@ router.post('/deliveries/:id/feedback',
 
 
 router.get('/performance', driverController.getPerformanceMetrics);
+
+router.get('/slots', driverController.getSlotCapacity);
 
 module.exports = router;

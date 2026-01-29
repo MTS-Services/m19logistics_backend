@@ -177,6 +177,10 @@ model Delivery {
   signatureUrl          String?
   photoUrl              String?
   
+  // Driver Acceptance/Rejection
+  acceptedAt            DateTime?
+  rejectedAt            DateTime?
+  rejectionReason       String?
 
   cancelledAt           DateTime?
   cancellationReason    String?

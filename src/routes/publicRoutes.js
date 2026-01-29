@@ -5,7 +5,10 @@ const validate = require('../middleware/validate');
 
 const router = express.Router();
 
-// CONTACT FORM (PUBLIC) 
+// SLOT AVAILABILITY (PUBLIC)
+
+router.get('/slots/availability', publicController.getSlotAvailability);
+
 
 router.post(
   '/contact',

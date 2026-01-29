@@ -1,4 +1,5 @@
 const driverService = require('../services/driverService');
+const prisma = require('../config/database');
 
 /**
  * Get driver dashboard with stats and today's schedule
@@ -21,9 +22,7 @@ exports.getDashboard = async (req, res) => {
   }
 };
 
-/**
- * Get all assigned deliveries for driver
- */
+
 exports.getAssignedDeliveries = async (req, res) => {
   try {
     const deliveries = await driverService.getAssignedDeliveries(req.user.id, req.query);
@@ -66,9 +65,6 @@ exports.getDeliveryDetails = async (req, res) => {
   }
 };
 
-/**
- * Upload proof of delivery (signature & photos)
- */
 exports.uploadProofOfDelivery = async (req, res) => {
   try {
     if (!req.files || (!req.files.signature && !req.files.photo)) {
@@ -98,9 +94,58 @@ exports.uploadProofOfDelivery = async (req, res) => {
   }
 };
 
-/**
- * Mark delivery as complete
- */
+
+exports.respondToDelivery = async (req, res) => {
+  try {
+    const { action, reason } = req.body;
+    const deliveryId = parseInt(req.params.id);
+    const driverId = req.user.id;
+
+    // Validate action
+    if (!action || !['accept', 'reject'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid action. Must be "accept" or "reject"',
+      });
+    }
+
+    let delivery;
+
+    if (action === 'accept') {
+      delivery = await driverService.acceptDelivery(deliveryId, driverId);
+      
+      res.json({
+        success: true,
+        message: 'Delivery accepted successfully. You can now proceed with the delivery.',
+        data: delivery,
+      });
+    } else {
+      // Reject requires reason
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Rejection reason is required',
+        });
+      }
+
+      delivery = await driverService.rejectDelivery(deliveryId, driverId, reason);
+      
+      res.json({
+        success: true,
+        message: 'Delivery rejected. Admin will be notified to reassign.',
+        data: delivery,
+      });
+    }
+  } catch (error) {
+    console.error('Respond to delivery error:', error);
+    res.status(error.message.includes('not found') ? 404 : 400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
 exports.completeDelivery = async (req, res) => {
   try {
     const delivery = await driverService.completeDelivery(
@@ -123,9 +168,7 @@ exports.completeDelivery = async (req, res) => {
   }
 };
 
-/**
- * Submit driver feedback for a delivery
- */
+
 exports.submitFeedback = async (req, res) => {
   try {
     const feedback = await driverService.submitFeedback(
@@ -148,9 +191,7 @@ exports.submitFeedback = async (req, res) => {
   }
 };
 
-/**
- * Get driver performance metrics
- */
+
 exports.getPerformanceMetrics = async (req, res) => {
   try {
     const metrics = await driverService.getPerformanceMetrics(
@@ -169,6 +210,75 @@ exports.getPerformanceMetrics = async (req, res) => {
       success: false,
       message: 'Failed to retrieve performance metrics.',
       error: error.message,
+    });
+  }
+};
+
+/**
+ * Get slot capacity for a specific date (driver view)
+ */
+exports.getSlotCapacity = async (req, res) => {
+  try {
+    const { date } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date parameter is required (format: YYYY-MM-DD)'
+      });
+    }
+    
+    // Parse date
+    const targetDate = new Date(date);
+    
+    // Get slot availability for the date
+    const slots = await prisma.slotAvailability.findMany({
+      where: { 
+        date: targetDate
+      },
+      orderBy: { timeSlot: 'asc' }
+    });
+    
+    // Count actual deliveries assigned to this driver for the date
+    const driverDeliveries = await prisma.delivery.findMany({
+      where: {
+        driverId: req.user.id,
+        deliveryDate: targetDate,
+        status: { in: ['ALLOCATED', 'DELIVERED'] }
+      },
+      select: {
+        timeSlot: true
+      }
+    });
+    
+    // Count deliveries by slot
+    const deliveryCountBySlot = driverDeliveries.reduce((acc, del) => {
+      acc[del.timeSlot] = (acc[del.timeSlot] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Format response
+    const capacity = slots.map(slot => ({
+      timeSlot: slot.timeSlot,
+      totalDeliveries: slot.booked,
+      maxCapacity: slot.maxCapacity,
+      isFull: slot.isFull,
+      myDeliveries: deliveryCountBySlot[slot.timeSlot] || 0
+    }));
+    
+    res.json({
+      success: true,
+      data: {
+        date,
+        slots: capacity
+      }
+    });
+  } catch (error) {
+    console.error('Get slot capacity error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve slot capacity.',
+      error: error.message
     });
   }
 };

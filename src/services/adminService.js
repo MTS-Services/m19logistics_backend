@@ -304,6 +304,7 @@ class AdminService {
       throw new Error('Driver is not active');
     }
 
+    // Clear previous rejection/acceptance data when reassigning
     const updated = await prisma.delivery.update({
       where: { id: deliveryId },
       data: {
@@ -311,6 +312,9 @@ class AdminService {
           connect: { id: driverId }
         },
         status: 'ALLOCATED',
+        acceptedAt: null,        // Clear previous acceptance
+        rejectedAt: null,        // Clear previous rejection
+        rejectionReason: null,   // Clear previous rejection reason
       },
       include: {
         customer: {
@@ -783,7 +787,7 @@ class AdminService {
     return updatedInvoice;
   }
 
-  // ==================== SLOT AVAILABILITY MANAGEMENT ====================
+  //SLOT AVAILABILITY MANAGEMENT 
 
   
   async getSlotAvailability(filters = {}) {
@@ -801,36 +805,90 @@ class AdminService {
   }
 
   async setSlotAvailability(slotData) {
-    const { date, timeSlot, maxCapacity, isAvailable } = slotData;
+    const { date, timeSlot, maxCapacity } = slotData;
 
+    if (!date || !timeSlot) {
+      throw new Error('Date and timeSlot are required');
+    }
+
+    if (!['AM', 'PM', 'SAME_DAY'].includes(timeSlot)) {
+      throw new Error('Invalid timeSlot. Must be AM, PM, or SAME_DAY');
+    }
+
+    const slotDate = new Date(date);
+    
     const existing = await prisma.slotAvailability.findUnique({
       where: {
         date_timeSlot: {
-          date: new Date(date),
+          date: slotDate,
           timeSlot,
         }
       }
     });
 
     if (existing) {
+      // Update existing slot
+      const updatedMaxCapacity = maxCapacity !== undefined ? maxCapacity : existing.maxCapacity;
+      
       return prisma.slotAvailability.update({
         where: { id: existing.id },
-        data: { maxCapacity, isAvailable },
+        data: {
+          maxCapacity: updatedMaxCapacity,
+          
+          isFull: existing.booked >= updatedMaxCapacity
+        },
       });
     }
 
     return prisma.slotAvailability.create({
       data: {
-        date: new Date(date),
+        date: slotDate,
         timeSlot,
-        maxCapacity,
-        currentBookings: 0,
-        isAvailable: isAvailable !== false,
+        maxCapacity: maxCapacity || 10,  // Default to 10 if not provided
+        booked: 0,
+        isFull: false,
       },
     });
   }
 
-  // ==================== ANALYTICS DASHBOARD ====================
+  async updateSlotCapacity(slotId, method, value) {
+    const slot = await prisma.slotAvailability.findUnique({
+      where: { id: slotId },
+    });
+
+    if (!slot) {
+      throw new Error('Slot not found');
+    }
+
+    if (!['increase', 'decrease'].includes(method)) {
+      throw new Error('Method must be either "increase" or "decrease"');
+    }
+
+    if (value <= 0) {
+      throw new Error('Value must be a positive number');
+    }
+
+    const capacityChange = method === 'increase' ? value : -value;
+    const newMaxCapacity = slot.maxCapacity + capacityChange;
+
+    if (newMaxCapacity < 0) {
+      throw new Error('Capacity cannot be negative');
+    }
+
+    if (newMaxCapacity < slot.booked) {
+      throw new Error(`Cannot reduce capacity below current bookings (${slot.booked}). Cancel some bookings first.`);
+    }
+
+    return prisma.slotAvailability.update({
+      where: { id: slotId },
+      data: {
+        maxCapacity: newMaxCapacity,
+        isFull: slot.booked >= newMaxCapacity,
+      },
+    });
+  }
+
+  // ANALYTICS DASHBOARD 
 
   async getDashboard() {
     const now = new Date();

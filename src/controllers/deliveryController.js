@@ -56,6 +56,17 @@ class DeliveryController {
       });
     } catch (error) {
       console.error('Create delivery error:', error);
+      
+      if (error.message.includes('slot is full') || 
+          error.message.includes('slot availability') ||
+          error.message.includes('Please choose another') ||
+          error.message.includes('Please contact admin')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      
       res.status(500).json({
         success: false,
         message: 'Failed to create delivery request',
@@ -91,10 +102,6 @@ class DeliveryController {
     }
   }
 
-  /**
-   * Get delivery by ID
-   * GET /api/deliveries/:id
-   */
   async getDeliveryById(req, res) {
     try {
       const { id } = req.params;
@@ -126,10 +133,7 @@ class DeliveryController {
     }
   }
 
-  /**
-   * Update delivery
-   * PUT /api/deliveries/:id
-   */
+
   async updateDelivery(req, res) {
     try {
       const { id } = req.params;
@@ -212,10 +216,7 @@ class DeliveryController {
     }
   }
 
-  /**
-   * Delete delivery
-   * DELETE /api/deliveries/:id
-   */
+ 
   async deleteDelivery(req, res) {
     try {
       const { id } = req.params;
@@ -236,10 +237,6 @@ class DeliveryController {
     }
   }
 
-  /**
-   * Get customer statistics
-   * GET /api/deliveries/stats
-   */
   async getStats(req, res) {
     try {
       const customerId = req.user.id;

@@ -4,13 +4,30 @@ const config = require('../config');
 class DeliveryService {
 
   async createDelivery(customerId, deliveryData) {
+    const { deliveryDate, timeSlot } = deliveryData;
+    
+    // STEP 1: Validate slot availability (skip for SAME_DAY)
+    if (timeSlot !== 'SAME_DAY') {
+      const slot = await this.checkSlotAvailability(deliveryDate, timeSlot);
+      
+      if (!slot) {
+        throw new Error(`No slot availability configured for ${timeSlot} on ${new Date(deliveryDate).toLocaleDateString()}. Please contact admin.`);
+      }
+      
+      if (slot.isFull || slot.booked >= slot.maxCapacity) {
+        throw new Error(`${timeSlot} slot is full for ${new Date(deliveryDate).toLocaleDateString()}. Please choose another time slot or date.`);
+      }
+    }
+    
+    // STEP 2: Calculate pricing
     const pricing = await this.calculateDeliveryPrice(
       customerId,
       deliveryData.weight,
       deliveryData.deliveryAddress
     );
 
-    return prisma.delivery.create({
+    // STEP 3: Create delivery
+    const delivery = await prisma.delivery.create({
       data: {
         customerId,
         ...deliveryData,
@@ -32,6 +49,13 @@ class DeliveryService {
         },
       },
     });
+    
+    // STEP 4: Increment slot booking count (skip for SAME_DAY)
+    if (timeSlot !== 'SAME_DAY') {
+      await this.incrementSlotBooking(deliveryDate, timeSlot);
+    }
+    
+    return delivery;
   }
 
   async getCustomerDeliveries(customerId, filters = {}) {
@@ -160,20 +184,27 @@ class DeliveryService {
       throw new Error('Delivery not found or access denied');
     }
 
-    // Can only cancel RECEIVED or ALLOCATED deliveries
     if (!['RECEIVED', 'ALLOCATED'].includes(delivery.status)) {
       throw new Error('Cannot cancel delivery in current status');
     }
+    
+    const wasNotCancelled = delivery.status !== 'CANCELLED';
 
-    return prisma.delivery.update({
+    const cancelled = await prisma.delivery.update({
       where: { id },
       data: {
         status: 'CANCELLED',
         cancelledAt: new Date(),
-        cancellationReason: reason,
+        cancellationReason: reason || 'No reason provided',
         cancelledBy: customerId,
       },
     });
+    
+    if (wasNotCancelled && delivery.timeSlot !== 'SAME_DAY') {
+      await this.decrementSlotBooking(delivery.deliveryDate, delivery.timeSlot);
+    }
+    
+    return cancelled;
   }
 
   async deleteDelivery(id, customerId) {
@@ -350,9 +381,6 @@ class DeliveryService {
 
  
   async calculateDistance(origin, destination) {
-    // Simplified distance calculation
-    // In production, use Google Maps API
-    // For now, return a mock distance between 10-50 miles
     return Math.floor(Math.random() * 40) + 10;
   }
 
@@ -365,6 +393,56 @@ class DeliveryService {
       delivery.getMonth() === today.getMonth() &&
       delivery.getFullYear() === today.getFullYear()
     );
+  }
+
+  //  SLOT AVAILABILITY METHODS
+
+  async checkSlotAvailability(date, timeSlot) {
+    return prisma.slotAvailability.findUnique({
+      where: {
+        date_timeSlot: {
+          date: new Date(date),
+          timeSlot
+        }
+      }
+    });
+  }
+
+ 
+  async incrementSlotBooking(date, timeSlot) {
+    const slot = await this.checkSlotAvailability(date, timeSlot);
+    
+    if (!slot) {
+      return;
+    }
+   
+    const newBookedCount = slot.booked + 1;
+    
+    await prisma.slotAvailability.update({
+      where: { id: slot.id },
+      data: {
+        booked: newBookedCount,
+        isFull: newBookedCount >= slot.maxCapacity
+      }
+    });
+  }
+
+  async decrementSlotBooking(date, timeSlot) {
+    const slot = await this.checkSlotAvailability(date, timeSlot);
+    
+    if (!slot || slot.booked <= 0) {
+      return;
+    }
+    
+    const newBookedCount = Math.max(0, slot.booked - 1);
+    
+    await prisma.slotAvailability.update({
+      where: { id: slot.id },
+      data: {
+        booked: newBookedCount,
+        isFull: false 
+      }
+    });
   }
 }
 
