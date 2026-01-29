@@ -56,7 +56,7 @@ class DeliveryService {
         { customerName: { contains: search, mode: 'insensitive' } },
       ];
     }
-
+ 
     return prisma.delivery.findMany({
       where,
       include: {

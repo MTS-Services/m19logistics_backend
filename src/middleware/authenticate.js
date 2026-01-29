@@ -2,10 +2,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const prisma = require('../config/database');
 
-/**
- * Authentication Middleware
- * Verifies JWT token and attaches user to request
- */
+
 const authenticate = async (req, res, next) => {
   try {
     // Get token from header
@@ -18,9 +15,9 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7); 
 
-    // Verify token
+    
     const decoded = jwt.verify(token, config.jwt.secret);
 
     // Fetch user from database

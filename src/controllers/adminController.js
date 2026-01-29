@@ -1,6 +1,7 @@
 const adminService = require('../services/adminService');
 const contactService = require('../services/contactService');
 const enquiryService = require('../services/enquiryService');
+const auditService = require('../services/auditService');
 
 // ==================== USER MANAGEMENT ====================
 
@@ -595,6 +596,42 @@ exports.getCustomerAnalytics = async (req, res, next) => {
       success: true,
       data: analytics,
       count: analytics.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==================== AUDIT LOGS (ADMIN) ====================
+
+exports.getAllAuditLogs = async (req, res, next) => {
+  try {
+    const logs = await auditService.getAllAuditLogs(req.query);
+    
+    res.json({
+      success: true,
+      data: logs,
+      count: logs.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getAuditLogById = async (req, res, next) => {
+  try {
+    const log = await auditService.getAuditLogById(parseInt(req.params.id));
+    
+    if (!log) {
+      return res.status(404).json({
+        success: false,
+        message: 'Audit log not found',
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: log,
     });
   } catch (error) {
     next(error);

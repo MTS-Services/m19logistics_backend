@@ -1,7 +1,4 @@
-/**
- * Role-Based Authorization Middleware
- * Checks if user has required role(s)
- */
+
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {

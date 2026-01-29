@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, query } = require('express-validator');
 const deliveryController = require('../controllers/deliveryController');
+const auditController = require('../controllers/auditController');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
 const validate = require('../middleware/validate');
@@ -28,7 +29,7 @@ router.post(
     validate,
   ],
   deliveryController.createDelivery
-);
+); 
 
 router.get(
   '/',
@@ -68,5 +69,11 @@ router.post(
 );
 
 router.delete('/:id', authorize('CUSTOMER'), deliveryController.deleteDelivery);
+
+// AUDIT LOGS (CUSTOMER) 
+
+router.get('/audit-logs/me', authorize('CUSTOMER'), auditController.getMyAuditLogs);
+
+router.get('/audit-logs/:id', authorize('CUSTOMER'), auditController.getMyAuditLogById);
 
 module.exports = router;

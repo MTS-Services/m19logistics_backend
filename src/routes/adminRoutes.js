@@ -43,7 +43,7 @@ router.delete('/users/:id', authorize('ADMIN'), adminController.deleteUser);
 
 router.post('/users/:id/toggle-status', authorize('ADMIN'), adminController.toggleUserStatus);
 
-// ==================== DELIVERY MANAGEMENT ====================
+//DELIVERY MANAGEMENT 
 
 
 router.get('/deliveries', adminController.getAllDeliveries);
@@ -86,7 +86,7 @@ router.get(
   adminController.getDeliveryExtraCharges
 );
 
-// ==================== PRICING TIER MANAGEMENT ====================
+//  PRICING TIER MANAGEMENT 
 
 
 router.get('/pricing-tiers', adminController.getAllPricingTiers);
@@ -124,7 +124,7 @@ router.put(
 
 router.delete('/pricing-tiers/:id', authorize('ADMIN'), adminController.deletePricingTier);
 
-// ==================== INVOICE MANAGEMENT ====================
+//INVOICE MANAGEMENT 
 
 
 router.get('/invoices', adminController.getAllInvoices);
@@ -169,7 +169,7 @@ router.post(
   adminController.addExtraCharge
 );
 
-// ==================== INVOICE EDITING ====================
+// INVOICE EDITING 
 
 router.get('/invoices/:id', adminController.getInvoiceById);
 
@@ -201,7 +201,7 @@ router.put(
   adminController.updateInvoice
 );
 
-// ==================== SLOT AVAILABILITY MANAGEMENT ====================
+// SLOT AVAILABILITY MANAGEMENT
 
 
 router.get('/slots', adminController.getSlotAvailability);
@@ -219,7 +219,7 @@ router.post(
 
 router.get('/dashboard', adminController.getDashboard);
 
-// ==================== ANALYTICS DASHBOARD ====================
+// ANALYTICS DASHBOARD 
 
 
 router.get('/analytics', adminController.getAnalytics);
@@ -247,5 +247,11 @@ router.get('/enquiries/:id', adminController.getEnquiryById);
 router.post('/enquiries/:id/mark-read', adminController.markEnquiryAsRead);
 
 router.delete('/enquiries/:id', authorize('ADMIN'), adminController.deleteEnquiry);
+
+// AUDIT LOGS (ADMIN)
+
+router.get('/audit-logs', adminController.getAllAuditLogs);
+
+router.get('/audit-logs/:id', adminController.getAuditLogById);
 
 module.exports = router;

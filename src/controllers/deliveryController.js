@@ -66,7 +66,7 @@ class DeliveryController {
 
   async getMyDeliveries(req, res) {
     try {
-      const customerId = req.user.id;
+      const customerId = req.user.id; 
       const { status, startDate, endDate, search } = req.query;
 
       const deliveries = await deliveryService.getCustomerDeliveries(customerId, {
