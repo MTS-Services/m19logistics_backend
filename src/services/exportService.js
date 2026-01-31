@@ -249,7 +249,7 @@ class ExportService {
 
     overviewSheet.getRow(1).font = { bold: true };
     overviewSheet.getRow(1).fill = {
-      type: 'pattern',
+      type: 'pattern', 
       pattern: 'solid',
       fgColor: { argb: 'FF4472C4' },
     };

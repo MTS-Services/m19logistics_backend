@@ -261,7 +261,7 @@ router.delete('/enquiries/:id', authorize('ADMIN'), adminController.deleteEnquir
 // AUDIT LOGS (ADMIN)
 
 router.get('/audit-logs', adminController.getAllAuditLogs);
-
+ 
 router.get('/audit-logs/:id', adminController.getAuditLogById);
 
 //  EXPORT ROUTES 

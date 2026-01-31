@@ -11,7 +11,7 @@ exports.getMyAuditLogs = async (req, res, next) => {
       count: logs.length,
     });
   } catch (error) { 
-    next(error);
+    next(error); 
   }
 };
 

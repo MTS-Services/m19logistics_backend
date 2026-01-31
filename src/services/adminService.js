@@ -344,7 +344,7 @@ class AdminService {
     });
 
     // Send email notifications
-    try {
+    try { 
       await emailService.sendDriverAssignmentNotification(updated, driver, updated.customer);
     } catch (emailError) {
       console.error('Failed to send driver assignment emails:', emailError);
