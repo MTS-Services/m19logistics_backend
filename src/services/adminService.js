@@ -349,7 +349,7 @@ class AdminService {
     } catch (emailError) {
       console.error('Failed to send driver assignment emails:', emailError);
       // Don't fail the allocation if email fails
-    }
+    } 
 
     return updated;
   }

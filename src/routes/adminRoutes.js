@@ -226,7 +226,7 @@ router.put(
   ],
   adminController.updateSlotCapacity
 );
-
+ 
 router.get('/dashboard', adminController.getDashboard);
 
 // ANALYTICS DASHBOARD 
@@ -263,5 +263,16 @@ router.delete('/enquiries/:id', authorize('ADMIN'), adminController.deleteEnquir
 router.get('/audit-logs', adminController.getAllAuditLogs);
 
 router.get('/audit-logs/:id', adminController.getAuditLogById);
+
+//  EXPORT ROUTES 
+
+// Export Invoice as PDF
+router.get('/invoices/:id/export/pdf', adminController.exportInvoicePDF);
+
+// Export Deliveries (Excel or CSV)
+router.get('/deliveries/export', adminController.exportDeliveries);
+
+// Export Analytics (Excel or CSV)
+router.get('/analytics/export', adminController.exportAnalytics);
 
 module.exports = router;

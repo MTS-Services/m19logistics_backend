@@ -55,7 +55,7 @@ class AuditService {
     if (action) {
       where.action = { contains: action, mode: 'insensitive' };
     }
-    if (deliveryId) {
+    if (deliveryId) { 
       where.deliveryId = parseInt(deliveryId);
     }
     

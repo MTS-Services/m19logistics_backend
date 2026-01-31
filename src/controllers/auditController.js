@@ -10,7 +10,7 @@ exports.getMyAuditLogs = async (req, res, next) => {
       data: logs,
       count: logs.length,
     });
-  } catch (error) {
+  } catch (error) { 
     next(error);
   }
 };

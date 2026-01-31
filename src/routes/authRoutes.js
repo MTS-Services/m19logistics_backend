@@ -19,7 +19,7 @@ router.post(
     validate,
   ],
   authController.register
-);
+); 
 
 
 router.post(

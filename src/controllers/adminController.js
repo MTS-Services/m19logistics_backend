@@ -2,6 +2,7 @@ const adminService = require('../services/adminService');
 const contactService = require('../services/contactService');
 const enquiryService = require('../services/enquiryService');
 const auditService = require('../services/auditService');
+const exportService = require('../services/exportService');
 
 // ==================== USER MANAGEMENT ====================
 
@@ -559,7 +560,7 @@ exports.getEnquiryById = async (req, res, next) => {
       });
     }
     
-    res.json({
+    res.json({ 
       success: true,
       data: enquiry,
     });
@@ -653,6 +654,84 @@ exports.getAuditLogById = async (req, res, next) => {
       success: true,
       data: log,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+//  EXPORT FEATURES 
+
+// Export Invoice as PDF
+exports.exportInvoicePDF = async (req, res, next) => {
+  try {
+    const invoice = await adminService.getInvoiceById(parseInt(req.params.id));
+    
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+      });
+    }
+
+    const pdfDoc = exportService.generateInvoicePDF(invoice);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Invoice-${invoice.invoiceNumber}.pdf`);
+    
+    pdfDoc.pipe(res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Export Deliveries (Excel or CSV)
+exports.exportDeliveries = async (req, res, next) => {
+  try {
+    const { format = 'excel' } = req.query;
+    
+    const deliveries = await adminService.getAllDeliveries({
+      ...req.query,
+      includeAll: true, 
+    });
+
+    if (format === 'csv') {
+      const csv = exportService.generateDeliveriesCSV(deliveries);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=Deliveries-${new Date().toISOString().split('T')[0]}.csv`);
+      res.send(csv);
+    } else {
+      const excelBuffer = await exportService.generateDeliveriesExcel(deliveries);
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=Deliveries-${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.send(excelBuffer);
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Export Analytics (Excel or CSV)
+exports.exportAnalytics = async (req, res, next) => {
+  try {
+    const { format = 'excel' } = req.query;
+    
+    const analyticsData = await adminService.getAnalytics(req.query);
+
+    if (format === 'csv') {
+      const csv = exportService.generateAnalyticsCSV(analyticsData);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=Analytics-${new Date().toISOString().split('T')[0]}.csv`);
+      res.send(csv);
+    } else {
+      const excelBuffer = await exportService.generateAnalyticsExcel(analyticsData);
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=Analytics-${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.send(excelBuffer);
+    }
   } catch (error) {
     next(error);
   }
