@@ -1,5 +1,6 @@
 const app = require('./app');
 const config = require('./config');
+const cronService = require('./services/cronService');
 
 const PORT = config.port;
 
@@ -11,6 +12,10 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port: ${PORT}`);
   console.log(`📡 API Base URL: http://localhost:${PORT}/api`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/api/health`);
+  
+  // Initialize cron jobs
+  cronService.initializeJobs();
+  console.log('⏰ Cron jobs initialized');
  
 });
 

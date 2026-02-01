@@ -194,6 +194,16 @@ class DeliveryService {
   async cancelDelivery(id, customerId, reason) {
     const delivery = await prisma.delivery.findFirst({
       where: { id, customerId },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          }
+        }
+      }
     });
 
     if (!delivery) {
@@ -218,6 +228,19 @@ class DeliveryService {
     
     if (wasNotCancelled && delivery.timeSlot !== 'SAME_DAY') {
       await this.decrementSlotBooking(delivery.deliveryDate, delivery.timeSlot);
+    }
+
+    // Send cancellation email to customer
+    try {
+      await emailService.sendDeliveryCancellationNotification(
+        delivery,
+        delivery.customer,
+        'Customer',
+        reason || 'No reason provided'
+      );
+    } catch (emailError) {
+      console.error('Failed to send cancellation email:', emailError);
+      // Don't fail the cancellation if email fails
     }
     
     return cancelled;

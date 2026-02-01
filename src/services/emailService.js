@@ -505,6 +505,193 @@ class EmailService {
       replyTo: 'admin@m19logistics.com',
     });
   }
+
+  /**
+   * Send weekly driver feedback summary email
+   * @param {Array} feedbackRecords - Driver feedback records
+   * @param {Array} deliveriesWithNotes - Completed deliveries with notes
+   * @param {Date} startDate - Week start date
+   * @param {Date} endDate - Week end date
+   */
+  async sendWeeklyDriverFeedbackSummary(feedbackRecords, deliveriesWithNotes, startDate, endDate) {
+    const subject = `📊 Weekly Driver Feedback Summary - ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">Weekly Driver Feedback Summary</h2>
+        <p><strong>Period:</strong> ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}</p>
+        
+        <hr style="border: 1px solid #e5e7eb; margin: 20px 0;">
+        
+        ${feedbackRecords.length > 0 ? `
+          <h3 style="color: #059669;">Driver Feedback (${feedbackRecords.length})</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background-color: #2563eb; color: white;">
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Date</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Driver</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">SPO</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Customer</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Rating</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Comments</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${feedbackRecords.map((feedback, index) => `
+                <tr style="background-color: ${index % 2 === 0 ? '#f9fafb' : 'white'};">
+                  <td style="padding: 10px; border: 1px solid #ddd;">${new Date(feedback.createdAt).toLocaleDateString()}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.driver?.fullName || 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.delivery?.spoNumber || 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.delivery?.customer?.fullName || 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">⭐ ${feedback.rating}/5</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.comments || 'No comments'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : '<p><em>No driver feedback submitted this week.</em></p>'}
+        
+        ${deliveriesWithNotes.length > 0 ? `
+          <hr style="border: 1px solid #e5e7eb; margin: 30px 0;">
+          <h3 style="color: #059669;">Completed Deliveries with Notes (${deliveriesWithNotes.length})</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background-color: #059669; color: white;">
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Date</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Driver</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">SPO</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Store</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Received By</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${deliveriesWithNotes.map((delivery, index) => `
+                <tr style="background-color: ${index % 2 === 0 ? '#f9fafb' : 'white'};">
+                  <td style="padding: 10px; border: 1px solid #ddd;">${new Date(delivery.deliveredAt).toLocaleDateString()}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.driver?.fullName || 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.spoNumber}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.customer?.fullName || 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.receivedBy || 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd; font-size: 12px;">${delivery.deliveryAddress}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+        
+        <hr style="border: 1px solid #e5e7eb; margin: 30px 0;">
+        
+        <h3 style="color: #6b7280;">Summary Statistics</h3>
+        <ul style="list-style: none; padding: 0;">
+          <li style="padding: 8px; background-color: #f3f4f6; margin: 5px 0; border-radius: 4px;">
+            <strong>Total Feedback Submitted:</strong> ${feedbackRecords.length}
+          </li>
+          <li style="padding: 8px; background-color: #f3f4f6; margin: 5px 0; border-radius: 4px;">
+            <strong>Total Deliveries Completed:</strong> ${deliveriesWithNotes.length}
+          </li>
+          <li style="padding: 8px; background-color: #f3f4f6; margin: 5px 0; border-radius: 4px;">
+            <strong>Average Rating:</strong> ${feedbackRecords.length > 0 
+              ? (feedbackRecords.reduce((sum, f) => sum + f.rating, 0) / feedbackRecords.length).toFixed(1) 
+              : 'N/A'}/5
+          </li>
+        </ul>
+        
+        <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
+          M19 Logistics - Automated Weekly Report<br>
+          Tel: 07971415430<br>
+          Email: admin@m19logistics.com
+        </p>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: 'hahm56825@gmail.com', // Admin email
+      cc: 'ben@m19logistics.com', // Optional: CC to Ben
+      subject,
+      html,
+      replyTo: 'admin@m19logistics.com',
+    });
+  }
+
+  /**
+   * Send personalized weekly feedback email to a single driver
+   * @param {Object} driver - Driver object { id, fullName, email }
+   * @param {Array} feedbackRecords - Driver-specific feedback records
+   * @param {Array} deliveriesWithNotes - Driver-specific deliveries with notes
+   * @param {Date} startDate
+   * @param {Date} endDate
+   */
+  async sendDriverWeeklyFeedbackEmail(driver, feedbackRecords, deliveriesWithNotes, startDate, endDate) {
+    const subject = `📬 Your Weekly Driver Feedback - ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">Hello ${driver.fullName || 'Driver'},</h2>
+        <p>This is your weekly feedback summary for <strong>${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}</strong>.</p>
+
+        ${feedbackRecords.length > 0 ? `
+          <h3 style="color: #059669;">Your Feedback (${feedbackRecords.length})</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
+            <thead>
+              <tr style="background-color: #2563eb; color: white;">
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Date</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">SPO</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Customer</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Comments</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${feedbackRecords.map((f, i) => `
+                <tr style="background-color: ${i % 2 === 0 ? '#f9fafb' : 'white'};">
+                  <td style="padding: 8px; border: 1px solid #ddd;">${new Date(f.createdAt).toLocaleDateString()}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${f.delivery?.spoNumber || 'N/A'}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${f.delivery?.customer?.fullName || 'N/A'}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${(f.notes || '').replace(/\n/g, '<br/>')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : '<p><em>No feedback submitted this week.</em></p>'}
+
+        ${deliveriesWithNotes.length > 0 ? `
+          <h3 style="color: #059669;">Deliveries with Notes (${deliveriesWithNotes.length})</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
+            <thead>
+              <tr style="background-color: #059669; color: white;">
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Date</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">SPO</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Received By</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${deliveriesWithNotes.map((d, i) => `
+                <tr style="background-color: ${i % 2 === 0 ? '#f9fafb' : 'white'};">
+                  <td style="padding: 8px; border: 1px solid #ddd;">${new Date(d.deliveredAt).toLocaleDateString()}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${d.spoNumber}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${d.receivedBy || 'N/A'}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${d.deliveryAddress}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+
+        <hr style="border: 1px solid #e5e7eb; margin: 20px 0;">
+        <p style="color: #6c757d; font-size: 12px;">If you'd like to stop receiving these emails, update your notification preferences in your profile.</p>
+
+        <p style="color: #6c757d; font-size: 12px; margin-top: 20px;">M19 Logistics</p>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: driver.email,
+      subject,
+      html,
+      replyTo: 'admin@m19logistics.com',
+    });
+  }
 }
 
 module.exports = new EmailService();
