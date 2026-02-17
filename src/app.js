@@ -18,7 +18,7 @@ app.use(helmet());
 
 // CORS Configuration - Allow all origins
 app.use(cors({
-  origin: '*', 
+  origin: '*',
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -35,7 +35,8 @@ if (config.nodeEnv === 'development') {
   app.use(morgan('combined'));
 }
 
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+// Serve uploaded files from /uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.use('/api', routes);
