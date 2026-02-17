@@ -9,7 +9,7 @@ const exportService = require('../services/exportService');
 exports.getAllUsers = async (req, res, next) => {
   try {
     const users = await adminService.getAllUsers(req.query);
-    
+
     res.json({
       success: true,
       data: users,
@@ -23,14 +23,14 @@ exports.getAllUsers = async (req, res, next) => {
 exports.getUserById = async (req, res, next) => {
   try {
     const user = await adminService.getUserById(parseInt(req.params.id));
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
       });
     }
-    
+
     res.json({
       success: true,
       data: user,
@@ -43,7 +43,7 @@ exports.getUserById = async (req, res, next) => {
 exports.createUser = async (req, res, next) => {
   try {
     const user = await adminService.createUser(req.body);
-    
+
     res.status(201).json({
       success: true,
       message: 'User created successfully',
@@ -57,7 +57,7 @@ exports.createUser = async (req, res, next) => {
 exports.updateUser = async (req, res, next) => {
   try {
     const user = await adminService.updateUser(parseInt(req.params.id), req.body);
-    
+
     res.json({
       success: true,
       message: 'User updated successfully',
@@ -71,7 +71,7 @@ exports.updateUser = async (req, res, next) => {
 exports.deleteUser = async (req, res, next) => {
   try {
     await adminService.deleteUser(parseInt(req.params.id));
-    
+
     res.json({
       success: true,
       message: 'User deleted successfully',
@@ -84,7 +84,7 @@ exports.deleteUser = async (req, res, next) => {
 exports.toggleUserStatus = async (req, res, next) => {
   try {
     const user = await adminService.toggleUserStatus(parseInt(req.params.id));
-    
+
     res.json({
       success: true,
       message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
@@ -100,7 +100,7 @@ exports.toggleUserStatus = async (req, res, next) => {
 exports.getAllDeliveries = async (req, res, next) => {
   try {
     const deliveries = await adminService.getAllDeliveries(req.query);
-    
+
     res.json({
       success: true,
       data: deliveries,
@@ -118,7 +118,7 @@ exports.allocateDelivery = async (req, res, next) => {
       parseInt(req.params.id),
       parseInt(driverId)
     );
-    
+
     res.json({
       success: true,
       message: 'Delivery allocated successfully',
@@ -137,7 +137,7 @@ exports.updateDeliveryStatus = async (req, res, next) => {
       status,
       data
     );
-    
+
     res.json({
       success: true,
       message: 'Delivery status updated successfully',
@@ -154,7 +154,7 @@ exports.addExtraCharge = async (req, res, next) => {
       parseInt(req.params.id),
       req.body
     );
-    
+
     res.json({
       success: true,
       message: 'Extra charge added successfully',
@@ -168,7 +168,7 @@ exports.addExtraCharge = async (req, res, next) => {
 exports.removeExtraCharge = async (req, res, next) => {
   try {
     await adminService.removeExtraCharge(parseInt(req.params.chargeId));
-    
+
     res.json({
       success: true,
       message: 'Extra charge removed successfully',
@@ -183,7 +183,7 @@ exports.getDeliveryExtraCharges = async (req, res, next) => {
     const charges = await adminService.getDeliveryExtraCharges(
       parseInt(req.params.id)
     );
-    
+
     res.json({
       success: true,
       data: charges,
@@ -199,7 +199,7 @@ exports.getDeliveryExtraCharges = async (req, res, next) => {
 exports.getAllPricingTiers = async (req, res, next) => {
   try {
     const tiers = await adminService.getAllPricingTiers();
-    
+
     res.json({
       success: true,
       data: tiers,
@@ -213,7 +213,7 @@ exports.getAllPricingTiers = async (req, res, next) => {
 exports.createPricingTier = async (req, res, next) => {
   try {
     const tier = await adminService.createPricingTier(req.body);
-    
+
     res.status(201).json({
       success: true,
       message: 'Pricing tier created successfully',
@@ -230,7 +230,7 @@ exports.updatePricingTier = async (req, res, next) => {
       parseInt(req.params.id),
       req.body
     );
-    
+
     res.json({
       success: true,
       message: 'Pricing tier updated successfully',
@@ -244,7 +244,7 @@ exports.updatePricingTier = async (req, res, next) => {
 exports.deletePricingTier = async (req, res, next) => {
   try {
     await adminService.deletePricingTier(parseInt(req.params.id));
-    
+
     res.json({
       success: true,
       message: 'Pricing tier deleted successfully',
@@ -264,7 +264,7 @@ exports.generateInvoice = async (req, res, next) => {
       weekStartDate,
       weekEndDate
     );
-    
+
     res.status(201).json({
       success: true,
       message: 'Invoice generated successfully',
@@ -279,12 +279,12 @@ exports.generateWeeklyInvoicesForAll = async (req, res, next) => {
   try {
     const invoiceGenerationService = require('../services/invoiceGenerationService');
     const { weekStartDate, weekEndDate } = req.body;
-    
+
     const result = await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
       weekStartDate,
       weekEndDate
     );
-    
+
     res.status(201).json(result);
   } catch (error) {
     next(error);
@@ -295,12 +295,12 @@ exports.generateLastWeekInvoices = async (req, res, next) => {
   try {
     const invoiceGenerationService = require('../services/invoiceGenerationService');
     const { weekStartDate, weekEndDate } = invoiceGenerationService.getLastWeekRange();
-    
+
     const result = await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
       weekStartDate,
       weekEndDate
     );
-    
+
     res.status(201).json(result);
   } catch (error) {
     next(error);
@@ -310,7 +310,7 @@ exports.generateLastWeekInvoices = async (req, res, next) => {
 exports.getAllInvoices = async (req, res, next) => {
   try {
     const invoices = await adminService.getAllInvoices(req.query);
-    
+
     res.json({
       success: true,
       data: invoices,
@@ -324,7 +324,7 @@ exports.getAllInvoices = async (req, res, next) => {
 exports.markInvoiceAsPaid = async (req, res, next) => {
   try {
     const invoice = await adminService.markInvoiceAsPaid(parseInt(req.params.id));
-    
+
     res.json({
       success: true,
       message: 'Invoice marked as paid',
@@ -341,7 +341,7 @@ exports.addExtraCharge = async (req, res, next) => {
       parseInt(req.params.id),
       req.body
     );
-    
+
     res.status(201).json({
       success: true,
       message: 'Extra charge added successfully',
@@ -357,14 +357,14 @@ exports.addExtraCharge = async (req, res, next) => {
 exports.getInvoiceById = async (req, res, next) => {
   try {
     const invoice = await adminService.getInvoiceById(parseInt(req.params.id));
-    
+
     if (!invoice) {
       return res.status(404).json({
         success: false,
         message: 'Invoice not found',
       });
     }
-    
+
     res.json({
       success: true,
       data: invoice,
@@ -380,7 +380,7 @@ exports.updateInvoice = async (req, res, next) => {
       parseInt(req.params.id),
       req.body
     );
-    
+
     res.json({
       success: true,
       message: 'Invoice updated successfully',
@@ -396,7 +396,7 @@ exports.updateInvoice = async (req, res, next) => {
 exports.getSlotAvailability = async (req, res, next) => {
   try {
     const slots = await adminService.getSlotAvailability(req.query);
-    
+
     res.json({
       success: true,
       data: slots,
@@ -410,7 +410,7 @@ exports.getSlotAvailability = async (req, res, next) => {
 exports.setSlotAvailability = async (req, res, next) => {
   try {
     const slot = await adminService.setSlotAvailability(req.body);
-    
+
     res.json({
       success: true,
       message: 'Slot availability updated successfully',
@@ -429,7 +429,7 @@ exports.updateSlotCapacity = async (req, res, next) => {
       method,
       parseInt(value)
     );
-    
+
     res.json({
       success: true,
       message: `Slot capacity ${method}d by ${value} successfully`,
@@ -445,7 +445,7 @@ exports.updateSlotCapacity = async (req, res, next) => {
 exports.getDashboard = async (req, res, next) => {
   try {
     const dashboard = await adminService.getDashboard();
-    
+
     res.json({
       success: true,
       data: dashboard,
@@ -460,7 +460,7 @@ exports.getDashboard = async (req, res, next) => {
 exports.getAnalytics = async (req, res, next) => {
   try {
     const analytics = await adminService.getAnalytics(req.query);
-    
+
     res.json({
       success: true,
       data: analytics,
@@ -475,7 +475,7 @@ exports.getAnalytics = async (req, res, next) => {
 exports.getAllContacts = async (req, res, next) => {
   try {
     const contacts = await contactService.getAllContacts(req.query);
-    
+
     res.json({
       success: true,
       data: contacts,
@@ -489,14 +489,14 @@ exports.getAllContacts = async (req, res, next) => {
 exports.getContactById = async (req, res, next) => {
   try {
     const contact = await contactService.getContactById(parseInt(req.params.id));
-    
+
     if (!contact) {
       return res.status(404).json({
         success: false,
         message: 'Contact not found',
       });
     }
-    
+
     res.json({
       success: true,
       data: contact,
@@ -509,7 +509,7 @@ exports.getContactById = async (req, res, next) => {
 exports.markContactAsRead = async (req, res, next) => {
   try {
     const contact = await contactService.markContactAsRead(parseInt(req.params.id));
-    
+
     res.json({
       success: true,
       message: 'Contact marked as read',
@@ -523,7 +523,7 @@ exports.markContactAsRead = async (req, res, next) => {
 exports.deleteContact = async (req, res, next) => {
   try {
     await contactService.deleteContact(parseInt(req.params.id));
-    
+
     res.json({
       success: true,
       message: 'Contact deleted successfully',
@@ -538,7 +538,7 @@ exports.deleteContact = async (req, res, next) => {
 exports.getAllEnquiries = async (req, res, next) => {
   try {
     const enquiries = await enquiryService.getAllEnquiries(req.query);
-    
+
     res.json({
       success: true,
       data: enquiries,
@@ -552,15 +552,15 @@ exports.getAllEnquiries = async (req, res, next) => {
 exports.getEnquiryById = async (req, res, next) => {
   try {
     const enquiry = await enquiryService.getEnquiryById(parseInt(req.params.id));
-    
+
     if (!enquiry) {
       return res.status(404).json({
         success: false,
         message: 'Enquiry not found',
       });
     }
-    
-    res.json({ 
+
+    res.json({
       success: true,
       data: enquiry,
     });
@@ -572,7 +572,7 @@ exports.getEnquiryById = async (req, res, next) => {
 exports.markEnquiryAsRead = async (req, res, next) => {
   try {
     const enquiry = await enquiryService.markEnquiryAsRead(parseInt(req.params.id));
-    
+
     res.json({
       success: true,
       message: 'Enquiry marked as read',
@@ -586,7 +586,7 @@ exports.markEnquiryAsRead = async (req, res, next) => {
 exports.deleteEnquiry = async (req, res, next) => {
   try {
     await enquiryService.deleteEnquiry(parseInt(req.params.id));
-    
+
     res.json({
       success: true,
       message: 'Enquiry deleted successfully',
@@ -598,7 +598,7 @@ exports.deleteEnquiry = async (req, res, next) => {
 exports.getDriverPerformance = async (req, res, next) => {
   try {
     const performance = await adminService.getDriverPerformance(req.query);
-    
+
     res.json({
       success: true,
       data: performance,
@@ -612,7 +612,7 @@ exports.getDriverPerformance = async (req, res, next) => {
 exports.getCustomerAnalytics = async (req, res, next) => {
   try {
     const analytics = await adminService.getCustomerAnalytics(req.query);
-    
+
     res.json({
       success: true,
       data: analytics,
@@ -628,7 +628,7 @@ exports.getCustomerAnalytics = async (req, res, next) => {
 exports.getAllAuditLogs = async (req, res, next) => {
   try {
     const logs = await auditService.getAllAuditLogs(req.query);
-    
+
     res.json({
       success: true,
       data: logs,
@@ -642,14 +642,14 @@ exports.getAllAuditLogs = async (req, res, next) => {
 exports.getAuditLogById = async (req, res, next) => {
   try {
     const log = await auditService.getAuditLogById(parseInt(req.params.id));
-    
+
     if (!log) {
       return res.status(404).json({
         success: false,
         message: 'Audit log not found',
       });
     }
-    
+
     res.json({
       success: true,
       data: log,
@@ -659,13 +659,12 @@ exports.getAuditLogById = async (req, res, next) => {
   }
 };
 
-//  EXPORT FEATURES 
 
 // Export Invoice as PDF
 exports.exportInvoicePDF = async (req, res, next) => {
   try {
     const invoice = await adminService.getInvoiceById(parseInt(req.params.id));
-    
+
     if (!invoice) {
       return res.status(404).json({
         success: false,
@@ -674,10 +673,10 @@ exports.exportInvoicePDF = async (req, res, next) => {
     }
 
     const pdfDoc = exportService.generateInvoicePDF(invoice);
-    
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=Invoice-${invoice.invoiceNumber}.pdf`);
-    
+
     pdfDoc.pipe(res);
   } catch (error) {
     next(error);
@@ -688,21 +687,21 @@ exports.exportInvoicePDF = async (req, res, next) => {
 exports.exportDeliveries = async (req, res, next) => {
   try {
     const { format = 'excel' } = req.query;
-    
+
     const deliveries = await adminService.getAllDeliveries({
       ...req.query,
-      includeAll: true, 
+      includeAll: true,
     });
 
     if (format === 'csv') {
       const csv = exportService.generateDeliveriesCSV(deliveries);
-      
+
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=Deliveries-${new Date().toISOString().split('T')[0]}.csv`);
       res.send(csv);
     } else {
       const excelBuffer = await exportService.generateDeliveriesExcel(deliveries);
-      
+
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename=Deliveries-${new Date().toISOString().split('T')[0]}.xlsx`);
       res.send(excelBuffer);
@@ -716,18 +715,18 @@ exports.exportDeliveries = async (req, res, next) => {
 exports.exportAnalytics = async (req, res, next) => {
   try {
     const { format = 'excel' } = req.query;
-    
+
     const analyticsData = await adminService.getAnalytics(req.query);
 
     if (format === 'csv') {
       const csv = exportService.generateAnalyticsCSV(analyticsData);
-      
+
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=Analytics-${new Date().toISOString().split('T')[0]}.csv`);
       res.send(csv);
     } else {
       const excelBuffer = await exportService.generateAnalyticsExcel(analyticsData);
-      
+
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename=Analytics-${new Date().toISOString().split('T')[0]}.xlsx`);
       res.send(excelBuffer);

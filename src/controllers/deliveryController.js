@@ -2,7 +2,7 @@ const deliveryService = require('../services/deliveryService');
 const prisma = require('../config/database');
 
 class DeliveryController {
- 
+
   async createDelivery(req, res) {
     try {
       const customerId = req.user.id;
@@ -56,17 +56,17 @@ class DeliveryController {
       });
     } catch (error) {
       console.error('Create delivery error:', error);
-      
-      if (error.message.includes('slot is full') || 
-          error.message.includes('slot availability') ||
-          error.message.includes('Please choose another') ||
-          error.message.includes('Please contact admin')) {
+
+      if (error.message.includes('slot is full') ||
+        error.message.includes('slot availability') ||
+        error.message.includes('Please choose another') ||
+        error.message.includes('Please contact admin')) {
         return res.status(400).json({
           success: false,
           message: error.message,
         });
       }
-      
+
       res.status(500).json({
         success: false,
         message: 'Failed to create delivery request',
@@ -77,7 +77,7 @@ class DeliveryController {
 
   async getMyDeliveries(req, res) {
     try {
-      const customerId = req.user.id; 
+      const customerId = req.user.id;
       const { status, startDate, endDate, search } = req.query;
 
       const deliveries = await deliveryService.getCustomerDeliveries(customerId, {
@@ -174,10 +174,7 @@ class DeliveryController {
     }
   }
 
-  /**
-   * Cancel delivery
-   * POST /api/deliveries/:id/cancel
-   */
+
   async cancelDelivery(req, res) {
     try {
       const { id } = req.params;
@@ -216,7 +213,7 @@ class DeliveryController {
     }
   }
 
- 
+
   async deleteDelivery(req, res) {
     try {
       const { id } = req.params;
