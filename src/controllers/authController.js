@@ -3,17 +3,18 @@ const userService = require('../services/userService');
 const customerService = require('../services/customerService');
 const driverService = require('../services/driverService');
 const managerService = require('../services/managerService');
+const config = require('../config');
 
 class AuthController {
 
   async register(req, res) {
     try {
-      const { 
-        email, 
-        username, 
-        password, 
-        fullName, 
-        phone, 
+      const {
+        email,
+        username,
+        password,
+        fullName,
+        phone,
         role,
         // Customer-specific fields
         storeName,
@@ -62,7 +63,7 @@ class AuthController {
 
       const hashedPassword = await authService.hashPassword(password);
 
-      
+
       const userData = {
         email,
         username,
@@ -76,7 +77,7 @@ class AuthController {
       const user = await userService.createUser(userData);
 
       let profile = null;
-      
+
       switch (role) {
         case 'CUSTOMER':
           profile = await customerService.createProfile(user.id, {
@@ -109,7 +110,7 @@ class AuthController {
           break;
 
         case 'ADMIN':
-         
+
           break;
       }
       const token = await authService.generateToken(user.id);
@@ -211,7 +212,7 @@ class AuthController {
     }
   }
 
- 
+
   async getProfile(req, res) {
     try {
       const user = await userService.findById(req.user.id);
@@ -306,15 +307,16 @@ class AuthController {
         assignedStoreCount,
       } = req.body;
 
-      
+
       const userUpdateData = {};
-      
+
       if (email !== undefined && email !== req.user.email) {
         const existingEmail = await userService.findByEmail(email);
         if (existingEmail) {
           return res.status(400).json({
             success: false,
-            message: 'Email already registered.',n          });
+            message: 'Email already registered.', n
+          });
         }
         userUpdateData.email = email;
       }
@@ -332,11 +334,11 @@ class AuthController {
 
       if (fullName !== undefined) userUpdateData.fullName = fullName;
       if (phone !== undefined) userUpdateData.phone = phone;
-      
+
       // Handle uploaded profile picture
       if (req.file) {
-        // Save relative path (e.g., '/uploads/profiles/1738051234567-5-avatar.jpg')
-        userUpdateData.profilePicture = `/uploads/profiles/${req.file.filename}`;
+        // Save full URL (e.g., 'https://m19logisticsbackend.mtscorporate.com/uploads/profiles/1738051234567-5-avatar.jpg')
+        userUpdateData.profilePicture = `${config.backendUrl}/uploads/profiles/${req.file.filename}`;
       }
 
       let updatedUser = null;
@@ -389,7 +391,7 @@ class AuthController {
           break;
         }
 
-        case 'ADMIN':    
+        case 'ADMIN':
           if (Object.keys(userUpdateData).length === 0) {
             return res.status(400).json({
               success: false,
@@ -419,7 +421,7 @@ class AuthController {
       });
     } catch (error) {
       console.error('Update profile error:', error);
-      
+
       if (error.code === 'P2025') {
         return res.status(404).json({
           success: false,

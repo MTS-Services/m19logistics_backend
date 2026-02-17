@@ -3,16 +3,17 @@ require('dotenv').config();
 module.exports = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:3000',
 
   jwt: {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || '30d',
   },
-  
+
   database: {
     url: process.env.DATABASE_URL,
   },
-  
+
 
   email: {
     smtp: {
@@ -29,13 +30,13 @@ module.exports = {
     admin: process.env.EMAIL_ADMIN,
     ben: process.env.EMAIL_BEN,
   },
-  
+
 
   googleMaps: {
     apiKey: process.env.GOOGLE_MAPS_API_KEY,
   },
-  
-  
+
+
   company: {
     name: process.env.COMPANY_NAME,
     address: process.env.COMPANY_ADDRESS,
@@ -43,20 +44,20 @@ module.exports = {
     email: process.env.COMPANY_EMAIL,
     vat: process.env.COMPANY_VAT,
   },
-  
-  
+
+
   upload: {
-    maxFileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760, 
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760,
     uploadPath: process.env.UPLOAD_PATH || './public/uploads',
   },
-  
-  
+
+
   invoice: {
     prefix: process.env.INVOICE_PREFIX || 'T',
     currentNumber: parseInt(process.env.CURRENT_INVOICE_NUMBER) || 326,
   },
-  
- 
+
+
   pricing: {
     baseDistance: 45, // miles
     weightBlock: 800, // kg

@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const config = require('../config');
 const emailService = require('./emailService');
 
 class DriverService {
@@ -70,19 +71,19 @@ class DriverService {
 
   async getAssignedDeliveries(driverId, filters = {}) {
     const { status, startDate, endDate, search } = filters;
-    
+
     const where = { driverId };
-    
+
     if (status && status !== 'ALL') {
       where.status = status;
     }
-    
+
     if (startDate || endDate) {
       where.deliveryDate = {};
       if (startDate) where.deliveryDate.gte = new Date(startDate);
       if (endDate) where.deliveryDate.lte = new Date(endDate);
     }
-    
+
     if (search) {
       where.OR = [
         { spoNumber: { contains: search, mode: 'insensitive' } },
@@ -122,9 +123,9 @@ class DriverService {
 
   async getDeliveryDetails(deliveryId, driverId) {
     const delivery = await prisma.delivery.findFirst({
-      where: { 
+      where: {
         id: deliveryId,
-        driverId 
+        driverId
       },
       include: {
         customer: {
@@ -278,7 +279,7 @@ class DriverService {
 
   async completeDelivery(deliveryId, driverId, completionData) {
     const delivery = await prisma.delivery.findFirst({
-      where: { 
+      where: {
         id: deliveryId,
         driverId,
         status: 'ALLOCATED'
@@ -352,12 +353,12 @@ class DriverService {
     return updated;
   }
 
- 
+
   async uploadProofOfDelivery(deliveryId, driverId, files) {
     const delivery = await prisma.delivery.findFirst({
-      where: { 
+      where: {
         id: deliveryId,
-        driverId 
+        driverId
       },
     });
 
@@ -366,13 +367,13 @@ class DriverService {
     }
 
     const updateData = {};
-    
+
     if (files.signature && files.signature[0]) {
-      updateData.signatureUrl = `/uploads/signatures/${files.signature[0].filename}`;
+      updateData.signatureUrl = `${config.backendUrl}/uploads/signatures/${files.signature[0].filename}`;
     }
-    
+
     if (files.photo && files.photo.length > 0) {
-      updateData.photoUrl = files.photo.map(f => `/uploads/photos/${f.filename}`).join(',');
+      updateData.photoUrl = files.photo.map(f => `${config.backendUrl}/uploads/photos/${f.filename}`).join(',');
     }
 
     return prisma.delivery.update({
@@ -387,12 +388,12 @@ class DriverService {
     });
   }
 
-  
+
   async submitFeedback(deliveryId, driverId, feedbackData) {
     const delivery = await prisma.delivery.findFirst({
-      where: { 
+      where: {
         id: deliveryId,
-        driverId 
+        driverId
       },
     });
 
@@ -401,7 +402,7 @@ class DriverService {
     }
 
     const { rating, comments, issues } = feedbackData;
-    
+
     // Combine feedback into notes field
     const notes = `Rating: ${rating}/5\n${comments ? 'Comments: ' + comments : ''}${issues ? '\nIssues: ' + issues : ''}`.trim();
 
@@ -425,7 +426,7 @@ class DriverService {
     }
   }
 
- 
+
   async getDriverDashboard(driverId) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -485,7 +486,7 @@ class DriverService {
     };
   }
 
- 
+
   async getPerformanceMetrics(driverId, startDate, endDate) {
     const dateFilter = {};
     if (startDate) dateFilter.gte = new Date(startDate);
