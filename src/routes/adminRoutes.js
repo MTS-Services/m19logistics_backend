@@ -17,7 +17,7 @@ router.get('/users/:id', adminController.getUserById);
 
 router.post(
   '/users',
-  authorize('ADMIN'), 
+  authorize('ADMIN'),
   [
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
@@ -226,7 +226,7 @@ router.put(
   ],
   adminController.updateSlotCapacity
 );
- 
+
 router.get('/dashboard', adminController.getDashboard);
 
 // ANALYTICS DASHBOARD 
@@ -258,10 +258,39 @@ router.post('/enquiries/:id/mark-read', adminController.markEnquiryAsRead);
 
 router.delete('/enquiries/:id', authorize('ADMIN'), adminController.deleteEnquiry);
 
+//  JOB APPLICATION MANAGEMENT 
+
+const jobApplicationController = require('../controllers/jobApplicationController');
+
+// Get all job applications
+router.get('/job-applications', jobApplicationController.getAllJobApplications);
+
+// Get job application statistics
+router.get('/job-applications/stats', jobApplicationController.getJobApplicationStats);
+
+// Get single job application by ID
+router.get('/job-applications/:id', jobApplicationController.getJobApplicationById);
+
+// Update job application status
+router.patch(
+  '/job-applications/:id/status',
+  [
+    body('status')
+      .optional()
+      .isIn(['PENDING', 'REVIEWED', 'SHORTLISTED', 'REJECTED'])
+      .withMessage('Invalid status value'),
+    body('adminNotes').optional().isString().withMessage('Admin notes must be a string'),
+  ],
+  jobApplicationController.updateJobApplicationStatus
+);
+
+// Delete job application
+router.delete('/job-applications/:id', authorize('ADMIN'), jobApplicationController.deleteJobApplication);
+
 // AUDIT LOGS (ADMIN)
 
 router.get('/audit-logs', adminController.getAllAuditLogs);
- 
+
 router.get('/audit-logs/:id', adminController.getAuditLogById);
 
 //  EXPORT ROUTES 

@@ -7,6 +7,7 @@ const uploadDirs = {
   signatures: path.join(__dirname, '../../uploads/signatures'),
   photos: path.join(__dirname, '../../uploads/photos'),
   profiles: path.join(__dirname, '../../uploads/profiles'),
+  cvs: path.join(__dirname, '../../uploads/cvs'),
 };
 
 Object.values(uploadDirs).forEach(dir => {
@@ -19,34 +20,50 @@ Object.values(uploadDirs).forEach(dir => {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let uploadPath = uploadDirs.photos; // default
-    
+
     if (file.fieldname === 'signature') {
       uploadPath = uploadDirs.signatures;
     } else if (file.fieldname === 'photo') {
       uploadPath = uploadDirs.photos;
     } else if (file.fieldname === 'profilePicture') {
       uploadPath = uploadDirs.profiles;
+    } else if (file.fieldname === 'cv') {
+      uploadPath = uploadDirs.cvs;
     }
-    
+
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     // Generate unique filename: timestamp-userid-originalname
-    const uniqueName = `${Date.now()}-${req.user?.id || 'user'}-${file.originalname}`;
+    const uniqueName = `${Date.now()}-${req.user?.id || 'applicant'}-${file.originalname}`;
     cb(null, uniqueName);
   }
 });
 
 // File filter
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+  if (file.fieldname === 'cv') {
+    // For CV uploads, allow PDF and Word documents
+    const allowedTypes = /pdf|doc|docx/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = /pdf|msword|vnd\.openxmlformats-officedocument\.wordprocessingml\.document/.test(file.mimetype);
 
-  if (mimetype && extname) {
-    return cb(null, true);
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only PDF and Word documents (DOC, DOCX) are allowed for CV uploads!'));
+    }
   } else {
-    cb(new Error('Only image files (JPEG, PNG, GIF) and PDF are allowed!'));
+    // For other uploads (images, signatures, etc.)
+    const allowedTypes = /jpeg|jpg|png|gif|pdf/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, GIF) and PDF are allowed!'));
+    }
   }
 };
 
@@ -64,11 +81,13 @@ const uploadMiddleware = {
   signature: upload.single('signature'),
 
   photo: upload.single('photo'),
-  
+
   profilePicture: upload.single('profilePicture'),
-  
+
+  cv: upload.single('cv'),
+
   photos: upload.array('photos', 5),
-  
+
   proofOfDelivery: upload.fields([
     { name: 'signature', maxCount: 1 },
     { name: 'photo', maxCount: 3 }

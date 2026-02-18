@@ -33,173 +33,163 @@ enum TierType {
   TIER_B
 }
 
-
 model User {
-  id                Int       @id @default(autoincrement())
-  email             String    @unique
-  username          String    @unique
-  password          String
-  fullName          String
-  phone             String?
-  role              UserRole
-  profilePicture    String?
-  isActive          Boolean   @default(true)
-  requirePasswordReset Boolean @default(false)
-  
- 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  lastLogin         DateTime?
-  
- 
-  customerProfile   CustomerProfile?
-  driverProfile     DriverProfile?
-  managerProfile    ManagerProfile?
+  id                   Int      @id @default(autoincrement())
+  email                String   @unique
+  username             String   @unique
+  password             String
+  fullName             String
+  phone                String?
+  role                 UserRole
+  profilePicture       String?
+  isActive             Boolean  @default(true)
+  requirePasswordReset Boolean  @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  lastLogin DateTime?
+
+  customerProfile     CustomerProfile?
+  driverProfile       DriverProfile?
+  managerProfile      ManagerProfile?
   deliveriesRequested Delivery[]       @relation("CustomerDeliveries")
   deliveriesAssigned  Delivery[]       @relation("DriverDeliveries")
-  invoices          Invoice[]
-  auditLogs         AuditLog[]
-  driverFeedback    DriverFeedback[]
-  
+  invoices            Invoice[]
+  auditLogs           AuditLog[]
+  driverFeedback      DriverFeedback[]
+
   @@index([email])
   @@index([username])
   @@index([role])
 }
 
 model CustomerProfile {
-  id                Int       @id @default(autoincrement())
-  userId            Int       @unique
-  storeName         String?
-  depotAddress      String?
-  loginId           String?   @unique
-  pricingTierId     Int?
-  customBasePrice   Decimal?  @db.Decimal(10, 2)
-  customVatRate     Decimal?  @db.Decimal(5, 2) @default(20.00)
-  accessScope       String?
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pricingTier       PricingTier?    @relation(fields: [pricingTierId], references: [id])
-  
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  storeName       String?
+  depotAddress    String?
+  loginId         String?  @unique
+  pricingTierId   Int?
+  customBasePrice Decimal? @db.Decimal(10, 2)
+  customVatRate   Decimal? @default(20.00) @db.Decimal(5, 2)
+  accessScope     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pricingTier PricingTier? @relation(fields: [pricingTierId], references: [id])
+
   @@index([userId])
   @@index([loginId])
 }
 
 model DriverProfile {
-  id                      Int       @id @default(autoincrement())
-  userId                  Int       @unique
-  vehicleRegistration     String?
-  driverLicenseNumber     String?
-  address                 String?
-  isActiveDriver          Boolean   @default(true)
-  enableSmsNotifications  Boolean   @default(false)
-  enableEmailNotifications Boolean  @default(true)
-  
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  
-  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id                       Int     @id @default(autoincrement())
+  userId                   Int     @unique
+  vehicleRegistration      String?
+  driverLicenseNumber      String?
+  address                  String?
+  isActiveDriver           Boolean @default(true)
+  enableSmsNotifications   Boolean @default(false)
+  enableEmailNotifications Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 
 model ManagerProfile {
-  id                  Int       @id @default(autoincrement())
-  userId              Int       @unique
-  officeAddress       String?
-  accessScope         String?
-  assignedStoreCount  Int?
-  
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id                 Int     @id @default(autoincrement())
+  userId             Int     @unique
+  officeAddress      String?
+  accessScope        String?
+  assignedStoreCount Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 
-
 model PricingTier {
-  id                Int       @id @default(autoincrement())
-  name              String    @unique 
-  description       String?
-  basePrice         Decimal   @db.Decimal(10, 2)
-  vatRate           Decimal   @db.Decimal(5, 2) @default(20.00)
-  weightUnit        Int       @default(800) // Weight per block in kg
-  maxDistance       Int       @default(45)  // Base distance in miles
-  surchargeRate     Decimal   @db.Decimal(3, 2) @default(0.5) // Rate for distance surcharge (0-1)
-  isDefault         Boolean   @default(false)
-  isActive          Boolean   @default(true)
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  customerProfiles  CustomerProfile[]
-  
+  id            Int     @id @default(autoincrement())
+  name          String  @unique
+  description   String?
+  basePrice     Decimal @db.Decimal(10, 2)
+  vatRate       Decimal @default(20.00) @db.Decimal(5, 2)
+  weightUnit    Int     @default(800) // Weight per block in kg
+  maxDistance   Int     @default(45) // Base distance in miles
+  surchargeRate Decimal @default(0.5) @db.Decimal(3, 2) // Rate for distance surcharge (0-1)
+  isDefault     Boolean @default(false)
+  isActive      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerProfiles CustomerProfile[]
+
   @@index([name])
 }
 
-
 model Delivery {
-  id                    Int             @id @default(autoincrement())
-  
- 
-  customerId            Int
-  driverId              Int?
-  
-  deliveryDate          DateTime
-  timeSlot              TimeSlot
-  weight                Decimal         @db.Decimal(10, 2) 
-  deliveryAddress       String
-  customerName          String
-  customerPhone         String
-  spoNumber             String
-  requestedBy           String
-  specialInstructions   String?
-  
-  status                DeliveryStatus  @default(RECEIVED)
-  isAdditionalDelivery  Boolean         @default(false)
-  parentDeliveryId      Int?
-  
+  id Int @id @default(autoincrement())
 
-  distanceFromDepot     Decimal?        @db.Decimal(10, 2) 
-  calculatedBasePrice   Decimal?        @db.Decimal(10, 2)
-  distanceSurcharge     Decimal?        @db.Decimal(10, 2)
-  subtotal              Decimal?        @db.Decimal(10, 2)
-  vatAmount             Decimal?        @db.Decimal(10, 2)
-  totalPrice            Decimal?        @db.Decimal(10, 2)
-  
+  customerId Int
+  driverId   Int?
 
-  deliveredAt           DateTime?
-  receivedBy            String?
-  signatureUrl          String?
-  photoUrl              String?
-  
+  deliveryDate        DateTime
+  timeSlot            TimeSlot
+  weight              Decimal  @db.Decimal(10, 2)
+  deliveryAddress     String
+  customerName        String
+  customerPhone       String
+  spoNumber           String
+  requestedBy         String
+  specialInstructions String?
+
+  status               DeliveryStatus @default(RECEIVED)
+  isAdditionalDelivery Boolean        @default(false)
+  parentDeliveryId     Int?
+
+  distanceFromDepot   Decimal? @db.Decimal(10, 2)
+  calculatedBasePrice Decimal? @db.Decimal(10, 2)
+  distanceSurcharge   Decimal? @db.Decimal(10, 2)
+  subtotal            Decimal? @db.Decimal(10, 2)
+  vatAmount           Decimal? @db.Decimal(10, 2)
+  totalPrice          Decimal? @db.Decimal(10, 2)
+
+  deliveredAt  DateTime?
+  receivedBy   String?
+  signatureUrl String?
+  photoUrl     String?
+
   // Driver Acceptance/Rejection
-  acceptedAt            DateTime?
-  rejectedAt            DateTime?
-  rejectionReason       String?
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
 
-  cancelledAt           DateTime?
-  cancellationReason    String?
-  cancelledBy           Int?
-  
- 
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  
-  
-  customer              User            @relation("CustomerDeliveries", fields: [customerId], references: [id])
-  driver                User?           @relation("DriverDeliveries", fields: [driverId], references: [id])
-  parentDelivery        Delivery?       @relation("AdditionalDeliveries", fields: [parentDeliveryId], references: [id])
-  additionalDeliveries  Delivery[]      @relation("AdditionalDeliveries")
-  extraCharges          ExtraCharge[]
-  auditLogs             AuditLog[]
-  driverFeedback        DriverFeedback?
-  invoiceItem           InvoiceItem?
-  
+  cancelledAt        DateTime?
+  cancellationReason String?
+  cancelledBy        Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer             User            @relation("CustomerDeliveries", fields: [customerId], references: [id])
+  driver               User?           @relation("DriverDeliveries", fields: [driverId], references: [id])
+  parentDelivery       Delivery?       @relation("AdditionalDeliveries", fields: [parentDeliveryId], references: [id])
+  additionalDeliveries Delivery[]      @relation("AdditionalDeliveries")
+  extraCharges         ExtraCharge[]
+  auditLogs            AuditLog[]
+  driverFeedback       DriverFeedback?
+  invoiceItem          InvoiceItem?
+
   @@index([customerId])
   @@index([driverId])
   @@index([status])
@@ -207,154 +197,143 @@ model Delivery {
   @@index([spoNumber])
 }
 
-
 model ExtraCharge {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   deliveryId  Int
-  description String   
-  amount      Decimal  @db.Decimal(10, 2)
-  vatAmount   Decimal  @db.Decimal(10, 2)
-  totalAmount Decimal  @db.Decimal(10, 2)
-  
-  createdAt   DateTime @default(now())
-  createdBy   Int?
-  
-  delivery    Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  
+  description String
+  amount      Decimal @db.Decimal(10, 2)
+  vatAmount   Decimal @db.Decimal(10, 2)
+  totalAmount Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  createdBy Int?
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
   @@index([deliveryId])
 }
 
 model Invoice {
-  id              Int           @id @default(autoincrement())
-  invoiceNumber   String        @unique 
-  customerId      Int
-  
-  
-  weekStartDate   DateTime
-  weekEndDate     DateTime
-  invoiceDate     DateTime      @default(now())
-  dueDate         DateTime?
-  status          String        @default("Draft")
-  
-  
-  subtotal        Decimal       @db.Decimal(10, 2)
-  vatTotal        Decimal       @db.Decimal(10, 2)
-  grandTotal      Decimal       @db.Decimal(10, 2)
-  
-  
-  paymentTerms    String        @default("30 Days (End of Month)")
-  customerRef     String?
-  notes           String?
-  isPaid          Boolean       @default(false)
-  paidAt          DateTime?
-  
- 
-  pdfUrl          String?
-  
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
- 
-  customer        User          @relation(fields: [customerId], references: [id])
-  items           InvoiceItem[]
-  
+  id            Int    @id @default(autoincrement())
+  invoiceNumber String @unique
+  customerId    Int
+
+  weekStartDate DateTime
+  weekEndDate   DateTime
+  invoiceDate   DateTime  @default(now())
+  dueDate       DateTime?
+  status        String    @default("Draft")
+
+  subtotal   Decimal @db.Decimal(10, 2)
+  vatTotal   Decimal @db.Decimal(10, 2)
+  grandTotal Decimal @db.Decimal(10, 2)
+
+  paymentTerms String    @default("30 Days (End of Month)")
+  customerRef  String?
+  notes        String?
+  isPaid       Boolean   @default(false)
+  paidAt       DateTime?
+
+  pdfUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer User          @relation(fields: [customerId], references: [id])
+  items    InvoiceItem[]
+
   @@index([customerId])
   @@index([invoiceNumber])
   @@index([weekStartDate])
 }
 
 model InvoiceItem {
-  id          Int      @id @default(autoincrement())
-  invoiceId   Int
-  deliveryId  Int?     @unique
-  
+  id         Int  @id @default(autoincrement())
+  invoiceId  Int
+  deliveryId Int? @unique
+
   spoNumber   String?
-  description String   
-  quantity    Int      @default(1)
-  unitCost    Decimal  @db.Decimal(10, 2)
-  vatAmount   Decimal  @db.Decimal(10, 2)
-  total       Decimal  @db.Decimal(10, 2)
-  
-  isAdditional Boolean @default(false) 
-  
-  createdAt   DateTime @default(now())
-  
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  delivery    Delivery? @relation(fields: [deliveryId], references: [id])
-  
+  description String
+  quantity    Int     @default(1)
+  unitCost    Decimal @db.Decimal(10, 2)
+  vatAmount   Decimal @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+
+  isAdditional Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  invoice  Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  delivery Delivery? @relation(fields: [deliveryId], references: [id])
+
   @@index([invoiceId])
   @@index([deliveryId])
 }
 
-
 model DriverFeedback {
-  id          Int      @id @default(autoincrement())
-  deliveryId  Int      @unique
-  driverId    Int
-  
-  notes       String   @db.Text
-  
-  createdAt   DateTime @default(now())
-  
-  delivery    Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  driver      User     @relation(fields: [driverId], references: [id])
-  
+  id         Int @id @default(autoincrement())
+  deliveryId Int @unique
+  driverId   Int
+
+  notes String @db.Text
+
+  createdAt DateTime @default(now())
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  driver   User     @relation(fields: [driverId], references: [id])
+
   @@index([driverId])
   @@index([createdAt])
 }
 
-
 model AuditLog {
-  id          Int      @id @default(autoincrement())
-  userId      Int?
-  deliveryId  Int?
-  
-  action      String   
-  description String   @db.Text 
-  reason      String?  
-  
-  beforeData  Json?    
-  afterData   Json?    
-  
-  ipAddress   String?
-  userAgent   String?
-  
-  createdAt   DateTime @default(now())
-  
-  user        User?    @relation(fields: [userId], references: [id])
-  delivery    Delivery? @relation(fields: [deliveryId], references: [id])
-  
+  id         Int  @id @default(autoincrement())
+  userId     Int?
+  deliveryId Int?
+
+  action      String
+  description String  @db.Text
+  reason      String?
+
+  beforeData Json?
+  afterData  Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  user     User?     @relation(fields: [userId], references: [id])
+  delivery Delivery? @relation(fields: [deliveryId], references: [id])
+
   @@index([userId])
   @@index([deliveryId])
   @@index([createdAt])
 }
 
-
 model SlotAvailability {
-  id          Int      @id @default(autoincrement())
-  date        DateTime @db.Date
-  timeSlot    TimeSlot
-  
-  maxCapacity Int      @default(10) 
-  booked      Int      @default(0)  
-  isFull      Boolean  @default(false)
-  
-  updatedAt   DateTime @updatedAt
-  
+  id       Int      @id @default(autoincrement())
+  date     DateTime @db.Date
+  timeSlot TimeSlot
+
+  maxCapacity Int     @default(10)
+  booked      Int     @default(0)
+  isFull      Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+
   @@unique([date, timeSlot])
   @@index([date])
 }
 
-
 model SystemSetting {
-  id          Int      @id @default(autoincrement())
-  key         String   @unique
-  value       String   @db.Text
+  id          Int     @id @default(autoincrement())
+  key         String  @unique
+  value       String  @db.Text
   description String?
-  
-  updatedAt   DateTime @updatedAt
-  
+
+  updatedAt DateTime @updatedAt
+
   @@index([key])
 }
 
@@ -366,7 +345,7 @@ model Contact {
   message   String   @db.Text
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-  
+
   @@index([createdAt])
   @@index([isRead])
 }
@@ -381,7 +360,27 @@ model Enquiry {
   message     String   @db.Text
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
-  
+
   @@index([createdAt])
   @@index([isRead])
+}
+
+model JobApplication {
+  id                 Int      @id @default(autoincrement())
+  fullName           String
+  email              String
+  phoneNumber        String
+  positionOfInterest String
+  coverLetter        String   @db.Text
+  cvUrl              String
+  isRead             Boolean  @default(false)
+  status             String   @default("PENDING") // PENDING, REVIEWED, SHORTLISTED, REJECTED
+  adminNotes         String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([isRead])
+  @@index([status])
+  @@index([positionOfInterest])
 }

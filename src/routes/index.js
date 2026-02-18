@@ -5,6 +5,7 @@ const invoiceRoutes = require('./invoiceRoutes');
 const adminRoutes = require('./adminRoutes');
 const driverRoutes = require('./driverRoutes');
 const publicRoutes = require('./publicRoutes');
+const jobApplicationRoutes = require('./jobApplicationRoutes');
 
 const router = express.Router();
 
@@ -24,6 +25,7 @@ router.use('/deliveries', deliveryRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/admin', adminRoutes);
 router.use('/driver', driverRoutes);
+router.use('/jobs', jobApplicationRoutes); // Public job application route
 
 
 router.use((req, res) => {

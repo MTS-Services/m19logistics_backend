@@ -7,7 +7,7 @@ const prisma = require('../config/database');
 exports.getDashboard = async (req, res) => {
   try {
     const dashboard = await driverService.getDriverDashboard(req.user.id);
-    
+
     res.json({
       success: true,
       data: dashboard,
@@ -26,7 +26,7 @@ exports.getDashboard = async (req, res) => {
 exports.getAssignedDeliveries = async (req, res) => {
   try {
     const deliveries = await driverService.getAssignedDeliveries(req.user.id, req.query);
-    
+
     res.json({
       success: true,
       count: deliveries.length,
@@ -51,7 +51,7 @@ exports.getDeliveryDetails = async (req, res) => {
       parseInt(req.params.id),
       req.user.id
     );
-    
+
     res.json({
       success: true,
       data: delivery,
@@ -79,7 +79,7 @@ exports.uploadProofOfDelivery = async (req, res) => {
       req.user.id,
       req.files
     );
-    
+
     res.json({
       success: true,
       message: 'Proof of delivery uploaded successfully.',
@@ -113,7 +113,7 @@ exports.respondToDelivery = async (req, res) => {
 
     if (action === 'accept') {
       delivery = await driverService.acceptDelivery(deliveryId, driverId);
-      
+
       res.json({
         success: true,
         message: 'Delivery accepted successfully. You can now proceed with the delivery.',
@@ -129,7 +129,7 @@ exports.respondToDelivery = async (req, res) => {
       }
 
       delivery = await driverService.rejectDelivery(deliveryId, driverId, reason);
-      
+
       res.json({
         success: true,
         message: 'Delivery rejected. Admin will be notified to reassign.',
@@ -153,7 +153,7 @@ exports.completeDelivery = async (req, res) => {
       req.user.id,
       req.body
     );
-    
+
     res.json({
       success: true,
       message: 'Delivery marked as completed successfully.',
@@ -176,7 +176,7 @@ exports.submitFeedback = async (req, res) => {
       req.user.id,
       req.body
     );
-    
+
     res.json({
       success: true,
       message: 'Feedback submitted successfully.',
@@ -199,7 +199,7 @@ exports.getPerformanceMetrics = async (req, res) => {
       req.query.startDate,
       req.query.endDate
     );
-    
+
     res.json({
       success: true,
       data: metrics,
@@ -220,25 +220,25 @@ exports.getPerformanceMetrics = async (req, res) => {
 exports.getSlotCapacity = async (req, res) => {
   try {
     const { date } = req.query;
-    
+
     if (!date) {
       return res.status(400).json({
         success: false,
         message: 'Date parameter is required (format: YYYY-MM-DD)'
       });
     }
-    
+
     // Parse date
     const targetDate = new Date(date);
-    
+
     // Get slot availability for the date
     const slots = await prisma.slotAvailability.findMany({
-      where: { 
+      where: {
         date: targetDate
       },
       orderBy: { timeSlot: 'asc' }
     });
-    
+
     // Count actual deliveries assigned to this driver for the date
     const driverDeliveries = await prisma.delivery.findMany({
       where: {
@@ -250,13 +250,13 @@ exports.getSlotCapacity = async (req, res) => {
         timeSlot: true
       }
     });
-    
+
     // Count deliveries by slot
     const deliveryCountBySlot = driverDeliveries.reduce((acc, del) => {
       acc[del.timeSlot] = (acc[del.timeSlot] || 0) + 1;
       return acc;
     }, {});
-    
+
     // Format response
     const capacity = slots.map(slot => ({
       timeSlot: slot.timeSlot,
@@ -265,7 +265,7 @@ exports.getSlotCapacity = async (req, res) => {
       isFull: slot.isFull,
       myDeliveries: deliveryCountBySlot[slot.timeSlot] || 0
     }));
-    
+
     res.json({
       success: true,
       data: {
