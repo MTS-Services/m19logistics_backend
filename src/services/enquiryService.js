@@ -16,11 +16,11 @@ class EnquiryService {
 
   async getAllEnquiries(filters = {}) {
     const { isRead, startDate, endDate } = filters;
-    
+
     const where = {};
-    
+
     if (isRead !== undefined) where.isRead = isRead === 'true';
-    
+
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);

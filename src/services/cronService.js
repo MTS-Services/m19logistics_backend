@@ -2,10 +2,15 @@ const cron = require('node-cron');
 const prisma = require('../config/database');
 const emailService = require('./emailService');
 const auditService = require('./auditService');
+const invoiceGenerationService = require('./invoiceGenerationService');
 const config = require('../config');
 
 class CronService {
-  initializeJobs() {
+  constructor() {
+    this.invoiceGenerationJob = null; // Store reference to dynamic job
+  }
+
+  async initializeJobs() {
     // Weekly driver feedback summary - Every Sunday at 11:59 PM
     cron.schedule('59 23 * * 0', async () => {
       console.log('Running weekly driver feedback summary...');
@@ -18,9 +23,144 @@ class CronService {
       await this.sendWeeklyInvoiceReminder();
     });
 
+    // Initialize invoice generation job from system settings
+    await this.initializeInvoiceGenerationJob();
+
     console.log('✅ Cron jobs initialized:');
     console.log('   - Weekly driver feedback summary: Every Sunday 11:59 PM');
     console.log('   - Weekly invoice reminder: Every Sunday 11:00 PM');
+  }
+
+  /**
+   * Initialize or update the invoice generation cron job based on system settings
+   */
+  async initializeInvoiceGenerationJob() {
+    try {
+      // Get system configuration
+      const systemConfig = await prisma.systemConfiguration.findFirst();
+
+      if (!systemConfig || !systemConfig.autoInvoicing) {
+        console.log('ℹ️  Auto invoicing is disabled');
+        // Stop existing job if any
+        if (this.invoiceGenerationJob) {
+          this.invoiceGenerationJob.stop();
+          this.invoiceGenerationJob = null;
+          console.log('🛑 Stopped invoice generation cron job');
+        }
+        return;
+      }
+
+      const day = systemConfig.invoiceGenerationDay || 'Sunday';
+      const time = systemConfig.invoiceGenerationTime || '12:00 AM';
+
+      // Convert day and time to cron format
+      const cronExpression = this.convertToCronExpression(day, time);
+
+      // Stop existing job if any
+      if (this.invoiceGenerationJob) {
+        this.invoiceGenerationJob.stop();
+      }
+
+      // Create new job
+      this.invoiceGenerationJob = cron.schedule(cronExpression, async () => {
+        console.log(`🕐 Running automatic invoice generation (${day} at ${time})...`);
+        await this.generateWeeklyInvoices();
+      });
+
+      console.log(`✅ Invoice generation scheduled: ${day} at ${time} (${cronExpression})`);
+    } catch (error) {
+      console.error('❌ Failed to initialize invoice generation job:', error);
+    }
+  }
+
+  /**
+   * Convert day and time to cron expression
+   * @param {string} day - Day of week (e.g., "Sunday", "Monday")
+   * @param {string} time - Time in 12-hour format (e.g., "12:00 AM", "6:00 PM")
+   * @returns {string} Cron expression
+   */
+  convertToCronExpression(day, time) {
+    // Map day names to cron day numbers (0 = Sunday, 6 = Saturday)
+    const dayMap = {
+      'sunday': 0,
+      'monday': 1,
+      'tuesday': 2,
+      'wednesday': 3,
+      'thursday': 4,
+      'friday': 5,
+      'saturday': 6
+    };
+
+    const dayNumber = dayMap[day.toLowerCase()];
+
+    // Parse time (e.g., "12:00 AM" or "6:30 PM")
+    const timeRegex = /(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+    const match = time.match(timeRegex);
+
+    if (!match) {
+      console.warn(`Invalid time format: ${time}, using default 12:00 AM`);
+      return `0 0 * * ${dayNumber}`;
+    }
+
+    let hours = parseInt(match[1]);
+    const minutes = parseInt(match[2]);
+    const period = match[3].toUpperCase();
+
+    // Convert to 24-hour format
+    if (period === 'AM') {
+      if (hours === 12) hours = 0; // 12:00 AM = 00:00
+    } else if (period === 'PM') {
+      if (hours !== 12) hours += 12; // Convert PM to 24-hour (except 12 PM)
+    }
+
+    // Cron format: minute hour * * day
+    return `${minutes} ${hours} * * ${dayNumber}`;
+  }
+
+  /**
+   * Generate weekly invoices for all customers
+   */
+  async generateWeeklyInvoices() {
+    try {
+      // Calculate last week's date range (Monday to Sunday)
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const diff = dayOfWeek === 0 ? 7 : dayOfWeek; // If Sunday, go back 7 days; else go back to last Monday
+
+      const weekEndDate = new Date(today);
+      weekEndDate.setDate(today.getDate() - diff); // Last Sunday
+      weekEndDate.setHours(23, 59, 59, 999);
+
+      const weekStartDate = new Date(weekEndDate);
+      weekStartDate.setDate(weekEndDate.getDate() - 6); // Monday 7 days ago
+      weekStartDate.setHours(0, 0, 0, 0);
+
+      console.log(`📅 Generating invoices for week: ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`);
+
+      const result = await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
+        weekStartDate,
+        weekEndDate
+      );
+
+      console.log(`✅ Automatic invoice generation completed: ${result.generatedInvoices.length} invoices created`);
+
+      // Create audit log
+      await auditService.createAuditLog({
+        action: 'AUTO_INVOICE_GENERATION',
+        description: `Automatically generated ${result.generatedInvoices.length} weekly invoices`,
+        beforeData: {
+          weekStartDate: weekStartDate.toISOString(),
+          weekEndDate: weekEndDate.toISOString(),
+          invoicesGenerated: result.generatedInvoices.length,
+          customersSkipped: result.skippedCustomers.length,
+        },
+      });
+
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to generate weekly invoices:', error);
+      throw error;
+    }
   }
 
   async sendWeeklyDriverFeedbackSummary() {

@@ -304,4 +304,83 @@ router.get('/deliveries/export', adminController.exportDeliveries);
 // Export Analytics (Excel or CSV)
 router.get('/analytics/export', adminController.exportAnalytics);
 
+// SYSTEM SETTINGS (ADMIN ONLY)
+
+const settingsController = require('../controllers/settingsController');
+
+// Get all settings
+router.get('/settings', authorize('ADMIN'), settingsController.getAllSettings);
+
+// Get system status summary
+router.get('/settings/status/summary', authorize('ADMIN'), settingsController.getSystemStatus);
+
+// Get settings by category
+router.get('/settings/:category', authorize('ADMIN'), settingsController.getSettingsByCategory);
+
+// Get invoice generation config
+router.get('/settings/invoice/config', authorize('ADMIN'), settingsController.getInvoiceConfig);
+
+// Update company information
+router.put(
+  '/settings/company',
+  authorize('ADMIN'),
+  [
+    body('name').optional().isString().withMessage('Company name must be a string'),
+    body('vat_number').optional().isString().withMessage('VAT number must be a string'),
+    body('primary_phone').optional().isString().withMessage('Primary phone must be a string'),
+    body('alternative_phone').optional().isString().withMessage('Alternative phone must be a string'),
+    body('email').optional().isEmail().withMessage('Valid email is required'),
+    body('website').optional().isURL().withMessage('Valid website URL is required'),
+    body('address').optional().isString().withMessage('Address must be a string'),
+    body('founded_year').optional().isString().withMessage('Founded year must be a string'),
+    validate,
+  ],
+  settingsController.updateCompanyInfo
+);
+
+// Update banking details
+router.put(
+  '/settings/banking',
+  authorize('ADMIN'),
+  [
+    body('bank_name').optional().isString().withMessage('Bank name must be a string'),
+    body('account_holder').optional().isString().withMessage('Account holder must be a string'),
+    body('sort_code').optional().isString().withMessage('Sort code must be a string'),
+    body('account_number').optional().isString().withMessage('Account number must be a string'),
+    body('payment_terms').optional().isString().withMessage('Payment terms must be a string'),
+    validate,
+  ],
+  settingsController.updateBankingDetails
+);
+
+// Update system configuration
+router.put(
+  '/settings/system',
+  authorize('ADMIN'),
+  [
+    body('invoice_generation_day').optional().isString().withMessage('Invoice generation day must be a string'),
+    body('invoice_generation_time').optional().isString().withMessage('Invoice generation time must be a string'),
+    body('session_timeout').optional().isString().withMessage('Session timeout must be a string'),
+    body('auto_invoicing').optional().isString().withMessage('Auto invoicing must be a string'),
+    body('email_notifications').optional().isString().withMessage('Email notifications must be a string'),
+    body('sms_notifications').optional().isString().withMessage('SMS notifications must be a string'),
+    body('maps_api_enabled').optional().isString().withMessage('Maps API enabled must be a string'),
+    validate,
+  ],
+  settingsController.updateSystemConfig
+);
+
+// Update single setting
+router.put(
+  '/settings/single',
+  authorize('ADMIN'),
+  [
+    body('key').notEmpty().withMessage('Setting key is required'),
+    body('value').notEmpty().withMessage('Setting value is required'),
+    body('description').optional().isString().withMessage('Description must be a string'),
+    validate,
+  ],
+  settingsController.updateSingleSetting
+);
+
 module.exports = router;

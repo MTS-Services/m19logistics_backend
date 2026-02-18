@@ -337,6 +337,44 @@ model SystemSetting {
   @@index([key])
 }
 
+model CompanyInformation {
+  id               Int      @id @default(autoincrement())
+  name             String
+  vatNumber        String
+  primaryPhone     String
+  alternativePhone String?
+  email            String
+  website          String?
+  address          String
+  foundedYear      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model BankingDetails {
+  id            Int      @id @default(autoincrement())
+  bankName      String
+  accountHolder String
+  sortCode      String
+  accountNumber String
+  paymentTerms  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SystemConfiguration {
+  id                    Int      @id @default(autoincrement())
+  invoiceGenerationDay  String   @default("Sunday")
+  invoiceGenerationTime String   @default("12:00 AM")
+  sessionTimeout        Int      @default(30) // in minutes
+  autoInvoicing         Boolean  @default(true)
+  emailNotifications    Boolean  @default(true)
+  smsNotifications      Boolean  @default(false)
+  mapsApiEnabled        Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
 model Contact {
   id        Int      @id @default(autoincrement())
   name      String

@@ -4,19 +4,19 @@ const cronService = require('./services/cronService');
 
 const PORT = config.port;
 
-const server = app.listen(PORT, () => {
-  
+const server = app.listen(PORT, async () => {
+
   console.log('🚚 M19 Logistics API Server');
- 
+
   console.log(`🌍 Environment: ${config.nodeEnv}`);
   console.log(`🚀 Server running on port: ${PORT}`);
   console.log(`📡 API Base URL: http://localhost:${PORT}/api`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/api/health`);
-  
+
   // Initialize cron jobs
-  cronService.initializeJobs();
+  await cronService.initializeJobs();
   console.log('⏰ Cron jobs initialized');
- 
+
 });
 
 // Graceful shutdown

@@ -1233,7 +1233,7 @@ class AdminService {
       include: {
         driverProfile: true,
         deliveriesAssigned: {
-          where: startDate || endDate ? { allocatedAt: dateFilter } : {},
+          where: startDate || endDate ? { deliveryDate: dateFilter } : {},
           select: {
             status: true,
             deliveredAt: true,

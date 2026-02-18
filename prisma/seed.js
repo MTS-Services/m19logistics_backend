@@ -9,11 +9,10 @@ async function main() {
   // Create Pricing Tiers
   console.log('Creating pricing tiers...');
   const tierA = await prisma.pricingTier.upsert({
-    where: { tierCode: 'TIER_A' },
+    where: { name: 'Tier A' },
     update: {},
     create: {
       name: 'Tier A',
-      tierCode: 'TIER_A',
       basePrice: 41.67, // £50 total with VAT
       vatRate: 20.00,
       description: 'Premium pricing tier for Topps Newcastle',
@@ -21,11 +20,10 @@ async function main() {
   });
 
   const tierB = await prisma.pricingTier.upsert({
-    where: { tierCode: 'TIER_B' },
+    where: { name: 'Tier B' },
     update: {},
     create: {
       name: 'Tier B',
-      tierCode: 'TIER_B',
       basePrice: 37.50, // £45 total with VAT
       vatRate: 20.00,
       description: 'Standard pricing tier',
@@ -194,8 +192,8 @@ async function main() {
 
   console.log('✅ Admin account created');
 
-  // Create System Settings
-  console.log('Creating system settings...');
+  // Create Essential System Settings (only critical defaults)
+  console.log('Creating essential system settings...');
   await prisma.systemSetting.upsert({
     where: { key: 'LAST_INVOICE_NUMBER' },
     update: {},
@@ -206,7 +204,8 @@ async function main() {
     },
   });
 
-  console.log('✅ System settings created');
+  console.log('✅ Essential system settings created');
+  console.log('ℹ️  Admin can configure Company, Banking, and System settings via Settings API');
 
   console.log('');
   console.log('🎉 Database seeding completed successfully!');

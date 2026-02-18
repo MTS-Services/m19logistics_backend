@@ -1,12 +1,12 @@
 const prisma = require('../config/database');
 
 class InvoiceGenerationService {
-  
- 
+
+
   async generateWeeklyInvoicesForAllCustomers(weekStartDate, weekEndDate) {
     const start = new Date(weekStartDate);
     const end = new Date(weekEndDate);
-    
+
     // Get all customers who have delivered deliveries in the date range
     const customersWithDeliveries = await prisma.delivery.groupBy({
       by: ['customerId'],
@@ -16,7 +16,7 @@ class InvoiceGenerationService {
           gte: start,
           lte: end,
         },
-        invoiceItem: null, 
+        invoiceItem: null,
       },
       _count: {
         id: true,
@@ -65,7 +65,7 @@ class InvoiceGenerationService {
     };
   }
 
- 
+
   async generateInvoiceForCustomer(customerId, weekStartDate, weekEndDate) {
     // Get all delivered deliveries for this customer in the date range
     const deliveries = await prisma.delivery.findMany({
@@ -76,7 +76,7 @@ class InvoiceGenerationService {
           gte: new Date(weekStartDate),
           lte: new Date(weekEndDate),
         },
-        invoiceItem: null, 
+        invoiceItem: null,
       },
       include: {
         extraCharges: true,
@@ -96,7 +96,7 @@ class InvoiceGenerationService {
     const nextNumber = lastNumber + 1;
     const invoiceNumber = `T${String(nextNumber).padStart(4, '0')}`;
 
-    
+
     let subtotal = 0;
     let vatTotal = 0;
     let grandTotal = 0;
@@ -185,28 +185,33 @@ class InvoiceGenerationService {
       },
     });
 
-    // Update last invoice number
-    await prisma.systemSetting.update({
+    // Update last invoice number (create if doesn't exist)
+    await prisma.systemSetting.upsert({
       where: { key: 'LAST_INVOICE_NUMBER' },
-      data: { value: String(nextNumber) },
+      update: { value: String(nextNumber) },
+      create: {
+        key: 'LAST_INVOICE_NUMBER',
+        value: String(nextNumber),
+        description: 'Last invoice number issued',
+      },
     });
 
     return invoice;
   }
 
- 
+
   getCurrentWeekRange() {
     const today = new Date();
     const day = today.getDay();
     const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
-    
+
     const monday = new Date(today.setDate(diff));
     monday.setHours(0, 0, 0, 0);
-    
+
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     sunday.setHours(23, 59, 59, 999);
-    
+
     return {
       weekStartDate: monday.toISOString().split('T')[0],
       weekEndDate: sunday.toISOString().split('T')[0],
@@ -217,10 +222,10 @@ class InvoiceGenerationService {
     const { weekStartDate, weekEndDate } = this.getCurrentWeekRange();
     const start = new Date(weekStartDate);
     const end = new Date(weekEndDate);
-    
+
     start.setDate(start.getDate() - 7);
     end.setDate(end.getDate() - 7);
-    
+
     return {
       weekStartDate: start.toISOString().split('T')[0],
       weekEndDate: end.toISOString().split('T')[0],
