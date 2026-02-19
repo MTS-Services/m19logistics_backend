@@ -2,7 +2,6 @@ require('dotenv').config();
 require('express-async-errors');
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const path = require('path');
@@ -12,9 +11,6 @@ const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-
-// Security middleware
-app.use(helmet());
 
 // CORS Configuration - Allow all origins
 app.use(cors({

@@ -48,6 +48,26 @@ router.post('/users/:id/toggle-status', authorize('ADMIN'), adminController.togg
 
 router.get('/deliveries', adminController.getAllDeliveries);
 
+router.get('/deliveries/:id', adminController.getDeliveryById);
+
+router.put(
+  '/deliveries/:id',
+  [
+    body('deliveryDate').optional().isISO8601().withMessage('Valid delivery date is required'),
+    body('timeSlot').optional().isIn(['MORNING', 'AFTERNOON', 'SAME_DAY']).withMessage('Invalid time slot'),
+    body('weight').optional().isFloat({ min: 0 }).withMessage('Weight must be a positive number'),
+    body('deliveryAddress').optional().notEmpty().withMessage('Delivery address is required'),
+    body('customerName').optional().notEmpty().withMessage('Customer name is required'),
+    body('customerPhone').optional().notEmpty().withMessage('Customer phone is required'),
+    body('spoNumber').optional().notEmpty().withMessage('SPO number is required'),
+    body('specialInstructions').optional().isString(),
+    validate,
+  ],
+  adminController.updateDelivery
+);
+
+router.delete('/deliveries/:id', adminController.deleteDelivery);
+
 router.post(
   '/deliveries/:id/allocate',
   [
@@ -258,14 +278,9 @@ router.post('/enquiries/:id/mark-read', adminController.markEnquiryAsRead);
 
 router.delete('/enquiries/:id', authorize('ADMIN'), adminController.deleteEnquiry);
 
-//  JOB APPLICATION MANAGEMENT 
-
 const jobApplicationController = require('../controllers/jobApplicationController');
 
-// Get all job applications
 router.get('/job-applications', jobApplicationController.getAllJobApplications);
-
-// Get job application statistics
 router.get('/job-applications/stats', jobApplicationController.getJobApplicationStats);
 
 // Get single job application by ID
@@ -284,7 +299,6 @@ router.patch(
   jobApplicationController.updateJobApplicationStatus
 );
 
-// Delete job application
 router.delete('/job-applications/:id', authorize('ADMIN'), jobApplicationController.deleteJobApplication);
 
 // AUDIT LOGS (ADMIN)
@@ -293,34 +307,26 @@ router.get('/audit-logs', adminController.getAllAuditLogs);
 
 router.get('/audit-logs/:id', adminController.getAuditLogById);
 
-//  EXPORT ROUTES 
 
-// Export Invoice as PDF
 router.get('/invoices/:id/export/pdf', adminController.exportInvoicePDF);
 
-// Export Deliveries (Excel or CSV)
 router.get('/deliveries/export', adminController.exportDeliveries);
 
 // Export Analytics (Excel or CSV)
 router.get('/analytics/export', adminController.exportAnalytics);
 
-// SYSTEM SETTINGS (ADMIN ONLY)
 
 const settingsController = require('../controllers/settingsController');
 
-// Get all settings
 router.get('/settings', authorize('ADMIN'), settingsController.getAllSettings);
 
-// Get system status summary
 router.get('/settings/status/summary', authorize('ADMIN'), settingsController.getSystemStatus);
 
-// Get settings by category
 router.get('/settings/:category', authorize('ADMIN'), settingsController.getSettingsByCategory);
 
 // Get invoice generation config
 router.get('/settings/invoice/config', authorize('ADMIN'), settingsController.getInvoiceConfig);
 
-// Update company information
 router.put(
   '/settings/company',
   authorize('ADMIN'),

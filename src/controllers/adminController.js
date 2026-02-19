@@ -111,6 +111,49 @@ exports.getAllDeliveries = async (req, res, next) => {
   }
 };
 
+exports.getDeliveryById = async (req, res, next) => {
+  try {
+    const delivery = await adminService.getDeliveryById(parseInt(req.params.id));
+
+    res.json({
+      success: true,
+      data: delivery,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateDelivery = async (req, res, next) => {
+  try {
+    const delivery = await adminService.updateDelivery(
+      parseInt(req.params.id),
+      req.body
+    );
+
+    res.json({
+      success: true,
+      message: 'Delivery updated successfully',
+      data: delivery,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteDelivery = async (req, res, next) => {
+  try {
+    const result = await adminService.deleteDelivery(parseInt(req.params.id));
+
+    res.json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.allocateDelivery = async (req, res, next) => {
   try {
     const { driverId } = req.body;

@@ -277,6 +277,124 @@ class AdminService {
     });
   }
 
+  async getDeliveryById(id) {
+    const delivery = await prisma.delivery.findUnique({
+      where: { id },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            customerProfile: {
+              select: {
+                loginId: true,
+                storeName: true,
+                depotAddress: true,
+              }
+            }
+          },
+        },
+        driver: {
+          select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            email: true,
+            driverProfile: {
+              select: {
+                vehicleRegistration: true,
+              }
+            }
+          },
+        },
+        extraCharges: true,
+        driverFeedback: true,
+      },
+    });
+
+    if (!delivery) {
+      throw new Error('Delivery not found');
+    }
+
+    return delivery;
+  }
+
+  async updateDelivery(id, updateData) {
+    const delivery = await prisma.delivery.findUnique({
+      where: { id },
+    });
+
+    if (!delivery) {
+      throw new Error('Delivery not found');
+    }
+
+    // Admin/Manager can edit deliveries in RECEIVED or ALLOCATED status
+    if (!['RECEIVED', 'ALLOCATED'].includes(delivery.status)) {
+      throw new Error('Cannot edit delivery in current status');
+    }
+
+    return prisma.delivery.update({
+      where: { id },
+      data: updateData,
+      include: {
+        customer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            customerProfile: {
+              select: {
+                loginId: true,
+                storeName: true,
+              }
+            }
+          },
+        },
+        driver: {
+          select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteDelivery(id) {
+    const delivery = await prisma.delivery.findUnique({
+      where: { id },
+      include: {
+        extraCharges: true,
+      },
+    });
+
+    if (!delivery) {
+      throw new Error('Delivery not found');
+    }
+
+    // Admin/Manager can only delete RECEIVED or CANCELLED deliveries
+    if (!['RECEIVED', 'CANCELLED'].includes(delivery.status)) {
+      throw new Error('Cannot delete delivery in current status. Only RECEIVED or CANCELLED deliveries can be deleted.');
+    }
+
+    // Delete related extra charges first
+    if (delivery.extraCharges.length > 0) {
+      await prisma.extraCharge.deleteMany({
+        where: { deliveryId: id },
+      });
+    }
+
+    // Delete the delivery
+    await prisma.delivery.delete({
+      where: { id },
+    });
+
+    return { message: 'Delivery deleted successfully' };
+  }
 
   async allocateDelivery(deliveryId, driverId) {
     // Check if delivery exists and is in RECEIVED status
