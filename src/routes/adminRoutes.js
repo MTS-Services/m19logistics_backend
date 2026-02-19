@@ -43,6 +43,47 @@ router.delete('/users/:id', authorize('ADMIN'), adminController.deleteUser);
 
 router.post('/users/:id/toggle-status', authorize('ADMIN'), adminController.toggleUserStatus);
 
+// DRIVER MANAGEMENT (ADMIN & MANAGER)
+
+router.get('/drivers', adminController.getAllDrivers);
+
+router.get('/drivers/:id', adminController.getDriverById);
+
+router.post(
+  '/drivers',
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('fullName').notEmpty().withMessage('Full name is required'),
+    body('phone').notEmpty().withMessage('Phone number is required'),
+    body('username').optional().isString().withMessage('Username must be a string'),
+    body('vehicleRegistration').optional().isString().withMessage('Vehicle registration must be a string'),
+    body('driverLicenseNumber').optional().isString().withMessage('Driver license number must be a string'),
+    body('address').optional().isString().withMessage('Address must be a string'),
+    validate,
+  ],
+  adminController.createDriver
+);
+
+router.put(
+  '/drivers/:id',
+  [
+    body('email').optional().isEmail().withMessage('Valid email is required'),
+    body('fullName').optional().notEmpty().withMessage('Full name cannot be empty'),
+    body('phone').optional().notEmpty().withMessage('Phone cannot be empty'),
+    body('username').optional().isString().withMessage('Username must be a string'),
+    body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+    body('vehicleRegistration').optional().isString().withMessage('Vehicle registration must be a string'),
+    body('driverLicenseNumber').optional().isString().withMessage('Driver license number must be a string'),
+    body('address').optional().isString().withMessage('Address must be a string'),
+    body('isActiveDriver').optional().isBoolean().withMessage('isActiveDriver must be a boolean'),
+    validate,
+  ],
+  adminController.updateDriver
+);
+
+router.delete('/drivers/:id', adminController.deleteDriver);
+
 //DELIVERY MANAGEMENT 
 
 

@@ -778,3 +778,119 @@ exports.exportAnalytics = async (req, res, next) => {
     next(error);
   }
 };
+
+// ==================== DRIVER MANAGEMENT ====================
+
+exports.getAllDrivers = async (req, res, next) => {
+  try {
+    const drivers = await adminService.getAllDrivers(req.query);
+
+    // Calculate summary stats for UI
+    const totalDrivers = drivers.length;
+    const activeDrivers = drivers.filter(d => d.isActive && d.driverProfile?.isActiveDriver).length;
+    const thisWeekDeliveries = drivers.reduce((sum, d) => sum + (d.performance?.thisWeek || 0), 0);
+
+    res.json({
+      success: true,
+      data: drivers,
+      count: drivers.length,
+      summary: {
+        totalDrivers,
+        activeDrivers,
+        thisWeekDeliveries
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getDriverById = async (req, res, next) => {
+  try {
+    const driver = await adminService.getDriverById(parseInt(req.params.id));
+
+    res.json({
+      success: true,
+      data: driver,
+    });
+  } catch (error) {
+    if (error.message === 'Driver not found') {
+      return res.status(404).json({
+        success: false,
+        message: 'Driver not found',
+      });
+    }
+    next(error);
+  }
+};
+
+exports.createDriver = async (req, res, next) => {
+  try {
+    const driver = await adminService.createDriver(req.body);
+
+    res.status(201).json({
+      success: true,
+      message: 'Driver created successfully',
+      data: driver,
+    });
+  } catch (error) {
+    if (error.message === 'Email already exists' || error.message === 'Username already exists') {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+exports.updateDriver = async (req, res, next) => {
+  try {
+    const driver = await adminService.updateDriver(parseInt(req.params.id), req.body);
+
+    res.json({
+      success: true,
+      message: 'Driver updated successfully',
+      data: driver,
+    });
+  } catch (error) {
+    if (error.message === 'Driver not found') {
+      return res.status(404).json({
+        success: false,
+        message: 'Driver not found',
+      });
+    }
+    if (error.message === 'Email already exists' || error.message === 'Username already exists') {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+exports.deleteDriver = async (req, res, next) => {
+  try {
+    const result = await adminService.deleteDriver(parseInt(req.params.id));
+
+    res.json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    if (error.message === 'Driver not found') {
+      return res.status(404).json({
+        success: false,
+        message: 'Driver not found',
+      });
+    }
+    if (error.message.includes('Cannot delete driver with active or allocated deliveries')) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next(error);
+  }
+};

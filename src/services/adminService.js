@@ -1424,6 +1424,317 @@ class AdminService {
       };
     });
   }
+
+  // ==================== DRIVER MANAGEMENT ====================
+
+  /**
+   * Get all drivers with performance stats and details
+   */
+  async getAllDrivers(filters = {}) {
+    const { isActive, search, status } = filters;
+
+    const where = {
+      role: 'DRIVER'
+    };
+
+    if (isActive !== undefined) {
+      where.isActive = isActive === 'true';
+    }
+
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { username: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const drivers = await prisma.user.findMany({
+      where,
+      include: {
+        driverProfile: true,
+        deliveriesAssigned: {
+          select: {
+            id: true,
+            status: true,
+            deliveryDate: true,
+            deliveredAt: true,
+          }
+        },
+        _count: {
+          select: {
+            deliveriesAssigned: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Calculate this week's deliveries (Monday to Sunday)
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    return drivers.map(driver => {
+      const allDeliveries = driver.deliveriesAssigned;
+      const thisWeekDeliveries = allDeliveries.filter(d => {
+        const deliveryDate = new Date(d.deliveryDate);
+        return deliveryDate >= startOfWeek && deliveryDate <= endOfWeek;
+      });
+
+      const totalDeliveries = allDeliveries.length;
+      const completed = allDeliveries.filter(d => d.status === 'DELIVERED').length;
+      const pending = allDeliveries.filter(d => d.status === 'ALLOCATED').length;
+
+      return {
+        id: driver.id,
+        fullName: driver.fullName,
+        email: driver.email,
+        phone: driver.phone,
+        username: driver.username,
+        profilePicture: driver.profilePicture,
+        isActive: driver.isActive,
+        createdAt: driver.createdAt,
+        driverProfile: driver.driverProfile,
+        performance: {
+          totalDeliveries,
+          completed,
+          pending,
+          thisWeek: thisWeekDeliveries.length
+        }
+      };
+    });
+  }
+
+  /**
+   * Get driver by ID with full details
+   */
+  async getDriverById(id) {
+    const driver = await prisma.user.findUnique({
+      where: { id, role: 'DRIVER' },
+      include: {
+        driverProfile: true,
+        deliveriesAssigned: {
+          include: {
+            customer: {
+              select: {
+                fullName: true,
+                email: true,
+              }
+            },
+            driverFeedback: true,
+          },
+          orderBy: { deliveryDate: 'desc' },
+          take: 50
+        },
+      },
+    });
+
+    if (!driver) {
+      throw new Error('Driver not found');
+    }
+
+    // Calculate statistics
+    const totalDeliveries = driver.deliveriesAssigned.length;
+    const completedDeliveries = driver.deliveriesAssigned.filter(d => d.status === 'DELIVERED').length;
+    const pendingDeliveries = driver.deliveriesAssigned.filter(d => d.status === 'ALLOCATED').length;
+
+    return {
+      ...driver,
+      statistics: {
+        totalDeliveries,
+        completedDeliveries,
+        pendingDeliveries,
+        completionRate: totalDeliveries > 0 ? ((completedDeliveries / totalDeliveries) * 100).toFixed(1) : 0,
+      }
+    };
+  }
+
+  /**
+   * Create new driver with profile
+   */
+  async createDriver(driverData) {
+    const { email, password, username, fullName, phone, profilePicture, vehicleRegistration, driverLicenseNumber, address } = driverData;
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new Error('Email already exists');
+    }
+
+    // Check if username already exists
+    if (username) {
+      const existingUsername = await prisma.user.findUnique({
+        where: { username },
+      });
+
+      if (existingUsername) {
+        throw new Error('Username already exists');
+      }
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user with driver profile
+    const driver = await prisma.user.create({
+      data: {
+        email,
+        username,
+        password: hashedPassword,
+        fullName,
+        phone,
+        profilePicture,
+        role: 'DRIVER',
+        isActive: true,
+        driverProfile: {
+          create: {
+            vehicleRegistration: vehicleRegistration || '',
+            driverLicenseNumber: driverLicenseNumber || '',
+            address: address || '',
+            isActiveDriver: true,
+            enableSmsNotifications: true,
+            enableEmailNotifications: true,
+          }
+        }
+      },
+      include: {
+        driverProfile: true,
+      }
+    });
+
+    // Send welcome email
+    try {
+      await emailService.sendWelcomeEmail(driver.email, driver.fullName);
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+    }
+
+    return driver;
+  }
+
+  /**
+   * Update driver information and profile
+   */
+  async updateDriver(id, updateData) {
+    const { email, username, fullName, phone, profilePicture, isActive, vehicleRegistration, driverLicenseNumber, address, isActiveDriver } = updateData;
+
+    // Check if driver exists
+    const driver = await prisma.user.findUnique({
+      where: { id, role: 'DRIVER' },
+      include: { driverProfile: true }
+    });
+
+    if (!driver) {
+      throw new Error('Driver not found');
+    }
+
+    // Check email uniqueness if being updated
+    if (email && email !== driver.email) {
+      const existingEmail = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingEmail) {
+        throw new Error('Email already exists');
+      }
+    }
+
+    // Check username uniqueness if being updated
+    if (username && username !== driver.username) {
+      const existingUsername = await prisma.user.findUnique({
+        where: { username },
+      });
+
+      if (existingUsername) {
+        throw new Error('Username already exists');
+      }
+    }
+
+    // Prepare user update data
+    const userUpdateData = {};
+    if (email !== undefined) userUpdateData.email = email;
+    if (username !== undefined) userUpdateData.username = username;
+    if (fullName !== undefined) userUpdateData.fullName = fullName;
+    if (phone !== undefined) userUpdateData.phone = phone;
+    if (profilePicture !== undefined) userUpdateData.profilePicture = profilePicture;
+    if (isActive !== undefined) userUpdateData.isActive = isActive;
+
+    // Prepare driver profile update data
+    const profileUpdateData = {};
+    if (vehicleRegistration !== undefined) profileUpdateData.vehicleRegistration = vehicleRegistration;
+    if (driverLicenseNumber !== undefined) profileUpdateData.driverLicenseNumber = driverLicenseNumber;
+    if (address !== undefined) profileUpdateData.address = address;
+    if (isActiveDriver !== undefined) profileUpdateData.isActiveDriver = isActiveDriver;
+
+    // Update user and driver profile
+    const updatedDriver = await prisma.user.update({
+      where: { id },
+      data: {
+        ...userUpdateData,
+        ...(Object.keys(profileUpdateData).length > 0 && {
+          driverProfile: {
+            update: profileUpdateData
+          }
+        })
+      },
+      include: {
+        driverProfile: true,
+      }
+    });
+
+    return updatedDriver;
+  }
+
+  /**
+   * Delete driver
+   */
+  async deleteDriver(id) {
+    // Check if driver exists
+    const driver = await prisma.user.findUnique({
+      where: { id, role: 'DRIVER' },
+      include: {
+        deliveriesAssigned: {
+          where: {
+            status: {
+              in: ['ALLOCATED', 'RECEIVED']
+            }
+          }
+        }
+      }
+    });
+
+    if (!driver) {
+      throw new Error('Driver not found');
+    }
+
+    // Check if driver has active deliveries
+    if (driver.deliveriesAssigned.length > 0) {
+      throw new Error('Cannot delete driver with active or allocated deliveries. Please reassign or complete deliveries first.');
+    }
+
+    // Delete driver profile first (if exists)
+    if (driver.driverProfile) {
+      await prisma.driverProfile.delete({
+        where: { userId: id }
+      });
+    }
+
+    // Delete user
+    await prisma.user.delete({
+      where: { id }
+    });
+
+    return { message: 'Driver deleted successfully' };
+  }
 }
 
 module.exports = new AdminService();
