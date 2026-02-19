@@ -16,10 +16,10 @@ Object.values(uploadDirs).forEach(dir => {
   }
 });
 
-// Configure storage
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let uploadPath = uploadDirs.photos; // default
+    let uploadPath = uploadDirs.photos;
 
     if (file.fieldname === 'signature') {
       uploadPath = uploadDirs.signatures;
@@ -40,10 +40,9 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter
 const fileFilter = (req, file, cb) => {
   if (file.fieldname === 'cv') {
-    // For CV uploads, allow PDF and Word documents
+
     const allowedTypes = /pdf|doc|docx/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = /pdf|msword|vnd\.openxmlformats-officedocument\.wordprocessingml\.document/.test(file.mimetype);
@@ -54,7 +53,7 @@ const fileFilter = (req, file, cb) => {
       cb(new Error('Only PDF and Word documents (DOC, DOCX) are allowed for CV uploads!'));
     }
   } else {
-    // For other uploads (images, signatures, etc.)
+
     const allowedTypes = /jpeg|jpg|png|gif|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
@@ -70,14 +69,14 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max file size
+    fileSize: 5 * 1024 * 1024,
   },
   fileFilter: fileFilter,
 });
 
 
 const uploadMiddleware = {
-  // Single signature upload
+
   signature: upload.single('signature'),
 
   photo: upload.single('photo'),

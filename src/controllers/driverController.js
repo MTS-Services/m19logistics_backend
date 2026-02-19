@@ -42,9 +42,6 @@ exports.getAssignedDeliveries = async (req, res) => {
   }
 };
 
-/**
- * Get single delivery details
- */
 exports.getDeliveryDetails = async (req, res) => {
   try {
     const delivery = await driverService.getDeliveryDetails(
@@ -214,9 +211,6 @@ exports.getPerformanceMetrics = async (req, res) => {
   }
 };
 
-/**
- * Get slot capacity for a specific date (driver view)
- */
 exports.getSlotCapacity = async (req, res) => {
   try {
     const { date } = req.query;
@@ -228,10 +222,8 @@ exports.getSlotCapacity = async (req, res) => {
       });
     }
 
-    // Parse date
     const targetDate = new Date(date);
 
-    // Get slot availability for the date
     const slots = await prisma.slotAvailability.findMany({
       where: {
         date: targetDate
@@ -251,13 +243,11 @@ exports.getSlotCapacity = async (req, res) => {
       }
     });
 
-    // Count deliveries by slot
     const deliveryCountBySlot = driverDeliveries.reduce((acc, del) => {
       acc[del.timeSlot] = (acc[del.timeSlot] || 0) + 1;
       return acc;
     }, {});
 
-    // Format response
     const capacity = slots.map(slot => ({
       timeSlot: slot.timeSlot,
       totalDeliveries: slot.booked,

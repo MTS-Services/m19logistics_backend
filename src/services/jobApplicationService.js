@@ -105,7 +105,7 @@ class JobApplicationService {
     }
 
     async getJobApplicationStats() {
-        // Get total counts
+
         const total = await prisma.jobApplication.count();
         const pending = await prisma.jobApplication.count({ where: { status: 'PENDING' } });
         const reviewed = await prisma.jobApplication.count({ where: { status: 'REVIEWED' } });
@@ -113,7 +113,7 @@ class JobApplicationService {
         const rejected = await prisma.jobApplication.count({ where: { status: 'REJECTED' } });
         const unread = await prisma.jobApplication.count({ where: { isRead: false } });
 
-        // Get actual applications by status
+
         const pendingApplications = await prisma.jobApplication.findMany({
             where: { status: 'PENDING' },
             orderBy: { createdAt: 'desc' },
@@ -176,7 +176,6 @@ class JobApplicationService {
             }
         });
 
-        // Group by position with details
         const byPosition = await prisma.jobApplication.groupBy({
             by: ['positionOfInterest'],
             _count: {
@@ -184,7 +183,6 @@ class JobApplicationService {
             },
         });
 
-        // Get applications for each position
         const positionDetails = await Promise.all(
             byPosition.map(async (p) => {
                 const applications = await prisma.jobApplication.findMany({

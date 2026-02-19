@@ -52,23 +52,23 @@ class DeliveryService {
       },
     });
 
-    // STEP 4: Increment slot booking count (skip for SAME_DAY)
+
     if (timeSlot !== 'SAME_DAY') {
       await this.incrementSlotBooking(deliveryDate, timeSlot);
     }
 
-    // STEP 5: Send email notifications
+
     try {
-      // Notify admin of new delivery request
+
       await emailService.sendNewDeliveryNotification(delivery, delivery.customer);
 
-      // If same-day delivery, send special alert
+
       if (timeSlot === 'SAME_DAY') {
         await emailService.sendSameDayDeliveryAlert(delivery, delivery.customer);
       }
     } catch (emailError) {
       console.error('Failed to send delivery creation emails:', emailError);
-      // Don't fail the delivery creation if email fails
+
     }
 
     return delivery;
@@ -114,7 +114,7 @@ class DeliveryService {
   }
 
   async getDeliveryById(id, customerId = null) {
-    // Validate delivery ID
+
     if (!id || isNaN(id)) {
       throw new Error('Invalid delivery ID');
     }
@@ -154,12 +154,11 @@ class DeliveryService {
   }
 
   async updateDelivery(id, customerId, updateData) {
-    // Validate delivery ID
+
     if (!id || isNaN(id)) {
       throw new Error('Invalid delivery ID');
     }
 
-    // Check if delivery belongs to customer
     const delivery = await prisma.delivery.findFirst({
       where: { id, customerId },
     });
@@ -168,12 +167,10 @@ class DeliveryService {
       throw new Error('Delivery not found or access denied');
     }
 
-    // Customers can only edit RECEIVED deliveries
     if (delivery.status !== 'RECEIVED') {
       throw new Error('Cannot edit delivery once it has been allocated');
     }
 
-    // Recalculate pricing if weight or address changed
     let pricing = {};
     if (updateData.weight || updateData.deliveryAddress) {
       pricing = await this.calculateDeliveryPrice(
@@ -245,7 +242,6 @@ class DeliveryService {
       await this.decrementSlotBooking(delivery.deliveryDate, delivery.timeSlot);
     }
 
-    // Send cancellation email to customer
     try {
       await emailService.sendDeliveryCancellationNotification(
         delivery,
@@ -275,7 +271,6 @@ class DeliveryService {
       throw new Error('Delivery not found or access denied');
     }
 
-    // Can only delete RECEIVED deliveries
     if (delivery.status !== 'RECEIVED') {
       throw new Error('Can only delete pending deliveries');
     }

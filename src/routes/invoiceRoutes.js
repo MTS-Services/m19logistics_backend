@@ -11,18 +11,19 @@ router.use(authenticate);
 
 router.get(
   '/',
-  authorize('CUSTOMER'),
+  authorize('CUSTOMER', 'ADMIN', 'MANAGER'),
   [
     query('startDate').optional().isISO8601(),
     query('endDate').optional().isISO8601(),
     query('isPaid').optional().isBoolean(),
     query('search').optional().trim(),
+    query('customerId').optional().isInt(),
   ],
   invoiceController.getMyInvoices
 );
 
-router.get('/number/:invoiceNumber', authorize('CUSTOMER'), invoiceController.getInvoiceByNumber);
+router.get('/number/:invoiceNumber', authorize('CUSTOMER', 'ADMIN', 'MANAGER'), invoiceController.getInvoiceByNumber);
 
-router.get('/:id', authorize('CUSTOMER'), invoiceController.getInvoiceById);
+router.get('/:id', authorize('CUSTOMER', 'ADMIN', 'MANAGER'), invoiceController.getInvoiceById);
 
 module.exports = router;

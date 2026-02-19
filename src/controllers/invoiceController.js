@@ -4,10 +4,22 @@ class InvoiceController {
   /**
    * Get all invoices for customer
    * GET /api/invoices
+   * CUSTOMER: Returns only their invoices
+   * ADMIN/MANAGER: Returns all invoices or filtered by customerId
    */
   async getMyInvoices(req, res) {
     try {
-      const customerId = req.user.id;
+      // For CUSTOMER role, use their own ID
+      // For ADMIN/MANAGER, allow querying specific customer or all
+      let customerId;
+
+      if (req.user.role === 'CUSTOMER') {
+        customerId = req.user.id;
+      } else if (req.user.role === 'ADMIN' || req.user.role === 'MANAGER') {
+        // Admin/Manager can specify customerId or get all invoices
+        customerId = req.query.customerId ? parseInt(req.query.customerId) : null;
+      }
+
       const { startDate, endDate, isPaid, search } = req.query;
 
       const invoices = await invoiceService.getCustomerInvoices(customerId, {
@@ -51,6 +63,8 @@ class InvoiceController {
   /**
    * Get invoice by ID
    * GET /api/invoices/:id
+   * CUSTOMER: Can only view their own invoices
+   * ADMIN/MANAGER: Can view any invoice
    */
   async getInvoiceById(req, res) {
     try {
@@ -65,6 +79,7 @@ class InvoiceController {
         });
       }
 
+      // For CUSTOMER, restrict to their own invoices only
       const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
 
       const invoice = await invoiceService.getInvoiceById(
@@ -96,10 +111,14 @@ class InvoiceController {
   /**
    * Get invoice by number
    * GET /api/invoices/number/:invoiceNumber
+   * CUSTOMER: Can only view their own invoices
+   * ADMIN/MANAGER: Can view any invoice
    */
   async getInvoiceByNumber(req, res) {
     try {
       const { invoiceNumber } = req.params;
+
+      // For CUSTOMER, restrict to their own invoices only
       const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
 
       const invoice = await invoiceService.getInvoiceByNumber(

@@ -73,12 +73,6 @@ class CronService {
     }
   }
 
-  /**
-   * Convert day and time to cron expression
-   * @param {string} day - Day of week (e.g., "Sunday", "Monday")
-   * @param {string} time - Time in 12-hour format (e.g., "12:00 AM", "6:00 PM")
-   * @returns {string} Cron expression
-   */
   convertToCronExpression(day, time) {
     // Map day names to cron day numbers (0 = Sunday, 6 = Saturday)
     const dayMap = {
@@ -108,31 +102,27 @@ class CronService {
 
     // Convert to 24-hour format
     if (period === 'AM') {
-      if (hours === 12) hours = 0; // 12:00 AM = 00:00
+      if (hours === 12) hours = 0;
     } else if (period === 'PM') {
-      if (hours !== 12) hours += 12; // Convert PM to 24-hour (except 12 PM)
+      if (hours !== 12) hours += 12;
     }
 
-    // Cron format: minute hour * * day
     return `${minutes} ${hours} * * ${dayNumber}`;
   }
 
-  /**
-   * Generate weekly invoices for all customers
-   */
   async generateWeeklyInvoices() {
     try {
-      // Calculate last week's date range (Monday to Sunday)
+
       const today = new Date();
       const dayOfWeek = today.getDay();
-      const diff = dayOfWeek === 0 ? 7 : dayOfWeek; // If Sunday, go back 7 days; else go back to last Monday
+      const diff = dayOfWeek === 0 ? 7 : dayOfWeek;
 
       const weekEndDate = new Date(today);
-      weekEndDate.setDate(today.getDate() - diff); // Last Sunday
+      weekEndDate.setDate(today.getDate() - diff);
       weekEndDate.setHours(23, 59, 59, 999);
 
       const weekStartDate = new Date(weekEndDate);
-      weekStartDate.setDate(weekEndDate.getDate() - 6); // Monday 7 days ago
+      weekStartDate.setDate(weekEndDate.getDate() - 6);
       weekStartDate.setHours(0, 0, 0, 0);
 
       console.log(`📅 Generating invoices for week: ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`);
@@ -245,13 +235,11 @@ class CronService {
         },
       });
 
-      // If no feedback or notes, skip email
       if (feedbackRecords.length === 0 && deliveriesWithNotes.length === 0) {
         console.log('No driver feedback or delivery notes this week. Skipping email.');
         return;
       }
 
-      // Send email to admin
       await emailService.sendWeeklyDriverFeedbackSummary(
         feedbackRecords,
         deliveriesWithNotes,
@@ -261,7 +249,6 @@ class CronService {
 
       console.log(`✅ Weekly driver feedback summary sent (${feedbackRecords.length} feedback records, ${deliveriesWithNotes.length} deliveries)`);
 
-      // Create an audit log entry for the admin email
       try {
         await auditService.createAuditLog({
           action: 'WEEKLY_DRIVER_FEEDBACK_EMAIL',
@@ -279,7 +266,6 @@ class CronService {
       }
 
       try {
-        // Collect unique driver IDs from feedback and deliveries
         const driverIds = new Set();
         feedbackRecords.forEach(f => { if (f.driver?.id) driverIds.add(f.driver.id); });
         deliveriesWithNotes.forEach(d => { if (d.driver?.id) driverIds.add(d.driver.id); });
@@ -295,7 +281,7 @@ class CronService {
           // Respect driver's notification preference; default true
           const prefersEmail = driver.driverProfile ? driver.driverProfile.enableEmailNotifications !== false : true;
           if (!driver.email) {
-            console.log(`⚠️ Skipping driver ${driver.fullName || id} - no email on record`);
+            console.log(` Skipping driver ${driver.fullName || id} - no email on record`);
             continue;
           }
           if (!prefersEmail) {
@@ -321,14 +307,14 @@ class CronService {
 
             console.log(`✉️ Sent weekly feedback email to driver: ${driver.email} (${driverFeedback.length} feedback, ${driverDeliveries.length} deliveries)`);
           } catch (err) {
-            console.error(`❌ Failed to send or log driver email for ${driver.email}:`, err);
+            console.error(` Failed to send or log driver email for ${driver.email}:`, err);
           }
         }
       } catch (err) {
-        console.error('❌ Error while sending driver-specific weekly emails:', err);
+        console.error(' Error while sending driver-specific weekly emails:', err);
       }
     } catch (error) {
-      console.error('❌ Failed to send weekly driver feedback summary:', error);
+      console.error(' Failed to send weekly driver feedback summary:', error);
     }
   }
 
@@ -351,15 +337,12 @@ class CronService {
       });
 
 
-      console.log(`ℹ️  Weekly invoice reminder: ${unpaidInvoices.length} unpaid invoices found`);
+      console.log(`ℹ  Weekly invoice reminder: ${unpaidInvoices.length} unpaid invoices found`);
     } catch (error) {
-      console.error('❌ Failed to process weekly invoice reminder:', error);
+      console.error(' Failed to process weekly invoice reminder:', error);
     }
   }
 
-  /**
-   * Manually trigger driver feedback summary (for testing)
-   */
   async triggerDriverFeedbackSummary() {
     console.log('Manually triggering driver feedback summary...');
     await this.sendWeeklyDriverFeedbackSummary();

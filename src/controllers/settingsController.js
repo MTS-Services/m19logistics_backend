@@ -2,10 +2,7 @@ const settingsService = require('../services/settingsService');
 const cronService = require('../services/cronService');
 
 class SettingsController {
-    /**
-     * Get all system settings (admin only)
-     * GET /api/admin/settings
-     */
+
     async getAllSettings(req, res, next) {
         try {
             const settings = await settingsService.getAllSettings();
@@ -19,11 +16,6 @@ class SettingsController {
         }
     }
 
-    /**
-     * Get settings by category
-     * GET /api/admin/settings/:category
-     * Categories: company, banking, system
-     */
     async getSettingsByCategory(req, res, next) {
         try {
             const { category } = req.params;
@@ -39,10 +31,6 @@ class SettingsController {
         }
     }
 
-    /**
-     * Get system status summary
-     * GET /api/admin/settings/status/summary
-     */
     async getSystemStatus(req, res, next) {
         try {
             const status = await settingsService.getSystemStatus();
@@ -56,10 +44,6 @@ class SettingsController {
         }
     }
 
-    /**
-     * Update company information
-     * PUT /api/admin/settings/company
-     */
     async updateCompanyInfo(req, res, next) {
         try {
             const data = req.body;
@@ -75,10 +59,6 @@ class SettingsController {
         }
     }
 
-    /**
-     * Update banking details
-     * PUT /api/admin/settings/banking
-     */
     async updateBankingDetails(req, res, next) {
         try {
             const data = req.body;
@@ -94,16 +74,12 @@ class SettingsController {
         }
     }
 
-    /**
-     * Update system configuration
-     * PUT /api/admin/settings/system
-     */
+
     async updateSystemConfig(req, res, next) {
         try {
             const data = req.body;
             const updated = await settingsService.updateSystemConfig(data);
 
-            // Reinitialize invoice generation cron job if invoice settings changed
             if (data.invoice_generation_day !== undefined ||
                 data.invoice_generation_time !== undefined ||
                 data.auto_invoicing !== undefined) {
@@ -121,10 +97,6 @@ class SettingsController {
         }
     }
 
-    /**
-     * Update a single setting
-     * PUT /api/admin/settings/single
-     */
     async updateSingleSetting(req, res, next) {
         try {
             const { key, value, description } = req.body;
@@ -147,10 +119,6 @@ class SettingsController {
         }
     }
 
-    /**
-     * Get invoice generation configuration
-     * GET /api/admin/settings/invoice/config
-     */
     async getInvoiceConfig(req, res, next) {
         try {
             const config = await settingsService.getInvoiceGenerationConfig();
@@ -164,13 +132,9 @@ class SettingsController {
         }
     }
 
-    /**
-     * Reset settings to default (use with caution)
-     * POST /api/admin/settings/reset
-     */
     async resetSettings(req, res, next) {
         try {
-            // This would reset to defaults - implement based on requirements
+
             res.json({
                 success: true,
                 message: 'Settings reset to defaults',

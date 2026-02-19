@@ -25,7 +25,7 @@ router.use('/deliveries', deliveryRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/admin', adminRoutes);
 router.use('/driver', driverRoutes);
-router.use('/jobs', jobApplicationRoutes); // Public job application route
+router.use('/jobs', jobApplicationRoutes);
 
 
 router.use((req, res) => {

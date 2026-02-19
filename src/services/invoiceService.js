@@ -6,7 +6,13 @@ class InvoiceService {
   async getCustomerInvoices(customerId, filters = {}) {
     const { startDate, endDate, isPaid, search } = filters;
 
-    const where = { customerId };
+    const where = {};
+
+    // If customerId is provided, filter by customer
+    // If null (Admin/Manager viewing all), don't filter by customer
+    if (customerId) {
+      where.customerId = customerId;
+    }
 
     if (isPaid !== undefined) {
       where.isPaid = isPaid === 'true';
@@ -125,10 +131,7 @@ class InvoiceService {
     });
   }
 
-  /**
-   * Generate weekly invoice for customer
-   * Called by admin or automated job
-   */
+
   async generateWeeklyInvoice(customerId, weekStartDate, weekEndDate) {
     const deliveries = await prisma.delivery.findMany({
       where: {

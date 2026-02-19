@@ -16,14 +16,14 @@ class AuthController {
         fullName,
         phone,
         role,
-        // Customer-specific fields
+
         storeName,
         depotAddress,
         pricingTierId,
         customBasePrice,
         customVatRate,
         accessScope,
-        // Driver-specific fields
+
         vehicleRegistration,
         driverLicenseNumber,
         address,
@@ -35,7 +35,7 @@ class AuthController {
         assignedStoreCount,
       } = req.body;
 
-      // Validate role
+
       const validRoles = ['ADMIN', 'DRIVER', 'CUSTOMER', 'MANAGER'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({
@@ -44,7 +44,6 @@ class AuthController {
         });
       }
 
-      // Check if user already exists
       const existingEmail = await userService.findByEmail(email);
       if (existingEmail) {
         return res.status(400).json({
@@ -71,7 +70,7 @@ class AuthController {
         fullName,
         phone,
         role,
-        requirePasswordReset: true, // User must reset password on first login
+        requirePasswordReset: true,
       };
 
       const user = await userService.createUser(userData);
@@ -283,12 +282,11 @@ class AuthController {
       const { role } = req.user;
 
       const {
-        // Base user fields
+
         email,
         username,
         fullName,
         phone,
-        // Customer-specific fields
         storeName,
         depotAddress,
         pricingTierId,
@@ -335,7 +333,6 @@ class AuthController {
       if (fullName !== undefined) userUpdateData.fullName = fullName;
       if (phone !== undefined) userUpdateData.phone = phone;
 
-      // Handle uploaded profile picture
       if (req.file) {
         // Save full URL (e.g., 'https://m19logisticsbackend.mtscorporate.com/uploads/profiles/1738051234567-5-avatar.jpg')
         userUpdateData.profilePicture = `${config.backendUrl}/uploads/profiles/${req.file.filename}`;

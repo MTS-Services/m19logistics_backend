@@ -15,10 +15,8 @@ exports.getSlotAvailability = async (req, res, next) => {
       });
     }
 
-    // Parse date
     const targetDate = new Date(date);
 
-    // Get slot availability for the date
     const slots = await prisma.slotAvailability.findMany({
       where: {
         date: targetDate
@@ -26,7 +24,6 @@ exports.getSlotAvailability = async (req, res, next) => {
       orderBy: { timeSlot: 'asc' }
     });
 
-    // Format response
     const availability = {
       date,
       slots: {
@@ -45,7 +42,7 @@ exports.getSlotAvailability = async (req, res, next) => {
       }
     };
 
-    // Populate with actual slot data
+
     slots.forEach(slot => {
       if (slot.timeSlot === 'AM' || slot.timeSlot === 'PM') {
         const remaining = slot.maxCapacity - slot.booked;
@@ -94,11 +91,10 @@ exports.submitContact = async (req, res, next) => {
   }
 };
 
-// ==================== ENQUIRY FORM ====================
 
 exports.submitEnquiry = async (req, res, next) => {
   try {
-    // Validate request body
+
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({
         success: false,

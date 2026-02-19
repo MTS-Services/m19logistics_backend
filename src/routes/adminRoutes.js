@@ -324,10 +324,8 @@ const jobApplicationController = require('../controllers/jobApplicationControlle
 router.get('/job-applications', jobApplicationController.getAllJobApplications);
 router.get('/job-applications/stats', jobApplicationController.getJobApplicationStats);
 
-// Get single job application by ID
 router.get('/job-applications/:id', jobApplicationController.getJobApplicationById);
 
-// Update job application status
 router.patch(
   '/job-applications/:id/status',
   [
@@ -385,7 +383,6 @@ router.put(
   settingsController.updateCompanyInfo
 );
 
-// Update banking details
 router.put(
   '/settings/banking',
   authorize('ADMIN'),
@@ -417,7 +414,6 @@ router.put(
   settingsController.updateSystemConfig
 );
 
-// Update single setting
 router.put(
   '/settings/single',
   authorize('ADMIN'),

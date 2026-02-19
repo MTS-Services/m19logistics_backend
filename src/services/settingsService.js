@@ -1,9 +1,7 @@
 const prisma = require('../config/database');
 
 class SettingsService {
-    /**
-     * Get all system settings grouped by category
-     */
+
     async getAllSettings() {
         const [company, banking, system] = await Promise.all([
             prisma.companyInformation.findFirst(),
@@ -41,9 +39,6 @@ class SettingsService {
         };
     }
 
-    /**
-     * Get settings by category
-     */
     async getSettingsByCategory(category) {
         switch (category.toLowerCase()) {
             case 'company': {
@@ -86,9 +81,6 @@ class SettingsService {
         }
     }
 
-    /**
-     * Update company information
-     */
     async updateCompanyInfo(data) {
         const updateData = {};
 
@@ -101,7 +93,6 @@ class SettingsService {
         if (data.address !== undefined) updateData.address = data.address;
         if (data.founded_year !== undefined) updateData.foundedYear = data.founded_year;
 
-        // Check if record exists
         const existing = await prisma.companyInformation.findFirst();
 
         if (existing) {
@@ -128,9 +119,6 @@ class SettingsService {
         return await this.getSettingsByCategory('company');
     }
 
-    /**
-     * Update banking details
-     */
     async updateBankingDetails(data) {
         const updateData = {};
 
@@ -140,7 +128,7 @@ class SettingsService {
         if (data.account_number !== undefined) updateData.accountNumber = data.account_number;
         if (data.payment_terms !== undefined) updateData.paymentTerms = data.payment_terms;
 
-        // Check if record exists
+
         const existing = await prisma.bankingDetails.findFirst();
 
         if (existing) {
@@ -149,7 +137,7 @@ class SettingsService {
                 data: updateData,
             });
         } else {
-            // Create new record with all required fields
+
             await prisma.bankingDetails.create({
                 data: {
                     bankName: data.bank_name || '',
@@ -164,9 +152,7 @@ class SettingsService {
         return await this.getSettingsByCategory('banking');
     }
 
-    /**
-     * Update system configuration
-     */
+
     async updateSystemConfig(data) {
         const updateData = {};
 
@@ -178,7 +164,6 @@ class SettingsService {
         if (data.sms_notifications !== undefined) updateData.smsNotifications = data.sms_notifications === 'true' || data.sms_notifications === true;
         if (data.maps_api_enabled !== undefined) updateData.mapsApiEnabled = data.maps_api_enabled === 'true' || data.maps_api_enabled === true;
 
-        // Check if record exists
         const existing = await prisma.systemConfiguration.findFirst();
 
         if (existing) {
@@ -196,9 +181,6 @@ class SettingsService {
         return await this.getSettingsByCategory('system');
     }
 
-    /**
-     * Get system status summary
-     */
     async getSystemStatus() {
         const system = await prisma.systemConfiguration.findFirst();
 
@@ -210,9 +192,6 @@ class SettingsService {
         };
     }
 
-    /**
-     * Get invoice generation configuration
-     */
     async getInvoiceGenerationConfig() {
         const system = await prisma.systemConfiguration.findFirst();
 
@@ -222,9 +201,6 @@ class SettingsService {
         };
     }
 
-    /**
-     * Get a single setting by key (legacy support for SystemSetting)
-     */
     async getSetting(key) {
         const setting = await prisma.systemSetting.findUnique({
             where: { key: key.toUpperCase() },
@@ -233,9 +209,6 @@ class SettingsService {
         return setting ? setting.value : null;
     }
 
-    /**
-     * Update or create a setting (legacy support for SystemSetting)
-     */
     async setSetting(key, value, description = null) {
         return await prisma.systemSetting.upsert({
             where: { key: key.toUpperCase() },

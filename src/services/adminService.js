@@ -555,9 +555,6 @@ class AdminService {
     return updated;
   }
 
-  /**
-   * Add extra charge to a delivery
-   */
   async addExtraCharge(deliveryId, chargeData) {
     // Validate delivery ID
     if (!deliveryId || isNaN(deliveryId)) {
@@ -581,9 +578,6 @@ class AdminService {
     });
   }
 
-  /**
-   * Remove extra charge from a delivery
-   */
   async removeExtraCharge(chargeId) {
     // Validate charge ID
     if (!chargeId || isNaN(chargeId)) {
@@ -603,9 +597,6 @@ class AdminService {
     });
   }
 
-  /**
-   * Get all extra charges for a delivery
-   */
   async getDeliveryExtraCharges(deliveryId) {
     // Validate delivery ID
     if (!deliveryId || isNaN(deliveryId)) {
@@ -656,7 +647,6 @@ class AdminService {
       throw new Error('Invalid pricing tier ID');
     }
 
-    // Check if tier exists
     const tier = await prisma.pricingTier.findUnique({
       where: { id }
     });
@@ -712,9 +702,6 @@ class AdminService {
 
   // ==================== INVOICE MANAGEMENT ====================
 
-  /**
-   * Generate weekly invoice for a customer
-   */
   async generateInvoice(customerId, weekStartDate, weekEndDate) {
 
     const deliveries = await prisma.delivery.findMany({
@@ -828,7 +815,6 @@ class AdminService {
 
 
   async markInvoiceAsPaid(invoiceId) {
-    // Validate invoice ID
     if (!invoiceId || isNaN(invoiceId)) {
       throw new Error('Invalid invoice ID');
     }
@@ -882,7 +868,6 @@ class AdminService {
       },
     });
 
-    // Recalculate invoice totals
     const subtotal = parseFloat(invoice.subtotal) + parseFloat(chargeData.unitCost);
     const vatTotal = parseFloat(invoice.vatTotal) + parseFloat(chargeData.vatAmount);
     const grandTotal = parseFloat(invoice.grandTotal) + parseFloat(chargeData.total);
@@ -898,7 +883,6 @@ class AdminService {
   // ==================== INVOICE EDITING ====================
 
   async getInvoiceById(invoiceId) {
-    // Validate invoice ID
     if (!invoiceId || isNaN(invoiceId)) {
       throw new Error('Invalid invoice ID');
     }
@@ -965,7 +949,6 @@ class AdminService {
       }
     }
 
-    // Build invoice update data
     const invoiceUpdateData = {};
     const allowedFields = ['invoiceNumber', 'customerId', 'invoiceDate', 'dueDate', 'status', 'customerRef', 'notes', 'paymentTerms'];
 
@@ -986,7 +969,6 @@ class AdminService {
         where: { invoiceId }
       });
 
-      // Create new items
       const itemsToCreate = updateData.items.map(item => ({
         invoiceId,
         deliveryId: item.deliveryId || null,
@@ -1005,7 +987,6 @@ class AdminService {
         });
       }
 
-      // Recalculate totals based on new items
       let subtotal = 0;
       let vatTotal = 0;
       let grandTotal = 0;

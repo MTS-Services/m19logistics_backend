@@ -12,7 +12,6 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-// CORS Configuration - Allow all origins
 app.use(cors({
   origin: '*',
   credentials: false,
@@ -42,7 +41,6 @@ if (config.nodeEnv === 'development') {
   app.use(morgan('combined'));
 }
 
-// Serve uploaded files from /uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.static(path.join(__dirname, '../public')));
 

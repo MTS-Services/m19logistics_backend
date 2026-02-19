@@ -45,9 +45,7 @@ exports.submitJobApplication = async (req, res, next) => {
     }
 };
 
-/**
- * Get all job applications (Admin only)
- */
+
 exports.getAllJobApplications = async (req, res, next) => {
     try {
         const applications = await jobApplicationService.getAllJobApplications(req.query);
@@ -63,14 +61,11 @@ exports.getAllJobApplications = async (req, res, next) => {
     }
 };
 
-/**
- * Get a single job application by ID (Admin only)
- */
+
 exports.getJobApplicationById = async (req, res, next) => {
     try {
         const application = await jobApplicationService.getJobApplicationById(req.params.id);
 
-        // Mark as read when admin views it
         if (!application.isRead) {
             await jobApplicationService.markAsRead(req.params.id);
             application.isRead = true;
@@ -86,9 +81,6 @@ exports.getJobApplicationById = async (req, res, next) => {
     }
 };
 
-/**
- * Update job application status (Admin only)
- */
 exports.updateJobApplicationStatus = async (req, res, next) => {
     try {
         const errors = validationResult(req);
@@ -117,9 +109,6 @@ exports.updateJobApplicationStatus = async (req, res, next) => {
     }
 };
 
-/**
- * Delete a job application (Admin only)
- */
 exports.deleteJobApplication = async (req, res, next) => {
     try {
         await jobApplicationService.deleteJobApplication(req.params.id);
@@ -133,9 +122,6 @@ exports.deleteJobApplication = async (req, res, next) => {
     }
 };
 
-/**
- * Get job application statistics (Admin only)
- */
 exports.getJobApplicationStats = async (req, res, next) => {
     try {
         const stats = await jobApplicationService.getJobApplicationStats();

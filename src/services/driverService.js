@@ -240,14 +240,13 @@ class DriverService {
       throw new Error('Rejection reason is required');
     }
 
-    // Update delivery: reject + change status back to RECEIVED for admin reassignment
     const result = await prisma.delivery.update({
       where: { id: deliveryId },
       data: {
-        status: 'RECEIVED', // Back to RECEIVED so admin can reassign
+        status: 'RECEIVED',
         rejectedAt: new Date(),
         rejectionReason: reason,
-        driverId: null, // Unassign driver
+        driverId: null,
       },
       include: {
         customer: {
@@ -261,7 +260,6 @@ class DriverService {
       },
     });
 
-    // Send email notification to admin
     try {
       const driver = await prisma.user.findUnique({
         where: { id: driverId },
@@ -275,7 +273,6 @@ class DriverService {
     return result;
   }
 
-  // DELIVERY COMPLETION 
 
   async completeDelivery(deliveryId, driverId, completionData) {
     const delivery = await prisma.delivery.findFirst({
@@ -290,7 +287,6 @@ class DriverService {
       throw new Error('Delivery not found, not assigned to you, or already completed');
     }
 
-    // Enforce acceptance before completion
     if (!delivery.acceptedAt) {
       throw new Error('You must accept the delivery before completing it');
     }
@@ -403,7 +399,6 @@ class DriverService {
 
     const { rating, comments, issues } = feedbackData;
 
-    // Combine feedback into notes field
     const notes = `Rating: ${rating}/5\n${comments ? 'Comments: ' + comments : ''}${issues ? '\nIssues: ' + issues : ''}`.trim();
 
     const existingFeedback = await prisma.driverFeedback.findUnique({

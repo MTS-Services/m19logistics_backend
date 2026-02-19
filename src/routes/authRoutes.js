@@ -19,7 +19,7 @@ router.post(
     validate,
   ],
   authController.register
-); 
+);
 
 
 router.post(
@@ -50,7 +50,6 @@ router.post(
   authController.changePassword
 );
 
-// Update user's own profile (with optional profilePicture upload)
 router.patch('/profile', authenticate, uploadMiddleware.profilePicture, authController.updateProfile);
 
 module.exports = router;

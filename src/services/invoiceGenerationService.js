@@ -121,7 +121,7 @@ class InvoiceGenerationService {
 
     const invoiceItems = [];
 
-    // Add delivery items
+
     for (const delivery of deliveries) {
       const deliverySubtotal = parseFloat(delivery.subtotal || 0);
       const deliveryVat = parseFloat(delivery.vatAmount || 0);
@@ -141,7 +141,6 @@ class InvoiceGenerationService {
         isAdditional: false,
       });
 
-      // Add extra charges for this delivery
       if (delivery.extraCharges && delivery.extraCharges.length > 0) {
         for (const charge of delivery.extraCharges) {
           const chargeAmount = parseFloat(charge.amount);
@@ -165,7 +164,6 @@ class InvoiceGenerationService {
       }
     }
 
-    // Create invoice with all items
     const invoice = await prisma.invoice.create({
       data: {
         customerId,
