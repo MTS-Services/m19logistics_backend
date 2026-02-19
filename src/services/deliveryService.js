@@ -6,20 +6,20 @@ class DeliveryService {
 
   async createDelivery(customerId, deliveryData) {
     const { deliveryDate, timeSlot } = deliveryData;
-    
+
     // STEP 1: Validate slot availability (skip for SAME_DAY)
     if (timeSlot !== 'SAME_DAY') {
       const slot = await this.checkSlotAvailability(deliveryDate, timeSlot);
-      
+
       if (!slot) {
         throw new Error(`No slot availability configured for ${timeSlot} on ${new Date(deliveryDate).toLocaleDateString()}. Please contact admin.`);
       }
-      
+
       if (slot.isFull || slot.booked >= slot.maxCapacity) {
         throw new Error(`${timeSlot} slot is full for ${new Date(deliveryDate).toLocaleDateString()}. Please choose another time slot or date.`);
       }
     }
-    
+
     // STEP 2: Calculate pricing
     const pricing = await this.calculateDeliveryPrice(
       customerId,
@@ -51,7 +51,7 @@ class DeliveryService {
         },
       },
     });
-    
+
     // STEP 4: Increment slot booking count (skip for SAME_DAY)
     if (timeSlot !== 'SAME_DAY') {
       await this.incrementSlotBooking(deliveryDate, timeSlot);
@@ -61,7 +61,7 @@ class DeliveryService {
     try {
       // Notify admin of new delivery request
       await emailService.sendNewDeliveryNotification(delivery, delivery.customer);
-      
+
       // If same-day delivery, send special alert
       if (timeSlot === 'SAME_DAY') {
         await emailService.sendSameDayDeliveryAlert(delivery, delivery.customer);
@@ -70,25 +70,25 @@ class DeliveryService {
       console.error('Failed to send delivery creation emails:', emailError);
       // Don't fail the delivery creation if email fails
     }
-    
+
     return delivery;
   }
 
   async getCustomerDeliveries(customerId, filters = {}) {
     const { status, startDate, endDate, search } = filters;
-    
+
     const where = { customerId };
-    
+
     if (status && status !== 'ALL') {
       where.status = status;
     }
-    
+
     if (startDate || endDate) {
       where.deliveryDate = {};
       if (startDate) where.deliveryDate.gte = new Date(startDate);
       if (endDate) where.deliveryDate.lte = new Date(endDate);
     }
-    
+
     if (search) {
       where.OR = [
         { spoNumber: { contains: search, mode: 'insensitive' } },
@@ -96,7 +96,7 @@ class DeliveryService {
         { customerName: { contains: search, mode: 'insensitive' } },
       ];
     }
- 
+
     return prisma.delivery.findMany({
       where,
       include: {
@@ -114,6 +114,11 @@ class DeliveryService {
   }
 
   async getDeliveryById(id, customerId = null) {
+    // Validate delivery ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     const where = { id };
     if (customerId) where.customerId = customerId;
 
@@ -149,6 +154,11 @@ class DeliveryService {
   }
 
   async updateDelivery(id, customerId, updateData) {
+    // Validate delivery ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     // Check if delivery belongs to customer
     const delivery = await prisma.delivery.findFirst({
       where: { id, customerId },
@@ -192,6 +202,11 @@ class DeliveryService {
   }
 
   async cancelDelivery(id, customerId, reason) {
+    // Validate delivery ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     const delivery = await prisma.delivery.findFirst({
       where: { id, customerId },
       include: {
@@ -213,7 +228,7 @@ class DeliveryService {
     if (!['RECEIVED', 'ALLOCATED'].includes(delivery.status)) {
       throw new Error('Cannot cancel delivery in current status');
     }
-    
+
     const wasNotCancelled = delivery.status !== 'CANCELLED';
 
     const cancelled = await prisma.delivery.update({
@@ -225,7 +240,7 @@ class DeliveryService {
         cancelledBy: customerId,
       },
     });
-    
+
     if (wasNotCancelled && delivery.timeSlot !== 'SAME_DAY') {
       await this.decrementSlotBooking(delivery.deliveryDate, delivery.timeSlot);
     }
@@ -242,11 +257,16 @@ class DeliveryService {
       console.error('Failed to send cancellation email:', emailError);
       // Don't fail the cancellation if email fails
     }
-    
+
     return cancelled;
   }
 
   async deleteDelivery(id, customerId) {
+    // Validate delivery ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     const delivery = await prisma.delivery.findFirst({
       where: { id, customerId },
     });
@@ -265,10 +285,10 @@ class DeliveryService {
     });
   }
 
- 
+
   async getCustomerStats(customerId) {
     const [pendingList, allocatedList, completedList, cancelledList] = await Promise.all([
-      prisma.delivery.findMany({ 
+      prisma.delivery.findMany({
         where: { customerId, status: 'RECEIVED' },
         select: {
           id: true,
@@ -284,7 +304,7 @@ class DeliveryService {
         },
         orderBy: { deliveryDate: 'asc' }
       }),
-      prisma.delivery.findMany({ 
+      prisma.delivery.findMany({
         where: { customerId, status: 'ALLOCATED' },
         select: {
           id: true,
@@ -307,7 +327,7 @@ class DeliveryService {
         },
         orderBy: { deliveryDate: 'asc' }
       }),
-      prisma.delivery.findMany({ 
+      prisma.delivery.findMany({
         where: { customerId, status: 'DELIVERED' },
         select: {
           id: true,
@@ -324,7 +344,7 @@ class DeliveryService {
         },
         orderBy: { deliveredAt: 'desc' }
       }),
-      prisma.delivery.findMany({ 
+      prisma.delivery.findMany({
         where: { customerId, status: 'CANCELLED' },
         select: {
           id: true,
@@ -363,7 +383,7 @@ class DeliveryService {
     // Get customer pricing tier through customerProfile
     const customer = await prisma.user.findUnique({
       where: { id: customerId },
-      include: { 
+      include: {
         customerProfile: {
           include: {
             pricingTier: true
@@ -377,24 +397,24 @@ class DeliveryService {
     }
 
     // Use custom pricing or tier pricing
-    const basePrice = customer.customerProfile?.customBasePrice 
+    const basePrice = customer.customerProfile?.customBasePrice
       ? parseFloat(customer.customerProfile.customBasePrice)
-      : customer.customerProfile?.pricingTier 
+      : customer.customerProfile?.pricingTier
         ? parseFloat(customer.customerProfile.pricingTier.basePrice)
-        : 37.50; 
+        : 37.50;
 
     const vatRate = customer.customerProfile?.pricingTier
-        ? parseFloat(customer.customerProfile.pricingTier.vatRate)
-        : 20.00;
+      ? parseFloat(customer.customerProfile.pricingTier.vatRate)
+      : 20.00;
 
     const weightBlocks = Math.ceil(weight / config.pricing.weightBlock);
 
-    
+
     let calculatedBasePrice = basePrice * weightBlocks;
 
     // Calculate distance (simplified - would use Google Maps API in production)
     const distance = await this.calculateDistance(customer.customerProfile?.depotAddress, address);
-    
+
     // Distance surcharge (per 45 miles beyond base)
     let distanceSurcharge = 0;
     if (distance > config.pricing.baseDistance) {
@@ -418,12 +438,12 @@ class DeliveryService {
     };
   }
 
- 
+
   async calculateDistance(origin, destination) {
     return Math.floor(Math.random() * 40) + 10;
   }
 
- 
+
   isSameDay(deliveryDate) {
     const today = new Date();
     const delivery = new Date(deliveryDate);
@@ -447,16 +467,16 @@ class DeliveryService {
     });
   }
 
- 
+
   async incrementSlotBooking(date, timeSlot) {
     const slot = await this.checkSlotAvailability(date, timeSlot);
-    
+
     if (!slot) {
       return;
     }
-   
+
     const newBookedCount = slot.booked + 1;
-    
+
     await prisma.slotAvailability.update({
       where: { id: slot.id },
       data: {
@@ -468,18 +488,18 @@ class DeliveryService {
 
   async decrementSlotBooking(date, timeSlot) {
     const slot = await this.checkSlotAvailability(date, timeSlot);
-    
+
     if (!slot || slot.booked <= 0) {
       return;
     }
-    
+
     const newBookedCount = Math.max(0, slot.booked - 1);
-    
+
     await prisma.slotAvailability.update({
       where: { id: slot.id },
       data: {
         booked: newBookedCount,
-        isFull: false 
+        isFull: false
       }
     });
   }

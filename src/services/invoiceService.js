@@ -2,20 +2,44 @@ const prisma = require('../config/database');
 const config = require('../config');
 
 class InvoiceService {
- 
+
   async getCustomerInvoices(customerId, filters = {}) {
-    const { startDate, endDate, isPaid } = filters;
-    
+    const { startDate, endDate, isPaid, search } = filters;
+
     const where = { customerId };
-    
+
     if (isPaid !== undefined) {
       where.isPaid = isPaid === 'true';
     }
-    
+
     if (startDate || endDate) {
       where.invoiceDate = {};
       if (startDate) where.invoiceDate.gte = new Date(startDate);
       if (endDate) where.invoiceDate.lte = new Date(endDate);
+    }
+
+    // Search by invoice number or SPO number
+    if (search) {
+      where.OR = [
+        {
+          invoiceNumber: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          items: {
+            some: {
+              delivery: {
+                spoNumber: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+            },
+          },
+        },
+      ];
     }
 
     return prisma.invoice.findMany({
@@ -37,8 +61,13 @@ class InvoiceService {
     });
   }
 
-  
+
   async getInvoiceById(id, customerId = null) {
+    // Validate invoice ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid invoice ID');
+    }
+
     const where = { id };
     if (customerId) where.customerId = customerId;
 
@@ -68,7 +97,7 @@ class InvoiceService {
     });
   }
 
- 
+
   async getInvoiceByNumber(invoiceNumber, customerId = null) {
     const where = { invoiceNumber };
     if (customerId) where.customerId = customerId;
@@ -128,7 +157,7 @@ class InvoiceService {
     const invoiceItems = deliveries.map((delivery) => {
       const deliverySubtotal = parseFloat(delivery.subtotal);
       const deliveryVat = parseFloat(delivery.vatAmount);
-      
+
       let extraChargesTotal = 0;
       let extraChargesVat = 0;
       delivery.extraCharges.forEach((charge) => {

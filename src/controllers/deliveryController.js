@@ -105,10 +105,20 @@ class DeliveryController {
   async getDeliveryById(req, res) {
     try {
       const { id } = req.params;
+      const deliveryId = parseInt(id);
+
+      // Validate delivery ID
+      if (isNaN(deliveryId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid delivery ID',
+        });
+      }
+
       const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
 
       const delivery = await deliveryService.getDeliveryById(
-        parseInt(id),
+        deliveryId,
         customerId
       );
 
@@ -124,6 +134,12 @@ class DeliveryController {
         data: delivery,
       });
     } catch (error) {
+      if (error.message === 'Invalid delivery ID') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid delivery ID',
+        });
+      }
       console.error('Get delivery error:', error);
       res.status(500).json({
         success: false,
@@ -137,13 +153,23 @@ class DeliveryController {
   async updateDelivery(req, res) {
     try {
       const { id } = req.params;
+      const deliveryId = parseInt(id);
+
+      // Validate delivery ID
+      if (isNaN(deliveryId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid delivery ID',
+        });
+      }
+
       const customerId = req.user.id;
       const updateData = req.body;
 
-      const oldDelivery = await deliveryService.getDeliveryById(parseInt(id), customerId);
+      const oldDelivery = await deliveryService.getDeliveryById(deliveryId, customerId);
 
       const delivery = await deliveryService.updateDelivery(
-        parseInt(id),
+        deliveryId,
         customerId,
         updateData
       );
@@ -166,6 +192,18 @@ class DeliveryController {
         data: delivery,
       });
     } catch (error) {
+      if (error.message === 'Invalid delivery ID') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid delivery ID',
+        });
+      }
+      if (error.message === 'Delivery not found or access denied') {
+        return res.status(404).json({
+          success: false,
+          message: 'Delivery not found or access denied',
+        });
+      }
       console.error('Update delivery error:', error);
       res.status(400).json({
         success: false,
@@ -178,11 +216,21 @@ class DeliveryController {
   async cancelDelivery(req, res) {
     try {
       const { id } = req.params;
+      const deliveryId = parseInt(id);
+
+      // Validate delivery ID
+      if (isNaN(deliveryId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid delivery ID',
+        });
+      }
+
       const { reason } = req.body;
       const customerId = req.user.id;
 
       const delivery = await deliveryService.cancelDelivery(
-        parseInt(id),
+        deliveryId,
         customerId,
         reason
       );
@@ -205,6 +253,18 @@ class DeliveryController {
         data: delivery,
       });
     } catch (error) {
+      if (error.message === 'Invalid delivery ID') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid delivery ID',
+        });
+      }
+      if (error.message === 'Delivery not found or access denied') {
+        return res.status(404).json({
+          success: false,
+          message: 'Delivery not found or access denied',
+        });
+      }
       console.error('Cancel delivery error:', error);
       res.status(400).json({
         success: false,
@@ -217,15 +277,37 @@ class DeliveryController {
   async deleteDelivery(req, res) {
     try {
       const { id } = req.params;
+      const deliveryId = parseInt(id);
+
+      // Validate delivery ID
+      if (isNaN(deliveryId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid delivery ID',
+        });
+      }
+
       const customerId = req.user.id;
 
-      await deliveryService.deleteDelivery(parseInt(id), customerId);
+      await deliveryService.deleteDelivery(deliveryId, customerId);
 
       res.json({
         success: true,
         message: 'Delivery deleted successfully',
       });
     } catch (error) {
+      if (error.message === 'Invalid delivery ID') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid delivery ID',
+        });
+      }
+      if (error.message === 'Delivery not found or access denied') {
+        return res.status(404).json({
+          success: false,
+          message: 'Delivery not found or access denied',
+        });
+      }
       console.error('Delete delivery error:', error);
       res.status(400).json({
         success: false,

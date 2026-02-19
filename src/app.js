@@ -23,6 +23,17 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Handle JSON parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid JSON format. Please check your request body.',
+    });
+  }
+  next(err);
+});
+
 app.use(cookieParser());
 
 if (config.nodeEnv === 'development') {

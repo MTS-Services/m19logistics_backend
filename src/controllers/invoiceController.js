@@ -8,18 +8,35 @@ class InvoiceController {
   async getMyInvoices(req, res) {
     try {
       const customerId = req.user.id;
-      const { startDate, endDate, isPaid } = req.query;
+      const { startDate, endDate, isPaid, search } = req.query;
 
       const invoices = await invoiceService.getCustomerInvoices(customerId, {
         startDate,
         endDate,
         isPaid,
+        search,
       });
+
+      // Calculate summary statistics
+      const totalInvoices = invoices.length;
+      const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
+      const totalPaid = invoices
+        .filter(inv => inv.isPaid)
+        .reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
+      const totalUnpaid = invoices
+        .filter(inv => !inv.isPaid)
+        .reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
 
       res.json({
         success: true,
         data: invoices,
         count: invoices.length,
+        summary: {
+          totalInvoices,
+          totalAmount: parseFloat(totalAmount.toFixed(2)),
+          totalPaid: parseFloat(totalPaid.toFixed(2)),
+          totalUnpaid: parseFloat(totalUnpaid.toFixed(2)),
+        },
       });
     } catch (error) {
       console.error('Get invoices error:', error);
@@ -38,10 +55,20 @@ class InvoiceController {
   async getInvoiceById(req, res) {
     try {
       const { id } = req.params;
+      const invoiceId = parseInt(id);
+
+      // Validate invoice ID
+      if (isNaN(invoiceId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid invoice ID',
+        });
+      }
+
       const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
 
       const invoice = await invoiceService.getInvoiceById(
-        parseInt(id),
+        invoiceId,
         customerId
       );
 

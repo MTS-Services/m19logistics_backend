@@ -136,6 +136,11 @@ class AdminService {
    * Update user
    */
   async updateUser(id, updateData) {
+    // Validate user ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid user ID');
+    }
+
     const { password, role, ...data } = updateData;
 
     if (password) {
@@ -178,6 +183,11 @@ class AdminService {
 
 
   async deleteUser(id) {
+    // Validate user ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid user ID');
+    }
+
     // Check if user has any deliveries
     const user = await prisma.user.findUnique({
       where: { id },
@@ -208,6 +218,11 @@ class AdminService {
 
 
   async toggleUserStatus(id) {
+    // Validate user ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid user ID');
+    }
+
     const user = await prisma.user.findUnique({
       where: { id },
       select: { isActive: true }
@@ -278,6 +293,10 @@ class AdminService {
   }
 
   async getDeliveryById(id) {
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     const delivery = await prisma.delivery.findUnique({
       where: { id },
       include: {
@@ -322,6 +341,10 @@ class AdminService {
   }
 
   async updateDelivery(id, updateData) {
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     const delivery = await prisma.delivery.findUnique({
       where: { id },
     });
@@ -365,6 +388,10 @@ class AdminService {
   }
 
   async deleteDelivery(id) {
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     const delivery = await prisma.delivery.findUnique({
       where: { id },
       include: {
@@ -473,6 +500,11 @@ class AdminService {
   }
 
   async updateDeliveryStatus(deliveryId, status, data = {}) {
+    // Validate delivery ID
+    if (!deliveryId || isNaN(deliveryId)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
       include: {
@@ -527,6 +559,11 @@ class AdminService {
    * Add extra charge to a delivery
    */
   async addExtraCharge(deliveryId, chargeData) {
+    // Validate delivery ID
+    if (!deliveryId || isNaN(deliveryId)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
     });
@@ -548,6 +585,19 @@ class AdminService {
    * Remove extra charge from a delivery
    */
   async removeExtraCharge(chargeId) {
+    // Validate charge ID
+    if (!chargeId || isNaN(chargeId)) {
+      throw new Error('Invalid charge ID');
+    }
+
+    const charge = await prisma.extraCharge.findUnique({
+      where: { id: chargeId },
+    });
+
+    if (!charge) {
+      throw new Error('Extra charge not found');
+    }
+
     return prisma.extraCharge.delete({
       where: { id: chargeId },
     });
@@ -557,6 +607,11 @@ class AdminService {
    * Get all extra charges for a delivery
    */
   async getDeliveryExtraCharges(deliveryId) {
+    // Validate delivery ID
+    if (!deliveryId || isNaN(deliveryId)) {
+      throw new Error('Invalid delivery ID');
+    }
+
     return prisma.extraCharge.findMany({
       where: { deliveryId },
       orderBy: { createdAt: 'desc' },
@@ -596,6 +651,20 @@ class AdminService {
 
 
   async updatePricingTier(id, tierData) {
+    // Validate pricing tier ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid pricing tier ID');
+    }
+
+    // Check if tier exists
+    const tier = await prisma.pricingTier.findUnique({
+      where: { id }
+    });
+
+    if (!tier) {
+      throw new Error('Pricing tier not found');
+    }
+
     if (tierData.isDefault) {
       await prisma.pricingTier.updateMany({
         where: {
@@ -614,6 +683,19 @@ class AdminService {
 
 
   async deletePricingTier(id) {
+    // Validate pricing tier ID
+    if (!id || isNaN(id)) {
+      throw new Error('Invalid pricing tier ID');
+    }
+
+    // Check if tier exists
+    const tier = await prisma.pricingTier.findUnique({
+      where: { id }
+    });
+
+    if (!tier) {
+      throw new Error('Pricing tier not found');
+    }
 
     const count = await prisma.customerProfile.count({
       where: { pricingTierId: id }
@@ -746,6 +828,19 @@ class AdminService {
 
 
   async markInvoiceAsPaid(invoiceId) {
+    // Validate invoice ID
+    if (!invoiceId || isNaN(invoiceId)) {
+      throw new Error('Invalid invoice ID');
+    }
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId }
+    });
+
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+
     return prisma.invoice.update({
       where: { id: invoiceId },
       data: {
@@ -756,6 +851,11 @@ class AdminService {
   }
 
   async addExtraCharge(invoiceId, chargeData) {
+    // Validate invoice ID
+    if (!invoiceId || isNaN(invoiceId)) {
+      throw new Error('Invalid invoice ID');
+    }
+
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: { items: true }
@@ -798,6 +898,11 @@ class AdminService {
   // ==================== INVOICE EDITING ====================
 
   async getInvoiceById(invoiceId) {
+    // Validate invoice ID
+    if (!invoiceId || isNaN(invoiceId)) {
+      throw new Error('Invalid invoice ID');
+    }
+
     return prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
@@ -829,6 +934,11 @@ class AdminService {
   }
 
   async updateInvoiceComplete(invoiceId, updateData) {
+    // Validate invoice ID
+    if (!invoiceId || isNaN(invoiceId)) {
+      throw new Error('Invalid invoice ID');
+    }
+
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: { items: true }
@@ -1004,6 +1114,10 @@ class AdminService {
   }
 
   async updateSlotCapacity(slotId, method, value) {
+    if (!slotId || isNaN(slotId)) {
+      throw new Error('Invalid slot ID');
+    }
+
     const slot = await prisma.slotAvailability.findUnique({
       where: { id: slotId },
     });

@@ -16,6 +16,7 @@ router.get(
     query('startDate').optional().isISO8601(),
     query('endDate').optional().isISO8601(),
     query('isPaid').optional().isBoolean(),
+    query('search').optional().trim(),
   ],
   invoiceController.getMyInvoices
 );

@@ -7,25 +7,25 @@ const prisma = require('../config/database');
 exports.getSlotAvailability = async (req, res, next) => {
   try {
     const { date } = req.query;
-    
+
     if (!date) {
       return res.status(400).json({
         success: false,
         message: 'Date parameter is required (format: YYYY-MM-DD)'
       });
     }
-    
+
     // Parse date
     const targetDate = new Date(date);
-    
+
     // Get slot availability for the date
     const slots = await prisma.slotAvailability.findMany({
-      where: { 
+      where: {
         date: targetDate
       },
       orderBy: { timeSlot: 'asc' }
     });
-    
+
     // Format response
     const availability = {
       date,
@@ -44,7 +44,7 @@ exports.getSlotAvailability = async (req, res, next) => {
         }
       }
     };
-    
+
     // Populate with actual slot data
     slots.forEach(slot => {
       if (slot.timeSlot === 'AM' || slot.timeSlot === 'PM') {
@@ -57,7 +57,7 @@ exports.getSlotAvailability = async (req, res, next) => {
         };
       }
     });
-    
+
     res.json({
       success: true,
       data: availability
@@ -71,8 +71,16 @@ exports.getSlotAvailability = async (req, res, next) => {
 
 exports.submitContact = async (req, res, next) => {
   try {
+    // Validate request body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Request body is required',
+      });
+    }
+
     const contact = await contactService.createContact(req.body);
-    
+
     res.status(201).json({
       success: true,
       message: 'Thank you for contacting us. We will get back to you soon.',
@@ -90,8 +98,16 @@ exports.submitContact = async (req, res, next) => {
 
 exports.submitEnquiry = async (req, res, next) => {
   try {
+    // Validate request body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Request body is required',
+      });
+    }
+
     const enquiry = await enquiryService.createEnquiry(req.body);
-    
+
     res.status(201).json({
       success: true,
       message: 'Thank you for your enquiry. We will respond shortly.',

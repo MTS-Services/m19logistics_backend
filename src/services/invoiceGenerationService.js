@@ -87,14 +87,32 @@ class InvoiceGenerationService {
       throw new Error(`No deliveries to invoice for customer ${customerId}`);
     }
 
-    // Get next invoice number
-    const lastInvoiceSetting = await prisma.systemSetting.findUnique({
-      where: { key: 'LAST_INVOICE_NUMBER' },
-    });
+    // Reserve next invoice number atomically to prevent duplicates
+    // Use transaction to ensure atomic increment
+    let invoiceNumber;
+    let nextNumber;
 
-    const lastNumber = parseInt(lastInvoiceSetting?.value || '326');
-    const nextNumber = lastNumber + 1;
-    const invoiceNumber = `T${String(nextNumber).padStart(4, '0')}`;
+    await prisma.$transaction(async (tx) => {
+      // Get current invoice number with lock
+      const lastInvoiceSetting = await tx.systemSetting.findUnique({
+        where: { key: 'LAST_INVOICE_NUMBER' },
+      });
+
+      const lastNumber = parseInt(lastInvoiceSetting?.value || '326');
+      nextNumber = lastNumber + 1;
+      invoiceNumber = `T${String(nextNumber).padStart(4, '0')}`;
+
+      // Update the counter immediately to reserve this number
+      await tx.systemSetting.upsert({
+        where: { key: 'LAST_INVOICE_NUMBER' },
+        update: { value: String(nextNumber) },
+        create: {
+          key: 'LAST_INVOICE_NUMBER',
+          value: String(nextNumber),
+          description: 'Last invoice number issued',
+        },
+      });
+    });
 
 
     let subtotal = 0;
@@ -182,17 +200,6 @@ class InvoiceGenerationService {
             delivery: true,
           },
         },
-      },
-    });
-
-    // Update last invoice number (create if doesn't exist)
-    await prisma.systemSetting.upsert({
-      where: { key: 'LAST_INVOICE_NUMBER' },
-      update: { value: String(nextNumber) },
-      create: {
-        key: 'LAST_INVOICE_NUMBER',
-        value: String(nextNumber),
-        description: 'Last invoice number issued',
       },
     });
 
