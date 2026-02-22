@@ -6,47 +6,106 @@ const prisma = require('../config/database');
 
 exports.getSlotAvailability = async (req, res, next) => {
   try {
-    const { date } = req.query;
+    let { date } = req.query;
 
-    if (!date) {
-      return res.status(400).json({
-        success: false,
-        message: 'Date parameter is required (format: YYYY-MM-DD)'
+    // If date is provided, return single date slots
+    if (date) {
+      const targetDate = new Date(date);
+
+      const slots = await prisma.slotAvailability.findMany({
+        where: {
+          date: targetDate
+        },
+        orderBy: { timeSlot: 'asc' }
+      });
+
+      const availability = {
+        date,
+        slots: {
+          AM: {
+            available: false,
+            maxCapacity: 0,
+            booked: 0,
+            remaining: 0
+          },
+          PM: {
+            available: false,
+            maxCapacity: 0,
+            booked: 0,
+            remaining: 0
+          }
+        }
+      };
+
+      slots.forEach(slot => {
+        if (slot.timeSlot === 'AM' || slot.timeSlot === 'PM') {
+          const remaining = slot.maxCapacity - slot.booked;
+          availability.slots[slot.timeSlot] = {
+            available: !slot.isFull && remaining > 0,
+            maxCapacity: slot.maxCapacity,
+            booked: slot.booked,
+            remaining: remaining
+          };
+        }
+      });
+
+      return res.json({
+        success: true,
+        data: availability
       });
     }
 
-    const targetDate = new Date(date);
+    // If no date provided, return all upcoming slots (from today onwards)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayString = today.toISOString().split('T')[0];
 
     const slots = await prisma.slotAvailability.findMany({
       where: {
-        date: targetDate
+        date: {
+          gte: today
+        }
       },
-      orderBy: { timeSlot: 'asc' }
+      orderBy: [
+        { date: 'asc' },
+        { timeSlot: 'asc' }
+      ]
     });
 
-    const availability = {
-      date,
-      slots: {
-        AM: {
-          available: false,
-          maxCapacity: 0,
-          booked: 0,
-          remaining: 0
-        },
-        PM: {
-          available: false,
-          maxCapacity: 0,
-          booked: 0,
-          remaining: 0
-        }
-      }
-    };
-
+    // Group slots by date
+    const slotsByDate = {};
 
     slots.forEach(slot => {
+      const dateKey = slot.date.toISOString().split('T')[0];
+
+      // Skip dates before today
+      if (dateKey < todayString) {
+        return;
+      }
+
+      if (!slotsByDate[dateKey]) {
+        slotsByDate[dateKey] = {
+          date: dateKey,
+          slots: {
+            AM: {
+              available: false,
+              maxCapacity: 0,
+              booked: 0,
+              remaining: 0
+            },
+            PM: {
+              available: false,
+              maxCapacity: 0,
+              booked: 0,
+              remaining: 0
+            }
+          }
+        };
+      }
+
       if (slot.timeSlot === 'AM' || slot.timeSlot === 'PM') {
         const remaining = slot.maxCapacity - slot.booked;
-        availability.slots[slot.timeSlot] = {
+        slotsByDate[dateKey].slots[slot.timeSlot] = {
           available: !slot.isFull && remaining > 0,
           maxCapacity: slot.maxCapacity,
           booked: slot.booked,
@@ -55,9 +114,13 @@ exports.getSlotAvailability = async (req, res, next) => {
       }
     });
 
+    // Convert to array
+    const availabilityArray = Object.values(slotsByDate);
+
     res.json({
       success: true,
-      data: availability
+      count: availabilityArray.length,
+      data: availabilityArray
     });
   } catch (error) {
     next(error);

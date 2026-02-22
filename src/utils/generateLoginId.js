@@ -19,14 +19,14 @@ async function generateCustomerLoginId() {
   let nextNumber = 1;
 
   if (latestCustomer && latestCustomer.loginId) {
-    
+
     const match = latestCustomer.loginId.match(/\d+$/);
     if (match) {
       nextNumber = parseInt(match[0]) + 1;
     }
   }
 
- 
+
   const loginId = `C${String(nextNumber).padStart(4, '0')}`;
 
   const exists = await prisma.customerProfile.findUnique({
@@ -34,7 +34,7 @@ async function generateCustomerLoginId() {
   });
 
   if (exists) {
-    
+
     return generateCustomerLoginId();
   }
 

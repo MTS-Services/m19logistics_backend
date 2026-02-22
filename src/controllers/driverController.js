@@ -213,55 +213,127 @@ exports.getPerformanceMetrics = async (req, res) => {
 
 exports.getSlotCapacity = async (req, res) => {
   try {
-    const { date } = req.query;
+    let { date } = req.query;
 
-    if (!date) {
-      return res.status(400).json({
-        success: false,
-        message: 'Date parameter is required (format: YYYY-MM-DD)'
+    // If date is provided, return single date slots
+    if (date) {
+      const targetDate = new Date(date);
+
+      const slots = await prisma.slotAvailability.findMany({
+        where: {
+          date: targetDate
+        },
+        orderBy: { timeSlot: 'asc' }
+      });
+
+      // Count actual deliveries assigned to this driver for the date
+      const driverDeliveries = await prisma.delivery.findMany({
+        where: {
+          driverId: req.user.id,
+          deliveryDate: targetDate,
+          status: { in: ['ALLOCATED', 'DELIVERED'] }
+        },
+        select: {
+          timeSlot: true
+        }
+      });
+
+      const deliveryCountBySlot = driverDeliveries.reduce((acc, del) => {
+        acc[del.timeSlot] = (acc[del.timeSlot] || 0) + 1;
+        return acc;
+      }, {});
+
+      const capacity = slots.map(slot => ({
+        timeSlot: slot.timeSlot,
+        totalDeliveries: slot.booked,
+        maxCapacity: slot.maxCapacity,
+        isFull: slot.isFull,
+        myDeliveries: deliveryCountBySlot[slot.timeSlot] || 0
+      }));
+
+      return res.json({
+        success: true,
+        data: {
+          date,
+          slots: capacity
+        }
       });
     }
 
-    const targetDate = new Date(date);
+    // If no date provided, return all upcoming slots (from today onwards)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayString = today.toISOString().split('T')[0];
 
     const slots = await prisma.slotAvailability.findMany({
       where: {
-        date: targetDate
+        date: {
+          gte: today
+        }
       },
-      orderBy: { timeSlot: 'asc' }
+      orderBy: [
+        { date: 'asc' },
+        { timeSlot: 'asc' }
+      ]
     });
 
-    // Count actual deliveries assigned to this driver for the date
+    // Get all driver deliveries from today onwards
     const driverDeliveries = await prisma.delivery.findMany({
       where: {
         driverId: req.user.id,
-        deliveryDate: targetDate,
+        deliveryDate: {
+          gte: today
+        },
         status: { in: ['ALLOCATED', 'DELIVERED'] }
       },
       select: {
+        deliveryDate: true,
         timeSlot: true
       }
     });
 
-    const deliveryCountBySlot = driverDeliveries.reduce((acc, del) => {
-      acc[del.timeSlot] = (acc[del.timeSlot] || 0) + 1;
+    // Group deliveries by date and slot
+    const deliveryCountByDateSlot = driverDeliveries.reduce((acc, del) => {
+      const dateKey = del.deliveryDate.toISOString().split('T')[0];
+      if (!acc[dateKey]) acc[dateKey] = {};
+      acc[dateKey][del.timeSlot] = (acc[dateKey][del.timeSlot] || 0) + 1;
       return acc;
     }, {});
 
-    const capacity = slots.map(slot => ({
-      timeSlot: slot.timeSlot,
-      totalDeliveries: slot.booked,
-      maxCapacity: slot.maxCapacity,
-      isFull: slot.isFull,
-      myDeliveries: deliveryCountBySlot[slot.timeSlot] || 0
-    }));
+    // Group slots by date
+    const slotsByDate = {};
+
+    slots.forEach(slot => {
+      const dateKey = slot.date.toISOString().split('T')[0];
+
+      // Skip dates before today
+      if (dateKey < todayString) {
+        return;
+      }
+
+      if (!slotsByDate[dateKey]) {
+        slotsByDate[dateKey] = {
+          date: dateKey,
+          slots: []
+        };
+      }
+
+      slotsByDate[dateKey].slots.push({
+        timeSlot: slot.timeSlot,
+        totalDeliveries: slot.booked,
+        maxCapacity: slot.maxCapacity,
+        isFull: slot.isFull,
+        myDeliveries: (deliveryCountByDateSlot[dateKey] && deliveryCountByDateSlot[dateKey][slot.timeSlot]) || 0
+      });
+    });
+
+    // Convert to array
+    const slotsArray = Object.values(slotsByDate);
 
     res.json({
       success: true,
-      data: {
-        date,
-        slots: capacity
-      }
+      count: slotsArray.length,
+      data: slotsArray
     });
   } catch (error) {
     console.error('Get slot capacity error:', error);
