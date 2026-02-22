@@ -799,6 +799,19 @@ exports.updateInvoice = async (req, res, next) => {
         message: 'Invoice not found',
       });
     }
+    if (error.message.includes('Cannot edit a paid invoice')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot edit a paid invoice. Contact finance team for adjustments.',
+        hint: 'To override this protection, include "allowEditPaid: true" in your request body.',
+      });
+    }
+    if (error.message.includes('Invoice number') && error.message.includes('already exists')) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+      });
+    }
     next(error);
   }
 };

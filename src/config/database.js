@@ -1,18 +1,18 @@
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' 
-    ? ['warn', 'error'] 
+  log: process.env.NODE_ENV === 'development'
+    ? ['warn', 'error']
     : ['error'],
 });
 
 // Handle Prisma connection errors
 prisma.$connect()
   .then(() => {
-    console.log('✅ Database connected successfully');
+    console.log(' Database connected successfully');
   })
   .catch((error) => {
-    console.error('❌ Database connection failed:', error);
+    console.error(' Database connection failed:', error);
     process.exit(1);
   });
 

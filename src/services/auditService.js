@@ -1,12 +1,12 @@
 const prisma = require('../config/database');
 
 class AuditService {
- 
+
   async getUserAuditLogs(userId, filters = {}) {
     const { startDate, endDate, action, deliveryId, limit = 5000 } = filters;
-    
+
     const where = { userId };
-    
+
     if (startDate) {
       where.createdAt = { ...where.createdAt, gte: new Date(startDate) };
     }
@@ -19,7 +19,7 @@ class AuditService {
     if (deliveryId) {
       where.deliveryId = parseInt(deliveryId);
     }
-    
+
     return prisma.auditLog.findMany({
       where,
       include: {
@@ -37,12 +37,12 @@ class AuditService {
     });
   }
 
-  
+
   async getAllAuditLogs(filters = {}) {
-    const { userId, startDate, endDate, action, deliveryId, limit = 6000 } = filters;
-    
+    const { userId, startDate, endDate, action, deliveryId, status, limit = 6000 } = filters;
+
     const where = {};
-    
+
     if (userId) {
       where.userId = parseInt(userId);
     }
@@ -55,10 +55,15 @@ class AuditService {
     if (action) {
       where.action = { contains: action, mode: 'insensitive' };
     }
-    if (deliveryId) { 
+    if (deliveryId) {
       where.deliveryId = parseInt(deliveryId);
     }
-    
+    if (status) {
+      where.delivery = {
+        status: status
+      };
+    }
+
     return prisma.auditLog.findMany({
       where,
       include: {
@@ -84,15 +89,15 @@ class AuditService {
     });
   }
 
-  
+
   async getAuditLogById(id, userId = null) {
     const where = { id };
-    
+
     // If userId provided (customer), restrict to their logs only
     if (userId) {
       where.userId = userId;
     }
-    
+
     return prisma.auditLog.findUnique({
       where,
       include: {
