@@ -1070,24 +1070,29 @@ class AdminService {
     });
 
     if (existing) {
-      // Update existing slot
+      // Update existing slot - admin override
       const updatedMaxCapacity = maxCapacity !== undefined ? maxCapacity : existing.maxCapacity;
+
+
+      if (updatedMaxCapacity < existing.booked) {
+        throw new Error(`Cannot set capacity to ${updatedMaxCapacity}. Current bookings: ${existing.booked}. Cancel bookings first or set higher capacity.`);
+      }
 
       return prisma.slotAvailability.update({
         where: { id: existing.id },
         data: {
           maxCapacity: updatedMaxCapacity,
-
           isFull: existing.booked >= updatedMaxCapacity
         },
       });
     }
 
+    // Create new slot with admin-specified or default capacity of 10
     return prisma.slotAvailability.create({
       data: {
         date: slotDate,
         timeSlot,
-        maxCapacity: maxCapacity || 10,  // Default to 10 if not provided
+        maxCapacity: maxCapacity !== undefined ? maxCapacity : 10,
         booked: 0,
         isFull: false,
       },

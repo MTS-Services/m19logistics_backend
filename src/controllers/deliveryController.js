@@ -52,17 +52,34 @@ class DeliveryController {
       res.status(201).json({
         success: true,
         message: 'Delivery request created successfully',
+        confirmed: true,
+        bookingConfirmation: {
+          bookingId: delivery.id,
+          spoNumber: delivery.spoNumber,
+          deliveryDate: delivery.deliveryDate,
+          timeSlot: delivery.timeSlot,
+          status: delivery.status,
+          customerName: delivery.customerName,
+          deliveryAddress: delivery.deliveryAddress,
+          totalPrice: delivery.totalPrice
+        },
         data: delivery,
       });
     } catch (error) {
       console.error('Create delivery error:', error);
 
-      if (error.message.includes('slot is full') ||
+      // Handle slot-related errors with clear messaging
+      if (error.message.includes('FULL') ||
+        error.message.includes('slot is full') ||
         error.message.includes('slot availability') ||
         error.message.includes('Please choose another') ||
-        error.message.includes('Please contact admin')) {
+        error.message.includes('Please contact admin') ||
+        error.message.includes('No remaining capacity') ||
+        error.message.includes('Maximum capacity')) {
         return res.status(400).json({
           success: false,
+          confirmed: false,
+          slotUnavailable: true,
           message: error.message,
         });
       }

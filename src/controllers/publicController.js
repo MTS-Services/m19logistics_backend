@@ -40,11 +40,15 @@ exports.getSlotAvailability = async (req, res, next) => {
       slots.forEach(slot => {
         if (slot.timeSlot === 'AM' || slot.timeSlot === 'PM') {
           const remaining = slot.maxCapacity - slot.booked;
+          const isAvailable = !slot.isFull && remaining > 0 && slot.booked < slot.maxCapacity;
+
           availability.slots[slot.timeSlot] = {
-            available: !slot.isFull && remaining > 0,
+            available: isAvailable,
             maxCapacity: slot.maxCapacity,
             booked: slot.booked,
-            remaining: remaining
+            remaining: remaining,
+            isFull: slot.isFull,
+            canBook: isAvailable  // Explicit flag for frontend
           };
         }
       });

@@ -9,25 +9,46 @@ class DeliveryService {
 
     // STEP 1: Validate slot availability (skip for SAME_DAY)
     if (timeSlot !== 'SAME_DAY') {
-      const slot = await this.checkSlotAvailability(deliveryDate, timeSlot);
+
+      let slot = await this.checkSlotAvailability(deliveryDate, timeSlot);
 
       if (!slot) {
-        throw new Error(`No slot availability configured for ${timeSlot} on ${new Date(deliveryDate).toLocaleDateString()}. Please contact admin.`);
+        // Automatically create slot with default capacity of 10
+        slot = await prisma.slotAvailability.create({
+          data: {
+            date: new Date(deliveryDate),
+            timeSlot,
+            maxCapacity: 10,  // Default capacity
+            booked: 0,
+            isFull: false,
+          },
+        });
+        console.log(`✓ Auto-created slot: ${timeSlot} on ${new Date(deliveryDate).toLocaleDateString()} with capacity 10`);
       }
 
-      if (slot.isFull || slot.booked >= slot.maxCapacity) {
-        throw new Error(`${timeSlot} slot is full for ${new Date(deliveryDate).toLocaleDateString()}. Please choose another time slot or date.`);
+
+      if (slot.isFull) {
+        throw new Error(`The ${timeSlot} slot is FULL for ${new Date(deliveryDate).toLocaleDateString()}. Maximum capacity (${slot.maxCapacity}) reached. Please choose another time slot or date.`);
+      }
+
+      if (slot.booked >= slot.maxCapacity) {
+        throw new Error(`The ${timeSlot} slot is FULL for ${new Date(deliveryDate).toLocaleDateString()}. ${slot.booked}/${slot.maxCapacity} bookings made. Please choose another time slot or date.`);
+      }
+
+
+      const remaining = slot.maxCapacity - slot.booked;
+      if (remaining <= 0) {
+        throw new Error(`No remaining capacity for ${timeSlot} slot on ${new Date(deliveryDate).toLocaleDateString()}. Please choose another time slot or date.`);
       }
     }
 
-    // STEP 2: Calculate pricing
+
     const pricing = await this.calculateDeliveryPrice(
       customerId,
       deliveryData.weight,
       deliveryData.deliveryAddress
     );
 
-    // STEP 3: Create delivery
     const delivery = await prisma.delivery.create({
       data: {
         customerId,
@@ -467,7 +488,12 @@ class DeliveryService {
     const slot = await this.checkSlotAvailability(date, timeSlot);
 
     if (!slot) {
-      return;
+      throw new Error('Slot not found - cannot increment booking');
+    }
+
+    // SAFETY CHECK: Prevent overbooking
+    if (slot.booked >= slot.maxCapacity) {
+      throw new Error(`Cannot increment - slot already at maximum capacity (${slot.maxCapacity})`);
     }
 
     const newBookedCount = slot.booked + 1;
@@ -479,6 +505,8 @@ class DeliveryService {
         isFull: newBookedCount >= slot.maxCapacity
       }
     });
+
+    console.log(`✓ Slot booking incremented: ${timeSlot} on ${date} - ${newBookedCount}/${slot.maxCapacity}`);
   }
 
   async decrementSlotBooking(date, timeSlot) {
