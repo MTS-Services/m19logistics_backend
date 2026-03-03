@@ -1087,12 +1087,12 @@ class AdminService {
       });
     }
 
-    // Create new slot with admin-specified or default capacity of 10
+    // Create new slot with admin-specified or default capacity of 5 (5 for AM, 5 for PM)
     return prisma.slotAvailability.create({
       data: {
         date: slotDate,
         timeSlot,
-        maxCapacity: maxCapacity !== undefined ? maxCapacity : 10,
+        maxCapacity: maxCapacity !== undefined ? maxCapacity : 5,  // Default to 5
         booked: 0,
         isFull: false,
       },

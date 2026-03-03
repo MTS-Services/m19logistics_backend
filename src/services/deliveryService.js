@@ -13,17 +13,18 @@ class DeliveryService {
       let slot = await this.checkSlotAvailability(deliveryDate, timeSlot);
 
       if (!slot) {
-        // Automatically create slot with default capacity of 10
+        // Automatically create slot with default capacity of 5 (5 for AM, 5 for PM)
+        const defaultCapacity = 5;
         slot = await prisma.slotAvailability.create({
           data: {
             date: new Date(deliveryDate),
             timeSlot,
-            maxCapacity: 10,  // Default capacity
+            maxCapacity: defaultCapacity,
             booked: 0,
             isFull: false,
           },
         });
-        console.log(`✓ Auto-created slot: ${timeSlot} on ${new Date(deliveryDate).toLocaleDateString()} with capacity 10`);
+        console.log(`✓ Auto-created slot: ${timeSlot} on ${new Date(deliveryDate).toLocaleDateString()} with capacity ${defaultCapacity}`);
       }
 
 
