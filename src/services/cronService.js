@@ -278,7 +278,7 @@ class CronService {
           const driver = (driverFeedback[0] && driverFeedback[0].driver) || (driverDeliveries[0] && driverDeliveries[0].driver);
           if (!driver) continue;
 
-          // Respect driver's notification preference; default true
+
           const prefersEmail = driver.driverProfile ? driver.driverProfile.enableEmailNotifications !== false : true;
           if (!driver.email) {
             console.log(` Skipping driver ${driver.fullName || id} - no email on record`);

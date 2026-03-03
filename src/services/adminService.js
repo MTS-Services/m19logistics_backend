@@ -1140,8 +1140,6 @@ class AdminService {
     });
   }
 
-  // ANALYTICS DASHBOARD 
-
   async getDashboard() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
