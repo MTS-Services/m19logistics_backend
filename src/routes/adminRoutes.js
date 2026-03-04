@@ -95,7 +95,7 @@ router.put(
   '/deliveries/:id',
   [
     body('deliveryDate').optional().isISO8601().withMessage('Valid delivery date is required'),
-    body('timeSlot').optional().isIn(['MORNING', 'AFTERNOON', 'SAME_DAY']).withMessage('Invalid time slot'),
+    body('timeSlot').optional().isIn(['AM', 'PM', 'SAME_DAY']).withMessage('Invalid time slot'),
     body('weight').optional().isFloat({ min: 0 }).withMessage('Weight must be a positive number'),
     body('deliveryAddress').optional().notEmpty().withMessage('Delivery address is required'),
     body('customerName').optional().notEmpty().withMessage('Customer name is required'),

@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const bcrypt = require('bcryptjs');
 const emailService = require('./emailService');
+const deliveryService = require('./deliveryService');
 
 class AdminService {
   // ==================== USER MANAGEMENT ====================
@@ -358,9 +359,28 @@ class AdminService {
       throw new Error('Cannot edit delivery in current status');
     }
 
+    // Recalculate pricing if weight or address changes
+    let pricing = {};
+    if (updateData.weight || updateData.deliveryAddress) {
+      try {
+        pricing = await deliveryService.calculateDeliveryPrice(
+          delivery.customerId,
+          updateData.weight ? parseFloat(updateData.weight) : delivery.weight,
+          updateData.deliveryAddress || delivery.deliveryAddress
+        );
+        console.log(`✓ Pricing recalculated for delivery #${id}: Total ${pricing.totalPrice}`);
+      } catch (pricingError) {
+        console.error('Failed to recalculate pricing:', pricingError);
+        // Continue with update even if pricing fails
+      }
+    }
+
     return prisma.delivery.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        ...pricing,  // Merge recalculated pricing
+      },
       include: {
         customer: {
           select: {
