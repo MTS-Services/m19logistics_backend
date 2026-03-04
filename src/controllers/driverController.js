@@ -113,6 +113,7 @@ exports.respondToDelivery = async (req, res) => {
 
       res.json({
         success: true,
+        isAccepted: true,
         message: 'Delivery accepted successfully. You can now proceed with the delivery.',
         data: delivery,
       });
@@ -129,6 +130,7 @@ exports.respondToDelivery = async (req, res) => {
 
       res.json({
         success: true,
+        isAccepted: false,
         message: 'Delivery rejected. Admin will be notified to reassign.',
         data: delivery,
       });
