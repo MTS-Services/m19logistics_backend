@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const config = require('../config');
 
 class AuthService {
-  
+
   async generateToken(userId) {
     const payload = { userId };
     const token = jwt.sign(payload, config.jwt.secret, {
@@ -13,12 +13,10 @@ class AuthService {
     return token;
   }
 
-
   async hashPassword(password) {
     const salt = await bcrypt.genSalt(10);
     return bcrypt.hash(password, salt);
   }
-
 
   async comparePassword(password, hashedPassword) {
     return bcrypt.compare(password, hashedPassword);

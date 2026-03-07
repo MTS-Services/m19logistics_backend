@@ -1,9 +1,6 @@
 const driverService = require('../services/driverService');
 const prisma = require('../config/database');
 
-/**
- * Get driver dashboard with stats and today's schedule
- */
 exports.getDashboard = async (req, res) => {
   try {
     const dashboard = await driverService.getDriverDashboard(req.user.id);
@@ -98,7 +95,6 @@ exports.respondToDelivery = async (req, res) => {
     const deliveryId = parseInt(req.params.id);
     const driverId = req.user.id;
 
-    // Validate action
     if (!action || !['accept', 'reject'].includes(action)) {
       return res.status(400).json({
         success: false,
@@ -217,7 +213,6 @@ exports.getSlotCapacity = async (req, res) => {
   try {
     let { date } = req.query;
 
-    // If date is provided, return single date slots
     if (date) {
       const targetDate = new Date(date);
 
@@ -228,7 +223,6 @@ exports.getSlotCapacity = async (req, res) => {
         orderBy: { timeSlot: 'asc' }
       });
 
-      // Count actual deliveries assigned to this driver for the date
       const driverDeliveries = await prisma.delivery.findMany({
         where: {
           driverId: req.user.id,
@@ -262,7 +256,7 @@ exports.getSlotCapacity = async (req, res) => {
       });
     }
 
-    // If no date provided, return all upcoming slots (from today onwards)
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayString = today.toISOString().split('T')[0];
@@ -279,7 +273,7 @@ exports.getSlotCapacity = async (req, res) => {
       ]
     });
 
-    // Get all driver deliveries from today onwards
+
     const driverDeliveries = await prisma.delivery.findMany({
       where: {
         driverId: req.user.id,
@@ -294,7 +288,7 @@ exports.getSlotCapacity = async (req, res) => {
       }
     });
 
-    // Group deliveries by date and slot
+
     const deliveryCountByDateSlot = driverDeliveries.reduce((acc, del) => {
       const dateKey = del.deliveryDate.toISOString().split('T')[0];
       if (!acc[dateKey]) acc[dateKey] = {};
@@ -302,13 +296,13 @@ exports.getSlotCapacity = async (req, res) => {
       return acc;
     }, {});
 
-    // Group slots by date
+
     const slotsByDate = {};
 
     slots.forEach(slot => {
       const dateKey = slot.date.toISOString().split('T')[0];
 
-      // Skip dates before today
+
       if (dateKey < todayString) {
         return;
       }
@@ -329,7 +323,7 @@ exports.getSlotCapacity = async (req, res) => {
       });
     });
 
-    // Convert to array
+
     const slotsArray = Object.values(slotsByDate);
 
     res.json({

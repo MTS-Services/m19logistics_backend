@@ -7,7 +7,7 @@ const config = require('../config');
 
 class CronService {
   constructor() {
-    this.invoiceGenerationJob = null; // Store reference to dynamic job
+    this.invoiceGenerationJob = null;
   }
 
   async initializeJobs() {
@@ -23,7 +23,7 @@ class CronService {
       await this.sendWeeklyInvoiceReminder();
     });
 
-    // Initialize invoice generation job from system settings
+
     await this.initializeInvoiceGenerationJob();
 
     console.log('✅ Cron jobs initialized:');
@@ -31,16 +31,14 @@ class CronService {
     console.log('   - Weekly invoice reminder: Every Sunday 11:00 PM');
   }
 
-  /**
-   * Initialize or update the invoice generation cron job based on system settings
-   */
+
   async initializeInvoiceGenerationJob() {
     try {
-      // Get system configuration
+
       const systemConfig = await prisma.systemConfiguration.findFirst();
 
       if (!systemConfig || !systemConfig.autoInvoicing) {
-        console.log('ℹ️  Auto invoicing is disabled');
+        console.log('  Auto invoicing is disabled');
         // Stop existing job if any
         if (this.invoiceGenerationJob) {
           this.invoiceGenerationJob.stop();
@@ -53,15 +51,15 @@ class CronService {
       const day = systemConfig.invoiceGenerationDay || 'Sunday';
       const time = systemConfig.invoiceGenerationTime || '12:00 AM';
 
-      // Convert day and time to cron format
+
       const cronExpression = this.convertToCronExpression(day, time);
 
-      // Stop existing job if any
+
       if (this.invoiceGenerationJob) {
         this.invoiceGenerationJob.stop();
       }
 
-      // Create new job
+
       this.invoiceGenerationJob = cron.schedule(cronExpression, async () => {
         console.log(`🕐 Running automatic invoice generation (${day} at ${time})...`);
         await this.generateWeeklyInvoices();
@@ -87,7 +85,7 @@ class CronService {
 
     const dayNumber = dayMap[day.toLowerCase()];
 
-    // Parse time (e.g., "12:00 AM" or "6:30 PM")
+
     const timeRegex = /(\d{1,2}):(\d{2})\s*(AM|PM)/i;
     const match = time.match(timeRegex);
 
@@ -100,7 +98,7 @@ class CronService {
     const minutes = parseInt(match[2]);
     const period = match[3].toUpperCase();
 
-    // Convert to 24-hour format
+
     if (period === 'AM') {
       if (hours === 12) hours = 0;
     } else if (period === 'PM') {
@@ -155,7 +153,7 @@ class CronService {
 
   async sendWeeklyDriverFeedbackSummary() {
     try {
-      // Calculate date range for last 7 days
+
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
@@ -292,7 +290,7 @@ class CronService {
           try {
             await emailService.sendDriverWeeklyFeedbackEmail(driver, driverFeedback, driverDeliveries, startDate, endDate);
 
-            // Create audit log per driver email
+
             await auditService.createAuditLog({
               action: 'WEEKLY_DRIVER_FEEDBACK_EMAIL_DRIVER',
               userId: driver.id,
@@ -321,7 +319,7 @@ class CronService {
 
   async sendWeeklyInvoiceReminder() {
     try {
-      // Get all unpaid invoices
+
       const unpaidInvoices = await prisma.invoice.findMany({
         where: {
           isPaid: false,

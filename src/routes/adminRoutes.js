@@ -6,8 +6,6 @@ const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
 const validate = require('../middleware/validate');
 
-// All admin routes require authentication and ADMIN or MANAGER role
-
 router.use(authenticate);
 router.use(authorize('ADMIN', 'MANAGER'));
 
@@ -43,7 +41,6 @@ router.delete('/users/:id', authorize('ADMIN'), adminController.deleteUser);
 
 router.post('/users/:id/toggle-status', authorize('ADMIN'), adminController.toggleUserStatus);
 
-// DRIVER MANAGEMENT (ADMIN & MANAGER)
 
 router.get('/drivers', adminController.getAllDrivers);
 
@@ -83,9 +80,6 @@ router.put(
 );
 
 router.delete('/drivers/:id', adminController.deleteDriver);
-
-//DELIVERY MANAGEMENT 
-
 
 router.get('/deliveries', adminController.getAllDeliveries);
 
@@ -230,8 +224,6 @@ router.post(
   adminController.addExtraCharge
 );
 
-// INVOICE EDITING 
-
 router.get('/invoices/:id', adminController.getInvoiceById);
 
 router.put(
@@ -299,8 +291,6 @@ router.get('/analytics/drivers', adminController.getDriverPerformance);
 
 router.get('/analytics/customers', adminController.getCustomerAnalytics);
 
-//  CONTACT MANAGEMENT
-
 router.get('/contacts', adminController.getAllContacts);
 
 router.get('/contacts/:id', adminController.getContactById);
@@ -308,8 +298,6 @@ router.get('/contacts/:id', adminController.getContactById);
 router.post('/contacts/:id/mark-read', adminController.markContactAsRead);
 
 router.delete('/contacts/:id', authorize('ADMIN'), adminController.deleteContact);
-
-//  ENQUIRY MANAGEMENT 
 
 router.get('/enquiries', adminController.getAllEnquiries);
 

@@ -4,14 +4,9 @@ const { body } = require('express-validator');
 const jobApplicationController = require('../controllers/jobApplicationController');
 const uploadMiddleware = require('../middleware/upload');
 
-/**
- * @route   POST /api/jobs/apply
- * @desc    Submit a job application (Public - no auth required)
- * @access  Public
- */
 router.post(
     '/apply',
-    uploadMiddleware.cv, // Handle CV file upload
+    uploadMiddleware.cv,
     [
         body('fullName')
             .trim()

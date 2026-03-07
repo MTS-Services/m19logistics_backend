@@ -124,7 +124,7 @@ class DeliveryController {
       const { id } = req.params;
       const deliveryId = parseInt(id);
 
-      // Validate delivery ID
+
       if (isNaN(deliveryId)) {
         return res.status(400).json({
           success: false,
@@ -191,7 +191,7 @@ class DeliveryController {
         updateData
       );
 
-      // Create audit log
+
       await prisma.auditLog.create({
         data: {
           userId: customerId,
@@ -235,7 +235,7 @@ class DeliveryController {
       const { id } = req.params;
       const deliveryId = parseInt(id);
 
-      // Validate delivery ID
+
       if (isNaN(deliveryId)) {
         return res.status(400).json({
           success: false,
@@ -252,7 +252,7 @@ class DeliveryController {
         reason
       );
 
-      // Create audit log
+
       await prisma.auditLog.create({
         data: {
           userId: customerId,

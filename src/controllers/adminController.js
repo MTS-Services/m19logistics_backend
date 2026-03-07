@@ -452,8 +452,6 @@ exports.getDeliveryExtraCharges = async (req, res, next) => {
   }
 };
 
-// ==================== PRICING TIER MANAGEMENT ====================
-
 exports.getAllPricingTiers = async (req, res, next) => {
   try {
     const tiers = await adminService.getAllPricingTiers();
@@ -726,7 +724,6 @@ exports.addExtraCharge = async (req, res, next) => {
   }
 };
 
-// ==================== INVOICE EDITING ====================
 
 exports.getInvoiceById = async (req, res, next) => {
   try {
@@ -815,8 +812,6 @@ exports.updateInvoice = async (req, res, next) => {
     next(error);
   }
 };
-
-// ==================== SLOT AVAILABILITY MANAGEMENT ====================
 
 exports.getSlotAvailability = async (req, res, next) => {
   try {
@@ -910,7 +905,6 @@ exports.updateSlotCapacity = async (req, res, next) => {
   }
 };
 
-//  DASHBOARD 
 
 exports.getDashboard = async (req, res, next) => {
   try {
@@ -925,7 +919,6 @@ exports.getDashboard = async (req, res, next) => {
   }
 };
 
-// ANALYTICS DASHBOARD 
 
 exports.getAnalytics = async (req, res, next) => {
   try {
@@ -940,7 +933,6 @@ exports.getAnalytics = async (req, res, next) => {
   }
 };
 
-//  CONTACT MANAGEMENT 
 
 exports.getAllContacts = async (req, res, next) => {
   try {
@@ -1002,8 +994,6 @@ exports.deleteContact = async (req, res, next) => {
     next(error);
   }
 };
-
-//  ENQUIRY MANAGEMENT 
 
 exports.getAllEnquiries = async (req, res, next) => {
   try {

@@ -1,12 +1,7 @@
 const invoiceService = require('../services/invoiceService');
 
 class InvoiceController {
-  /**
-   * Get all invoices for customer
-   * GET /api/invoices
-   * CUSTOMER: Returns only their invoices
-   * ADMIN/MANAGER: Returns all invoices or filtered by customerId
-   */
+
   async getMyInvoices(req, res) {
     try {
       // For CUSTOMER role, use their own ID
@@ -60,12 +55,6 @@ class InvoiceController {
     }
   }
 
-  /**
-   * Get invoice by ID
-   * GET /api/invoices/:id
-   * CUSTOMER: Can only view their own invoices
-   * ADMIN/MANAGER: Can view any invoice
-   */
   async getInvoiceById(req, res) {
     try {
       const { id } = req.params;
@@ -108,12 +97,6 @@ class InvoiceController {
     }
   }
 
-  /**
-   * Get invoice by number
-   * GET /api/invoices/number/:invoiceNumber
-   * CUSTOMER: Can only view their own invoices
-   * ADMIN/MANAGER: Can view any invoice
-   */
   async getInvoiceByNumber(req, res) {
     try {
       const { invoiceNumber } = req.params;

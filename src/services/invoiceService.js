@@ -8,8 +8,6 @@ class InvoiceService {
 
     const where = {};
 
-    // If customerId is provided, filter by customer
-    // If null (Admin/Manager viewing all), don't filter by customer
     if (customerId) {
       where.customerId = customerId;
     }

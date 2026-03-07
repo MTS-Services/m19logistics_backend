@@ -29,7 +29,7 @@ router.post(
     validate,
   ],
   deliveryController.createDelivery
-); 
+);
 
 router.get(
   '/',
@@ -69,8 +69,6 @@ router.post(
 );
 
 router.delete('/:id', authorize('CUSTOMER'), deliveryController.deleteDelivery);
-
-// AUDIT LOGS (CUSTOMER) 
 
 router.get('/audit-logs/me', authorize('CUSTOMER'), auditController.getMyAuditLogs);
 

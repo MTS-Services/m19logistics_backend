@@ -93,7 +93,6 @@ class AuditService {
   async getAuditLogById(id, userId = null) {
     const where = { id };
 
-    // If userId provided (customer), restrict to their logs only
     if (userId) {
       where.userId = userId;
     }
