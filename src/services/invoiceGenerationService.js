@@ -7,7 +7,7 @@ class InvoiceGenerationService {
     const start = new Date(weekStartDate);
     const end = new Date(weekEndDate);
 
-    // Get all customers who have delivered deliveries in the date range
+    // Get all customers who have delivered deliver
     const customersWithDeliveries = await prisma.delivery.groupBy({
       by: ['customerId'],
       where: {
