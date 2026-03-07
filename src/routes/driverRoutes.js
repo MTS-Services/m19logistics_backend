@@ -3,11 +3,28 @@ const router = express.Router();
 const { body, param } = require('express-validator');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
+const validate = require('../middleware/validate');
 const uploadMiddleware = require('../middleware/upload');
 const driverController = require('../controllers/driverController');
 
-// All routes require DRIVER role
+// All routes require authentication
 router.use(authenticate);
+
+// ==================== AVAILABILITY VIEW ROUTES (DRIVER, ADMIN, MANAGER) ====================
+// These routes allow ADMIN and MANAGER to view driver availability
+
+router.get('/availability',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  driverController.getMyAvailability
+);
+
+router.get('/availability/upcoming',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  driverController.getMyUpcomingAvailability
+);
+
+// ==================== DRIVER-ONLY ROUTES ====================
+// All routes below require DRIVER role only
 router.use(authorize('DRIVER'));
 
 router.get('/dashboard', driverController.getDashboard);
@@ -16,7 +33,7 @@ router.get('/dashboard', driverController.getDashboard);
 router.get('/deliveries', driverController.getAssignedDeliveries);
 
 
-router.get('/deliveries/:id', 
+router.get('/deliveries/:id',
   param('id').isInt().withMessage('Delivery ID must be an integer'),
   driverController.getDeliveryDetails
 );
@@ -77,5 +94,54 @@ router.post('/deliveries/:id/feedback',
 router.get('/performance', driverController.getPerformanceMetrics);
 
 router.get('/slots', driverController.getSlotCapacity);
+
+
+// ==================== DRIVER AVAILABILITY MANAGEMENT (DRIVER ONLY) ====================
+
+router.post(
+  '/availability',
+  [
+    body('date').isISO8601().withMessage('Valid date is required (YYYY-MM-DD)'),
+    body('timeSlot').isIn(['AM', 'PM', 'SAME_DAY']).withMessage('Time slot must be AM, PM, or SAME_DAY'),
+    body('isAvailable').optional().isBoolean().withMessage('isAvailable must be a boolean'),
+    body('notes').optional().isString().withMessage('Notes must be a string'),
+    validate,
+  ],
+  driverController.setMyAvailability
+);
+
+router.post(
+  '/availability/bulk',
+  [
+    body('startDate').isISO8601().withMessage('Valid start date is required (YYYY-MM-DD)'),
+    body('endDate').isISO8601().withMessage('Valid end date is required (YYYY-MM-DD)'),
+    body('timeSlots').isArray({ min: 1 }).withMessage('At least one time slot is required'),
+    body('timeSlots.*').isIn(['AM', 'PM', 'SAME_DAY']).withMessage('Each time slot must be AM, PM, or SAME_DAY'),
+    body('isAvailable').optional().isBoolean().withMessage('isAvailable must be a boolean'),
+    body('notes').optional().isString().withMessage('Notes must be a string'),
+    validate,
+  ],
+  driverController.bulkSetMyAvailability
+);
+
+router.put(
+  '/availability/:id',
+  [
+    param('id').isInt().withMessage('Availability ID must be an integer'),
+    body('isAvailable').optional().isBoolean().withMessage('isAvailable must be a boolean'),
+    body('notes').optional().isString().withMessage('Notes must be a string'),
+    validate,
+  ],
+  driverController.updateMyAvailability
+);
+
+router.delete(
+  '/availability/:id',
+  [
+    param('id').isInt().withMessage('Availability ID must be an integer'),
+    validate,
+  ],
+  driverController.deleteMyAvailability
+);
 
 module.exports = router;

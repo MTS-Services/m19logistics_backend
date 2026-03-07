@@ -52,11 +52,12 @@ model User {
   customerProfile     CustomerProfile?
   driverProfile       DriverProfile?
   managerProfile      ManagerProfile?
-  deliveriesRequested Delivery[]       @relation("CustomerDeliveries")
-  deliveriesAssigned  Delivery[]       @relation("DriverDeliveries")
+  deliveriesRequested Delivery[]           @relation("CustomerDeliveries")
+  deliveriesAssigned  Delivery[]           @relation("DriverDeliveries")
   invoices            Invoice[]
   auditLogs           AuditLog[]
   driverFeedback      DriverFeedback[]
+  driverAvailability  DriverAvailability[] @relation("DriverAvailability")
 
   @@index([email])
   @@index([username])
@@ -316,7 +317,7 @@ model SlotAvailability {
   date     DateTime @db.Date
   timeSlot TimeSlot
 
-  maxCapacity Int     @default(5)
+  maxCapacity Int     @default(10)
   booked      Int     @default(0)
   isFull      Boolean @default(false)
 
@@ -324,6 +325,25 @@ model SlotAvailability {
 
   @@unique([date, timeSlot])
   @@index([date])
+}
+
+model DriverAvailability {
+  id          Int      @id @default(autoincrement())
+  driverId    Int
+  date        DateTime @db.Date
+  timeSlot    TimeSlot
+  isAvailable Boolean  @default(true)
+  notes       String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  driver User @relation("DriverAvailability", fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, date, timeSlot])
+  @@index([driverId])
+  @@index([date])
+  @@index([driverId, date])
 }
 
 model SystemSetting {

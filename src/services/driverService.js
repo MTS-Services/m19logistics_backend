@@ -507,6 +507,231 @@ class DriverService {
       feedbackCount: deliveries.filter(d => d.driverFeedback).length,
     };
   }
+
+
+  // ==================== DRIVER AVAILABILITY MANAGEMENT ====================
+
+  async getDriverAvailability(driverId, filters = {}) {
+    const { startDate, endDate, date, timeSlot } = filters;
+
+    const where = { driverId };
+
+    // Date filtering
+    if (date) {
+      where.date = new Date(date);
+    } else if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate);
+    }
+
+    // Time slot filtering
+    if (timeSlot) {
+      where.timeSlot = timeSlot;
+    }
+
+    return prisma.driverAvailability.findMany({
+      where,
+      orderBy: [
+        { date: 'asc' },
+        { timeSlot: 'asc' }
+      ],
+    });
+  }
+
+
+  async setDriverAvailability(driverId, availabilityData) {
+    const { date, timeSlot, isAvailable, notes } = availabilityData;
+
+    // Validation
+    if (!date || !timeSlot) {
+      throw new Error('Date and timeSlot are required');
+    }
+
+    if (!['AM', 'PM', 'SAME_DAY'].includes(timeSlot)) {
+      throw new Error('Invalid timeSlot. Must be AM, PM, or SAME_DAY');
+    }
+
+    const availabilityDate = new Date(date);
+
+    // Check if past date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (availabilityDate < today) {
+      throw new Error('Cannot set availability for past dates');
+    }
+
+    // Check if entry already exists
+    const existing = await prisma.driverAvailability.findUnique({
+      where: {
+        driverId_date_timeSlot: {
+          driverId,
+          date: availabilityDate,
+          timeSlot,
+        }
+      }
+    });
+
+    if (existing) {
+      // Update existing availability
+      return prisma.driverAvailability.update({
+        where: { id: existing.id },
+        data: {
+          isAvailable: isAvailable !== undefined ? isAvailable : existing.isAvailable,
+          notes: notes !== undefined ? notes : existing.notes,
+        },
+      });
+    }
+
+    // Create new availability entry
+    return prisma.driverAvailability.create({
+      data: {
+        driverId,
+        date: availabilityDate,
+        timeSlot,
+        isAvailable: isAvailable !== undefined ? isAvailable : true,
+        notes: notes || null,
+      },
+    });
+  }
+
+
+  async updateDriverAvailability(availabilityId, driverId, updateData) {
+    // Verify the availability belongs to this driver
+    const availability = await prisma.driverAvailability.findUnique({
+      where: { id: availabilityId },
+    });
+
+    if (!availability) {
+      throw new Error('Availability entry not found');
+    }
+
+    if (availability.driverId !== driverId) {
+      throw new Error('Access denied. This availability entry does not belong to you');
+    }
+
+    const { isAvailable, notes } = updateData;
+
+    return prisma.driverAvailability.update({
+      where: { id: availabilityId },
+      data: {
+        ...(isAvailable !== undefined && { isAvailable }),
+        ...(notes !== undefined && { notes }),
+      },
+    });
+  }
+
+
+  async deleteDriverAvailability(availabilityId, driverId) {
+    // Verify the availability belongs to this driver
+    const availability = await prisma.driverAvailability.findUnique({
+      where: { id: availabilityId },
+    });
+
+    if (!availability) {
+      throw new Error('Availability entry not found');
+    }
+
+    if (availability.driverId !== driverId) {
+      throw new Error('Access denied. This availability entry does not belong to you');
+    }
+
+    return prisma.driverAvailability.delete({
+      where: { id: availabilityId },
+    });
+  }
+
+
+  async bulkSetDriverAvailability(driverId, bulkData) {
+    const { startDate, endDate, timeSlots, isAvailable, notes } = bulkData;
+
+    if (!startDate || !endDate) {
+      throw new Error('Start date and end date are required for bulk operation');
+    }
+
+    if (!timeSlots || !Array.isArray(timeSlots) || timeSlots.length === 0) {
+      throw new Error('At least one time slot must be specified');
+    }
+
+    // Validate time slots
+    const validSlots = ['AM', 'PM', 'SAME_DAY'];
+    for (const slot of timeSlots) {
+      if (!validSlots.includes(slot)) {
+        throw new Error(`Invalid timeSlot: ${slot}. Must be AM, PM, or SAME_DAY`);
+      }
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Validate dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (start < today) {
+      throw new Error('Start date cannot be in the past');
+    }
+
+    if (end < start) {
+      throw new Error('End date must be after start date');
+    }
+
+    // Generate all dates in range
+    const dates = [];
+    const currentDate = new Date(start);
+    while (currentDate <= end) {
+      dates.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Create or update availability for each date and time slot combination
+    const results = [];
+    for (const date of dates) {
+      for (const timeSlot of timeSlots) {
+        try {
+          const result = await this.setDriverAvailability(driverId, {
+            date,
+            timeSlot,
+            isAvailable: isAvailable !== undefined ? isAvailable : true,
+            notes,
+          });
+          results.push(result);
+        } catch (error) {
+          console.error(`Failed to set availability for ${date.toISOString()} ${timeSlot}:`, error.message);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Set availability for ${results.length} time slots`,
+      count: results.length,
+      data: results,
+    };
+  }
+
+
+  async getDriverUpcomingAvailability(driverId, days = 14) {
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + days);
+    endDate.setHours(23, 59, 59, 999);
+
+    return prisma.driverAvailability.findMany({
+      where: {
+        driverId,
+        date: {
+          gte: startDate,
+          lte: endDate,
+        }
+      },
+      orderBy: [
+        { date: 'asc' },
+        { timeSlot: 'asc' }
+      ],
+    });
+  }
 }
 
 module.exports = new DriverService();

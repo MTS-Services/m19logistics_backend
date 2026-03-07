@@ -414,4 +414,12 @@ router.put(
   settingsController.updateSingleSetting
 );
 
+// ==================== DRIVER AVAILABILITY ROUTES (ADMIN/MANAGER) ====================
+
+// Get all drivers' availability (with optional filters)
+router.get('/driver-availability', adminController.getAllDriversAvailability);
+
+// Get specific driver's availability
+router.get('/drivers/:id/availability', adminController.getDriverAvailability);
+
 module.exports = router;

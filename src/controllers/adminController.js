@@ -1,3 +1,4 @@
+const prisma = require('../config/database');
 const adminService = require('../services/adminService');
 const contactService = require('../services/contactService');
 const enquiryService = require('../services/enquiryService');
@@ -1311,3 +1312,167 @@ exports.deleteDriver = async (req, res, next) => {
     next(error);
   }
 };
+
+
+// ==================== DRIVER AVAILABILITY MANAGEMENT (ADMIN/MANAGER) ====================
+
+/**
+ * Get all drivers' availability
+ * Supports filtering by date, timeSlot, isAvailable
+ */
+exports.getAllDriversAvailability = async (req, res, next) => {
+  try {
+    const { startDate, endDate, date, timeSlot, isAvailable, driverId } = req.query;
+
+    const where = {};
+
+    // Date filtering
+    if (date) {
+      where.date = new Date(date);
+    } else if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate);
+    }
+
+    // Time slot filtering
+    if (timeSlot) {
+      where.timeSlot = timeSlot;
+    }
+
+    // Availability filtering
+    if (isAvailable !== undefined) {
+      where.isAvailable = isAvailable === 'true';
+    }
+
+    // Specific driver filtering
+    if (driverId) {
+      where.driverId = parseInt(driverId);
+    }
+
+    const availability = await prisma.driverAvailability.findMany({
+      where,
+      include: {
+        driver: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            driverProfile: {
+              select: {
+                vehicleRegistration: true,
+                isActiveDriver: true,
+              }
+            }
+          }
+        }
+      },
+      orderBy: [
+        { date: 'asc' },
+        { timeSlot: 'asc' },
+        { driver: { fullName: 'asc' } }
+      ],
+    });
+
+    // Group by date and time slot
+    const grouped = {};
+    availability.forEach(item => {
+      const dateKey = item.date.toISOString().split('T')[0];
+      const slotKey = `${dateKey}_${item.timeSlot}`;
+
+      if (!grouped[slotKey]) {
+        grouped[slotKey] = {
+          date: item.date,
+          timeSlot: item.timeSlot,
+          drivers: []
+        };
+      }
+
+      grouped[slotKey].drivers.push({
+        id: item.driver.id,
+        fullName: item.driver.fullName,
+        email: item.driver.email,
+        phone: item.driver.phone,
+        vehicleRegistration: item.driver.driverProfile?.vehicleRegistration,
+        isActiveDriver: item.driver.driverProfile?.isActiveDriver,
+        isAvailable: item.isAvailable,
+        notes: item.notes,
+        availabilityId: item.id,
+      });
+    });
+
+    res.json({
+      success: true,
+      count: availability.length,
+      data: availability,
+      grouped: Object.values(grouped),
+    });
+  } catch (error) {
+    console.error('Get all drivers availability error:', error);
+    next(error);
+  }
+};
+
+
+/**
+ * Get specific driver's availability
+ */
+exports.getDriverAvailability = async (req, res, next) => {
+  try {
+    const driverId = parseInt(req.params.id);
+
+    // Verify driver exists
+    const driver = await prisma.user.findUnique({
+      where: { id: driverId, role: 'DRIVER' },
+      select: { id: true, fullName: true, email: true },
+    });
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: 'Driver not found',
+      });
+    }
+
+    const { startDate, endDate, date, timeSlot } = req.query;
+    const where = { driverId };
+
+    // Date filtering
+    if (date) {
+      where.date = new Date(date);
+    } else if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate);
+    }
+
+    // Time slot filtering
+    if (timeSlot) {
+      where.timeSlot = timeSlot;
+    }
+
+    const availability = await prisma.driverAvailability.findMany({
+      where,
+      orderBy: [
+        { date: 'asc' },
+        { timeSlot: 'asc' }
+      ],
+    });
+
+    res.json({
+      success: true,
+      driver: {
+        id: driver.id,
+        fullName: driver.fullName,
+        email: driver.email,
+      },
+      count: availability.length,
+      data: availability,
+    });
+  } catch (error) {
+    console.error('Get driver availability error:', error);
+    next(error);
+  }
+};
+

@@ -340,3 +340,237 @@ exports.getSlotCapacity = async (req, res) => {
     });
   }
 };
+
+
+// ==================== DRIVER AVAILABILITY MANAGEMENT ====================
+
+exports.getMyAvailability = async (req, res) => {
+  try {
+    let driverId;
+
+    // If ADMIN or MANAGER, they can specify driverId in query
+    // Otherwise, use their own ID (for DRIVER role)
+    if (req.user.role === 'ADMIN' || req.user.role === 'MANAGER') {
+      driverId = req.query.driverId ? parseInt(req.query.driverId) : null;
+
+      if (!driverId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Admin/Manager must provide driverId query parameter to view driver availability.',
+        });
+      }
+
+      // Verify driver exists
+      const driver = await prisma.user.findUnique({
+        where: { id: driverId, role: 'DRIVER' },
+        select: { id: true, fullName: true, email: true },
+      });
+
+      if (!driver) {
+        return res.status(404).json({
+          success: false,
+          message: 'Driver not found.',
+        });
+      }
+    } else {
+      // Driver viewing their own availability
+      driverId = req.user.id;
+    }
+
+    const { startDate, endDate, date, timeSlot } = req.query;
+
+    const availability = await driverService.getDriverAvailability(driverId, {
+      startDate,
+      endDate,
+      date,
+      timeSlot,
+    });
+
+    res.json({
+      success: true,
+      count: availability.length,
+      data: availability,
+      driverId: driverId,
+    });
+  } catch (error) {
+    console.error('Get driver availability error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve availability.',
+      error: error.message,
+    });
+  }
+};
+
+
+exports.setMyAvailability = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { date, timeSlot, isAvailable, notes } = req.body;
+
+    const availability = await driverService.setDriverAvailability(driverId, {
+      date,
+      timeSlot,
+      isAvailable,
+      notes,
+    });
+
+    res.json({
+      success: true,
+      message: 'Availability updated successfully.',
+      data: availability,
+    });
+  } catch (error) {
+    console.error('Set driver availability error:', error);
+    res.status(error.message.includes('past date') ? 400 : 500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+exports.updateMyAvailability = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const availabilityId = parseInt(req.params.id);
+    const { isAvailable, notes } = req.body;
+
+    if (isNaN(availabilityId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid availability ID.',
+      });
+    }
+
+    const availability = await driverService.updateDriverAvailability(
+      availabilityId,
+      driverId,
+      { isAvailable, notes }
+    );
+
+    res.json({
+      success: true,
+      message: 'Availability updated successfully.',
+      data: availability,
+    });
+  } catch (error) {
+    console.error('Update driver availability error:', error);
+    res.status(error.message.includes('not found') || error.message.includes('Access denied') ? 404 : 500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+exports.deleteMyAvailability = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const availabilityId = parseInt(req.params.id);
+
+    if (isNaN(availabilityId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid availability ID.',
+      });
+    }
+
+    await driverService.deleteDriverAvailability(availabilityId, driverId);
+
+    res.json({
+      success: true,
+      message: 'Availability deleted successfully.',
+    });
+  } catch (error) {
+    console.error('Delete driver availability error:', error);
+    res.status(error.message.includes('not found') || error.message.includes('Access denied') ? 404 : 500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+exports.bulkSetMyAvailability = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { startDate, endDate, timeSlots, isAvailable, notes } = req.body;
+
+    const result = await driverService.bulkSetDriverAvailability(driverId, {
+      startDate,
+      endDate,
+      timeSlots,
+      isAvailable,
+      notes,
+    });
+
+    res.json({
+      success: true,
+      message: result.message,
+      count: result.count,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('Bulk set driver availability error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+exports.getMyUpcomingAvailability = async (req, res) => {
+  try {
+    let driverId;
+
+    // If ADMIN or MANAGER, they can specify driverId in query
+    // Otherwise, use their own ID (for DRIVER role)
+    if (req.user.role === 'ADMIN' || req.user.role === 'MANAGER') {
+      driverId = req.query.driverId ? parseInt(req.query.driverId) : null;
+
+      if (!driverId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Admin/Manager must provide driverId query parameter to view driver availability.',
+        });
+      }
+
+      // Verify driver exists
+      const driver = await prisma.user.findUnique({
+        where: { id: driverId, role: 'DRIVER' },
+        select: { id: true, fullName: true, email: true },
+      });
+
+      if (!driver) {
+        return res.status(404).json({
+          success: false,
+          message: 'Driver not found.',
+        });
+      }
+    } else {
+      // Driver viewing their own availability
+      driverId = req.user.id;
+    }
+
+    const days = parseInt(req.query.days) || 14;
+
+    const availability = await driverService.getDriverUpcomingAvailability(driverId, days);
+
+    res.json({
+      success: true,
+      count: availability.length,
+      data: availability,
+      driverId: driverId,
+    });
+  } catch (error) {
+    console.error('Get driver upcoming availability error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve upcoming availability.',
+      error: error.message,
+    });
+  }
+};
+
