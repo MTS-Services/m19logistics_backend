@@ -1,8 +1,9 @@
 const prisma = require('../config/database');
+const emailService = require('./emailService');
 
 class EnquiryService {
   async createEnquiry(data) {
-    return prisma.enquiry.create({
+    const enquiry = await prisma.enquiry.create({
       data: {
         fullName: data.fullName,
         companyName: data.companyName || null,
@@ -12,6 +13,12 @@ class EnquiryService {
         message: data.message,
       },
     });
+
+    emailService.sendEnquiryNotification(enquiry).catch(err =>
+      console.error('Enquiry notification email failed:', err.message)
+    );
+
+    return enquiry;
   }
 
   async getAllEnquiries(filters = {}) {

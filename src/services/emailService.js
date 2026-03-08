@@ -46,7 +46,7 @@ class EmailService {
 
   async sendNewDeliveryNotification(delivery, customer) {
     const subject = `New Delivery Request – ${customer.fullName} – SPO: ${delivery.spoNumber || 'N/A'}`;
-    
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2c3e50;">New Delivery Request</h2>
@@ -113,7 +113,7 @@ class EmailService {
 
   async sendDriverAssignmentNotification(delivery, driver, customer) {
     const driverSubject = `New Delivery Assignment – ${new Date(delivery.deliveryDate).toLocaleDateString()} – SPO: ${delivery.spoNumber || 'N/A'}`;
-    
+
     const driverHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2c3e50;">New Delivery Assignment</h2>
@@ -223,7 +223,7 @@ class EmailService {
 
   async sendDeliveryCompletedNotification(delivery, customer, driver, receivedBy, driverNotes, signatureUrl, photoUrl) {
     const subject = `M19 Logistics – Completed Delivery Confirmation (SPO: ${delivery.spoNumber || 'N/A'})`;
-    
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #28a745;">Delivery Completed ✓</h2>
@@ -278,7 +278,7 @@ class EmailService {
 
   async sendDriverAcceptanceNotification(delivery, customer) {
     const subject = `Delivery Confirmed – Driver Accepted – SPO: ${delivery.spoNumber || 'N/A'}`;
-    
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #28a745;">Driver Confirmed ✓</h2>
@@ -319,7 +319,7 @@ class EmailService {
 
   async sendDriverRejectionNotification(delivery, customer, driver, rejectionReason) {
     const subject = `⚠️ Delivery Rejected – Reassignment Required – SPO: ${delivery.spoNumber || 'N/A'} – ${customer.fullName}`;
-    
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #dc3545;">Driver Rejection Alert</h2>
@@ -366,7 +366,7 @@ class EmailService {
 
   async sendDeliveryCancellationNotification(delivery, customer, cancelledBy, reason) {
     const subject = `Delivery Cancelled – SPO: ${delivery.spoNumber || 'N/A'}`;
-    
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #dc3545;">Delivery Cancelled</h2>
@@ -414,7 +414,7 @@ class EmailService {
 
   async sendSameDayDeliveryAlert(delivery, customer) {
     const subject = `⚠️ Same-Day Delivery Request – CONFIRMATION REQUIRED – SPO: ${delivery.spoNumber || 'N/A'}`;
-    
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #ffc107;">Same-Day Delivery Request</h2>
@@ -462,7 +462,7 @@ class EmailService {
   async sendSlotCapacityWarning(date, timeSlot, booked, maxCapacity) {
     const percentage = Math.round((booked / maxCapacity) * 100);
     const subject = `⚠️ Slot Capacity Alert – ${new Date(date).toLocaleDateString()} ${timeSlot} – ${percentage}% ${percentage >= 100 ? 'FULL' : 'Filled'}`;
-    
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: ${percentage >= 100 ? '#dc3545' : '#ffc107'};">Slot Capacity ${percentage >= 100 ? 'Full' : 'Warning'}</h2>
@@ -487,10 +487,10 @@ class EmailService {
           </tr>
         </table>
 
-        ${percentage >= 100 ? 
-          '<p style="background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545;"><strong>Slot is now FULL.</strong> No more bookings can be accepted unless capacity is increased.</p>' :
-          '<p style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107;"><strong>Suggestion:</strong> Consider increasing capacity or notifying customers of limited availability.</p>'
-        }
+        ${percentage >= 100 ?
+        '<p style="background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545;"><strong>Slot is now FULL.</strong> No more bookings can be accepted unless capacity is increased.</p>' :
+        '<p style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107;"><strong>Suggestion:</strong> Consider increasing capacity or notifying customers of limited availability.</p>'
+      }
         
         <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
           M19 Logistics Admin Panel
@@ -515,7 +515,7 @@ class EmailService {
    */
   async sendWeeklyDriverFeedbackSummary(feedbackRecords, deliveriesWithNotes, startDate, endDate) {
     const subject = `📊 Weekly Driver Feedback Summary - ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
-    
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
         <h2 style="color: #2563eb;">Weekly Driver Feedback Summary</h2>
@@ -591,9 +591,9 @@ class EmailService {
             <strong>Total Deliveries Completed:</strong> ${deliveriesWithNotes.length}
           </li>
           <li style="padding: 8px; background-color: #f3f4f6; margin: 5px 0; border-radius: 4px;">
-            <strong>Average Rating:</strong> ${feedbackRecords.length > 0 
-              ? (feedbackRecords.reduce((sum, f) => sum + f.rating, 0) / feedbackRecords.length).toFixed(1) 
-              : 'N/A'}/5
+            <strong>Average Rating:</strong> ${feedbackRecords.length > 0
+        ? (feedbackRecords.reduce((sum, f) => sum + f.rating, 0) / feedbackRecords.length).toFixed(1)
+        : 'N/A'}/5
           </li>
         </ul>
         
@@ -690,6 +690,195 @@ class EmailService {
       subject,
       html,
       replyTo: 'admin@m19logistics.com',
+    });
+  }
+
+  // ==================== CONTACT & ENQUIRY EMAILS ====================
+
+  async sendContactNotification(contact) {
+    const subject = `New Contact Message – ${contact.name}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">New Contact Form Submission</h2>
+        <p>A visitor has submitted a message via the contact form.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6; width: 35%;"><strong>Name:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${contact.name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Email:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><a href="mailto:${contact.email}">${contact.email}</a></td>
+          </tr>
+          ${contact.phone ? `
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Phone:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${contact.phone}</td>
+          </tr>` : ''}
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Message:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6; white-space: pre-wrap;">${contact.message}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Submitted At:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${new Date(contact.createdAt).toLocaleString()}</td>
+          </tr>
+        </table>
+        <p style="background-color: #d1ecf1; padding: 12px; border-left: 4px solid #bee5eb;">
+          <strong>Action Required:</strong> Reply directly to <a href="mailto:${contact.email}">${contact.email}</a>.
+        </p>
+        <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
+          M19 Logistics – Automated Notification
+        </p>
+      </div>
+    `;
+    return this.sendEmail({
+      to: process.env.EMAIL_ENQUIRIES,
+      subject,
+      html,
+      replyTo: contact.email,
+    });
+  }
+
+  async sendEnquiryNotification(enquiry) {
+    const subject = `New Business Enquiry – ${enquiry.subject} – ${enquiry.fullName}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">New Business Enquiry</h2>
+        <p>A new enquiry has been submitted via the website.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6; width: 35%;"><strong>Full Name:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${enquiry.fullName}</td>
+          </tr>
+          ${enquiry.companyName ? `
+          <tr>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Company:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${enquiry.companyName}</td>
+          </tr>` : ''}
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Email:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><a href="mailto:${enquiry.email}">${enquiry.email}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Phone:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${enquiry.phoneNumber}</td>
+          </tr>
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Subject:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${enquiry.subject}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Message:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6; white-space: pre-wrap;">${enquiry.message}</td>
+          </tr>
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Submitted At:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${new Date(enquiry.createdAt).toLocaleString()}</td>
+          </tr>
+        </table>
+        <p style="background-color: #d4edda; padding: 12px; border-left: 4px solid #c3e6cb;">
+          <strong>Action Required:</strong> Follow up with <a href="mailto:${enquiry.email}">${enquiry.email}</a>.
+        </p>
+        <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
+          M19 Logistics – Automated Notification
+        </p>
+      </div>
+    `;
+    return this.sendEmail({
+      to: process.env.EMAIL_ENQUIRIES,
+      subject,
+      html,
+      replyTo: enquiry.email,
+    });
+  }
+
+  // ==================== JOB APPLICATION EMAILS ====================
+
+  async sendJobApplicationAdminNotification(application) {
+    const subject = `New Job Application – ${application.positionOfInterest} – ${application.fullName}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">New Job Application Received</h2>
+        <p>A new job application has been submitted via the website.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6; width: 35%;"><strong>Full Name:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${application.fullName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Email:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><a href="mailto:${application.email}">${application.email}</a></td>
+          </tr>
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Phone:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${application.phoneNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Position Applied:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${application.positionOfInterest}</td>
+          </tr>
+          ${application.coverLetter ? `
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Cover Letter:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6; white-space: pre-wrap;">${application.coverLetter}</td>
+          </tr>` : ''}
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>CV:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><a href="${application.cvUrl}">Download CV</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Submitted At:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${new Date(application.createdAt).toLocaleString()}</td>
+          </tr>
+        </table>
+        <p style="background-color: #fff3cd; padding: 12px; border-left: 4px solid #ffc107;">
+          <strong>Action Required:</strong> Review the application and follow up with <a href="mailto:${application.email}">${application.email}</a>.
+        </p>
+        <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
+          M19 Logistics – Automated Notification
+        </p>
+      </div>
+    `;
+    return this.sendEmail({
+      to: process.env.EMAIL_ADMIN,
+      subject,
+      html,
+      replyTo: application.email,
+    });
+  }
+
+  async sendJobApplicationConfirmation(application) {
+    const subject = `Application Received – ${application.positionOfInterest} – M19 Logistics`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">Thank You for Your Application</h2>
+        <p>Dear ${application.fullName},</p>
+        <p>We have received your application for the position of <strong>${application.positionOfInterest}</strong>. Thank you for your interest in joining M19 Logistics.</p>
+        <p>Our team will review your application and be in touch if your experience matches our requirements.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 10px; border: 1px solid #dee2e6; width: 35%;"><strong>Position:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${application.positionOfInterest}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Submitted:</strong></td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${new Date(application.createdAt).toLocaleString()}</td>
+          </tr>
+        </table>
+        <p>If you have any questions, please contact us at <a href="mailto:${process.env.EMAIL_ADMIN}">${process.env.EMAIL_ADMIN}</a>.</p>
+        <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
+          M19 Logistics Limited<br>
+          Tel: ${process.env.COMPANY_PHONE || '07971415430'}<br>
+          ${process.env.COMPANY_ADDRESS || '84 Acton Hall Walks, Wrexham, LL127YJ'}
+        </p>
+      </div>
+    `;
+    return this.sendEmail({
+      to: application.email,
+      subject,
+      html,
+      replyTo: process.env.EMAIL_ADMIN,
     });
   }
 }

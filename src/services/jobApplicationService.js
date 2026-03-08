@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const config = require('../config');
+const emailService = require('./emailService');
 
 class JobApplicationService {
 
@@ -8,7 +9,7 @@ class JobApplicationService {
 
         const cvUrl = `${config.backendUrl}/uploads/cvs/${cvFilename}`;
 
-        return prisma.jobApplication.create({
+        const application = await prisma.jobApplication.create({
             data: {
                 fullName,
                 email,
@@ -20,6 +21,18 @@ class JobApplicationService {
                 isRead: false,
             },
         });
+
+        // Notify admin (fire-and-forget)
+        emailService.sendJobApplicationAdminNotification(application).catch(err =>
+            console.error('Job application admin notification failed:', err.message)
+        );
+
+        // Send confirmation to applicant (fire-and-forget)
+        emailService.sendJobApplicationConfirmation(application).catch(err =>
+            console.error('Job application confirmation email failed:', err.message)
+        );
+
+        return application;
     }
 
 

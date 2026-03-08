@@ -1,8 +1,9 @@
 const prisma = require('../config/database');
+const emailService = require('./emailService');
 
 class ContactService {
   async createContact(data) {
-    return prisma.contact.create({
+    const contact = await prisma.contact.create({
       data: {
         name: data.name,
         email: data.email,
@@ -10,15 +11,21 @@ class ContactService {
         message: data.message,
       },
     });
+
+    emailService.sendContactNotification(contact).catch(err =>
+      console.error('Contact notification email failed:', err.message)
+    );
+
+    return contact;
   }
 
   async getAllContacts(filters = {}) {
     const { isRead, startDate, endDate } = filters;
-    
+
     const where = {};
-    
+
     if (isRead !== undefined) where.isRead = isRead === 'true';
-    
+
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);
