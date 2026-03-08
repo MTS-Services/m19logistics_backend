@@ -130,17 +130,48 @@ class CronService {
         weekEndDate
       );
 
-      console.log(`✅ Automatic invoice generation completed: ${result.generatedInvoices.length} invoices created`);
+      const generatedInvoices = result.invoices || [];
+      console.log(`✅ Automatic invoice generation completed: ${generatedInvoices.length} invoices created`);
+
+      // Email each generated invoice to the customer
+      const exportService = require('./exportService');
+      let emailedCount = 0;
+      for (const invoiceSummary of generatedInvoices) {
+        try {
+          const fullInvoice = await prisma.invoice.findFirst({
+            where: { invoiceNumber: invoiceSummary.invoiceNumber },
+            include: {
+              customer: {
+                select: {
+                  fullName: true,
+                  email: true,
+                  customerProfile: { select: { storeName: true, loginId: true } },
+                },
+              },
+              items: { include: { delivery: true } },
+            },
+          });
+
+          if (fullInvoice && fullInvoice.customer?.email) {
+            const pdfBuffer = await exportService.generateInvoicePDFBuffer(fullInvoice);
+            await emailService.sendInvoiceToCustomer(fullInvoice, pdfBuffer);
+            emailedCount++;
+            console.log(`📧 Invoice ${fullInvoice.invoiceNumber} emailed to ${fullInvoice.customer.email}`);
+          }
+        } catch (emailErr) {
+          console.error(`❌ Failed to email invoice ${invoiceSummary.invoiceNumber}: ${emailErr.message}`);
+        }
+      }
 
       // Create audit log
       await auditService.createAuditLog({
         action: 'AUTO_INVOICE_GENERATION',
-        description: `Automatically generated ${result.generatedInvoices.length} weekly invoices`,
+        description: `Automatically generated ${generatedInvoices.length} weekly invoices, emailed ${emailedCount}`,
         beforeData: {
           weekStartDate: weekStartDate.toISOString(),
           weekEndDate: weekEndDate.toISOString(),
-          invoicesGenerated: result.generatedInvoices.length,
-          customersSkipped: result.skippedCustomers.length,
+          invoicesGenerated: generatedInvoices.length,
+          invoicesEmailed: emailedCount,
         },
       });
 
@@ -319,25 +350,50 @@ class CronService {
 
   async sendWeeklyInvoiceReminder() {
     try {
+      // Only send reminders for invoices older than 7 days that are still unpaid
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
       const unpaidInvoices = await prisma.invoice.findMany({
         where: {
           isPaid: false,
+          invoiceDate: { lte: sevenDaysAgo },
         },
         include: {
           customer: {
             select: {
               fullName: true,
               email: true,
+              customerProfile: { select: { storeName: true, loginId: true } },
             },
           },
+          items: { include: { delivery: true } },
         },
+        orderBy: { invoiceDate: 'asc' },
       });
 
+      console.log(`ℹ️  Weekly invoice reminder: ${unpaidInvoices.length} overdue unpaid invoices found`);
 
-      console.log(`ℹ  Weekly invoice reminder: ${unpaidInvoices.length} unpaid invoices found`);
+      if (unpaidInvoices.length === 0) return;
+
+      const exportService = require('./exportService');
+      let remindersSent = 0;
+
+      for (const invoice of unpaidInvoices) {
+        if (!invoice.customer?.email) continue;
+        try {
+          const pdfBuffer = await exportService.generateInvoicePDFBuffer(invoice);
+          await emailService.sendInvoicePaymentReminder(invoice, pdfBuffer);
+          remindersSent++;
+          console.log(`📧 Payment reminder sent for invoice ${invoice.invoiceNumber} to ${invoice.customer.email}`);
+        } catch (err) {
+          console.error(`❌ Failed to send reminder for invoice ${invoice.invoiceNumber}: ${err.message}`);
+        }
+      }
+
+      console.log(`✅ Invoice reminders sent: ${remindersSent}/${unpaidInvoices.length}`);
     } catch (error) {
-      console.error(' Failed to process weekly invoice reminder:', error);
+      console.error('❌ Failed to process weekly invoice reminder:', error);
     }
   }
 

@@ -210,6 +210,11 @@ router.post(
   adminController.generateLastWeekInvoices
 );
 
+router.post(
+  '/invoices/send-reminders',
+  adminController.sendInvoiceReminders
+);
+
 router.post('/invoices/:id/mark-paid', adminController.markInvoiceAsPaid);
 
 router.post(

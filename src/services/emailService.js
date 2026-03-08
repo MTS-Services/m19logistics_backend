@@ -793,6 +793,152 @@ class EmailService {
     });
   }
 
+  // ==================== INVOICE EMAILS ====================
+
+  async sendInvoiceToCustomer(invoice, pdfBuffer) {
+    const weekStart = new Date(invoice.weekStartDate).toLocaleDateString('en-GB');
+    const weekEnd = new Date(invoice.weekEndDate).toLocaleDateString('en-GB');
+    const subject = `Invoice ${invoice.invoiceNumber} – Week ${weekStart} to ${weekEnd} – M19 Logistics`;
+
+    const itemRows = (invoice.items || []).map((item, i) => `
+      <tr style="background-color: ${i % 2 === 0 ? '#f8f9fa' : '#fff'};">
+        <td style="padding: 8px; border: 1px solid #dee2e6;">${item.description || ''}</td>
+        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">${item.quantity || 1}</td>
+        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">£${(item.unitCost || 0).toFixed(2)}</td>
+        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">£${(item.vatAmount || 0).toFixed(2)}</td>
+        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">£${(item.total || 0).toFixed(2)}</td>
+      </tr>`).join('');
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">Invoice ${invoice.invoiceNumber}</h2>
+        <p>Dear ${invoice.customer.fullName},</p>
+        <p>Please find your invoice for the week of <strong>${weekStart} – ${weekEnd}</strong> attached to this email.</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #dee2e6; width: 40%;"><strong>Invoice Number:</strong></td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${invoice.invoiceNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Invoice Date:</strong></td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${new Date(invoice.invoiceDate).toLocaleDateString('en-GB')}</td>
+          </tr>
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Period:</strong></td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${weekStart} – ${weekEnd}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Payment Terms:</strong></td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${invoice.paymentTerms || '30 Days (End of Month)'}</td>
+          </tr>
+        </table>
+
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <thead>
+            <tr style="background-color: #2c3e50; color: #fff;">
+              <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Description</th>
+              <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">Qty</th>
+              <th style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">Unit Cost</th>
+              <th style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">VAT</th>
+              <th style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>${itemRows}</tbody>
+        </table>
+
+        <table style="width: 300px; margin-left: auto; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 6px 10px;"><strong>Subtotal:</strong></td>
+            <td style="padding: 6px 10px; text-align: right;">£${(invoice.subtotal || 0).toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 10px;"><strong>VAT (20%):</strong></td>
+            <td style="padding: 6px 10px; text-align: right;">£${(invoice.vatTotal || 0).toFixed(2)}</td>
+          </tr>
+          <tr style="background-color: #2c3e50; color: #fff;">
+            <td style="padding: 8px 10px;"><strong>Grand Total:</strong></td>
+            <td style="padding: 8px 10px; text-align: right;"><strong>£${(invoice.grandTotal || 0).toFixed(2)}</strong></td>
+          </tr>
+        </table>
+
+        <p style="margin-top: 24px; color: #555;">The full invoice PDF is attached. Please do not hesitate to contact us if you have any queries.</p>
+
+        <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
+          M19 Logistics Limited<br>
+          Tel: ${process.env.COMPANY_PHONE || '07971415430'}<br>
+          Email: ${process.env.EMAIL_ADMIN || 'admin@m19logistics.com'}
+        </p>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: invoice.customer.email,
+      subject,
+      html,
+      attachments: [{
+        filename: `Invoice-${invoice.invoiceNumber}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf',
+      }],
+      replyTo: process.env.EMAIL_ADMIN,
+    });
+  }
+
+  async sendInvoicePaymentReminder(invoice, pdfBuffer) {
+    const weekStart = new Date(invoice.weekStartDate).toLocaleDateString('en-GB');
+    const weekEnd = new Date(invoice.weekEndDate).toLocaleDateString('en-GB');
+    const subject = `Payment Reminder – Invoice ${invoice.invoiceNumber} – M19 Logistics`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #c0392b;">Payment Reminder</h2>
+        <p>Dear ${invoice.customer.fullName},</p>
+        <p>This is a friendly reminder that the following invoice is still outstanding:</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #dee2e6; width: 45%;"><strong>Invoice Number:</strong></td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${invoice.invoiceNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Period:</strong></td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${weekStart} – ${weekEnd}</td>
+          </tr>
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Amount Due:</strong></td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>£${(invoice.grandTotal || 0).toFixed(2)}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Payment Terms:</strong></td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${invoice.paymentTerms || '30 Days (End of Month)'}</td>
+          </tr>
+        </table>
+
+        <p>Please arrange payment at your earliest convenience. A copy of the invoice is attached.</p>
+        <p>If you have already made payment, please disregard this reminder.</p>
+
+        <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
+          M19 Logistics Limited<br>
+          Tel: ${process.env.COMPANY_PHONE || '07971415430'}<br>
+          Email: ${process.env.EMAIL_ADMIN || 'admin@m19logistics.com'}
+        </p>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: invoice.customer.email,
+      subject,
+      html,
+      attachments: pdfBuffer ? [{
+        filename: `Invoice-${invoice.invoiceNumber}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf',
+      }] : [],
+      replyTo: process.env.EMAIL_ADMIN,
+    });
+  }
+
   // ==================== JOB APPLICATION EMAILS ====================
 
   async sendJobApplicationAdminNotification(application) {

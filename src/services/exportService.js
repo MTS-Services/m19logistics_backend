@@ -3,7 +3,7 @@ const ExcelJS = require('exceljs');
 const { Parser } = require('json2csv');
 
 class ExportService {
- 
+
   generateInvoicePDF(invoice) {
     const doc = new PDFDocument({ margin: 50 });
 
@@ -58,7 +58,7 @@ class ExportService {
       .text('Price', col5X, tableTop)
       .text('Total', col6X, tableTop);
 
-    
+
     doc
       .moveTo(col1X, tableTop + 15)
       .lineTo(560, tableTop + 15)
@@ -75,8 +75,8 @@ class ExportService {
       }
 
       const spoNumber = item.delivery?.spoNumber || item.spoNumber || 'N/A';
-      const deliveryDate = item.deliveryDate 
-        ? new Date(item.deliveryDate).toLocaleDateString() 
+      const deliveryDate = item.deliveryDate
+        ? new Date(item.deliveryDate).toLocaleDateString()
         : 'N/A';
       const description = item.description || 'Delivery Service';
       const qty = item.quantity || 1;
@@ -95,7 +95,7 @@ class ExportService {
       itemY += 20;
     });
 
-    
+
     const summaryY = itemY + 20;
     doc
       .moveTo(400, summaryY - 10)
@@ -117,7 +117,7 @@ class ExportService {
       .text('Total:', 400, summaryY + 40)
       .text(`£${(invoice.grandTotal || 0).toFixed(2)}`, 500, summaryY + 40, { align: 'right' });
 
-   
+
     if (invoice.paymentTerms || invoice.notes) {
       doc.fontSize(10).font('Helvetica');
       let notesY = summaryY + 80;
@@ -211,7 +211,7 @@ class ExportService {
     return await workbook.xlsx.writeBuffer();
   }
 
- 
+
   generateDeliveriesCSV(deliveries) {
     const fields = [
       { label: 'SPO Number', value: 'spoNumber' },
@@ -249,7 +249,7 @@ class ExportService {
 
     overviewSheet.getRow(1).font = { bold: true };
     overviewSheet.getRow(1).fill = {
-      type: 'pattern', 
+      type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FF4472C4' },
     };
@@ -257,7 +257,7 @@ class ExportService {
 
     const summary = analyticsData.summary || {};
     const statusData = analyticsData.deliveriesByStatus || {};
-    
+
     overviewSheet.addRow({ metric: 'Total Deliveries', value: summary.totalDeliveries || 0 });
     overviewSheet.addRow({ metric: 'Completed Deliveries', value: statusData.delivered || 0 });
     overviewSheet.addRow({ metric: 'Pending Deliveries', value: (statusData.received || 0) + (statusData.allocated || 0) });
@@ -269,7 +269,7 @@ class ExportService {
     overviewSheet.addRow({ metric: 'Active Drivers', value: summary.activeDrivers || 0 });
     overviewSheet.addRow({ metric: 'Active Customers', value: summary.activeCustomers || 0 });
 
-   
+
     if (Object.keys(statusData).length > 0) {
       const statusSheet = workbook.addWorksheet('Deliveries by Status');
       statusSheet.columns = [
@@ -328,7 +328,7 @@ class ExportService {
       });
     }
 
-  
+
     if (analyticsData.customerAnalytics && analyticsData.customerAnalytics.length > 0) {
       const customerSheet = workbook.addWorksheet('Customer Analytics');
       customerSheet.columns = [
@@ -364,7 +364,7 @@ class ExportService {
   generateAnalyticsCSV(analyticsData) {
     const summary = analyticsData.summary || {};
     const statusData = analyticsData.deliveriesByStatus || {};
-    
+
     const data = [
       {
         section: 'Overview',
@@ -426,6 +426,19 @@ class ExportService {
 
     const parser = new Parser({ fields });
     return parser.parse(data);
+  }
+
+  /**
+   * Generate an invoice PDF and return it as a Buffer (for email attachments).
+   */
+  async generateInvoicePDFBuffer(invoice) {
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      const doc = this.generateInvoicePDF(invoice);
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
   }
 }
 

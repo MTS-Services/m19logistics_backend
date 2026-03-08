@@ -622,6 +622,20 @@ exports.generateLastWeekInvoices = async (req, res, next) => {
   }
 };
 
+exports.sendInvoiceReminders = async (req, res, next) => {
+  try {
+    const cronService = require('../services/cronService');
+    await cronService.sendWeeklyInvoiceReminder();
+
+    res.json({
+      success: true,
+      message: 'Invoice payment reminders sent. Check server logs for details.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getAllInvoices = async (req, res, next) => {
   try {
     const invoices = await adminService.getAllInvoices(req.query);
