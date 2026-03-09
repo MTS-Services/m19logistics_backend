@@ -1,10 +1,11 @@
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 const { Parser } = require('json2csv');
+const prisma = require('../config/database');
 
 class ExportService {
 
-  generateInvoicePDF(invoice) {
+  generateInvoicePDF(invoice, bankingDetails = null) {
     const doc = new PDFDocument({ margin: 50 });
 
     // Company Header
@@ -41,32 +42,32 @@ class ExportService {
     }
 
     const tableTop = topY + 100;
-    const col1X = 50;
-    const col2X = 120;
-    const col3X = 300;
-    const col4X = 380;
-    const col5X = 440;
-    const col6X = 500;
+    const col1X = 50; const col1W = 80;
+    const col2X = 135; const col2W = 62;
+    const col3X = 202; const col3W = 200;
+    const col4X = 407; const col4W = 22;
+    const col5X = 434; const col5W = 58;
+    const col6X = 498; const col6W = 57;
+    const rowHeight = 32;
 
     doc
-      .fontSize(10)
+      .fontSize(9)
       .font('Helvetica-Bold')
-      .text('SPO', col1X, tableTop)
-      .text('Date', col2X, tableTop)
-      .text('Description', col3X, tableTop)
-      .text('Qty', col4X, tableTop)
-      .text('Price', col5X, tableTop)
-      .text('Total', col6X, tableTop);
-
+      .text('SPO', col1X, tableTop, { width: col1W, lineBreak: false })
+      .text('Date', col2X, tableTop, { width: col2W, lineBreak: false })
+      .text('Description', col3X, tableTop, { width: col3W, lineBreak: false })
+      .text('Qty', col4X, tableTop, { width: col4W, lineBreak: false })
+      .text('Unit Price', col5X, tableTop, { width: col5W, lineBreak: false })
+      .text('Total', col6X, tableTop, { width: col6W, lineBreak: false });
 
     doc
-      .moveTo(col1X, tableTop + 15)
-      .lineTo(560, tableTop + 15)
+      .moveTo(col1X, tableTop + 14)
+      .lineTo(555, tableTop + 14)
       .stroke();
 
     // Table Items
     doc.font('Helvetica');
-    let itemY = tableTop + 25;
+    let itemY = tableTop + 22;
 
     invoice.items.forEach((item) => {
       if (itemY > 700) {
@@ -77,22 +78,23 @@ class ExportService {
       const spoNumber = item.delivery?.spoNumber || item.spoNumber || 'N/A';
       const deliveryDate = item.deliveryDate
         ? new Date(item.deliveryDate).toLocaleDateString()
-        : 'N/A';
+        : (item.delivery?.deliveryDate ? new Date(item.delivery.deliveryDate).toLocaleDateString() : 'N/A');
       const description = item.description || 'Delivery Service';
-      const qty = item.quantity || 1;
+      const qty = String(item.quantity || 1);
       const unitCost = `£${(item.unitCost || 0).toFixed(2)}`;
       const total = `£${(item.total || 0).toFixed(2)}`;
 
       doc
         .fontSize(9)
-        .text(spoNumber, col1X, itemY, { width: 60, ellipsis: true })
-        .text(deliveryDate, col2X, itemY)
-        .text(description, col3X, itemY, { width: 70, ellipsis: true })
-        .text(qty, col4X, itemY)
-        .text(unitCost, col5X, itemY)
-        .text(total, col6X, itemY);
 
-      itemY += 20;
+        .text(spoNumber, col1X, itemY, { width: col1W, height: 14, lineBreak: false, ellipsis: true })
+        .text(deliveryDate, col2X, itemY, { width: col2W, height: 14, lineBreak: false, ellipsis: true })
+        .text(description, col3X, itemY, { width: col3W, height: 26, lineBreak: true })
+        .text(qty, col4X, itemY, { width: col4W, lineBreak: false })
+        .text(unitCost, col5X, itemY, { width: col5W, lineBreak: false })
+        .text(total, col6X, itemY, { width: col6W, lineBreak: false });
+
+      itemY += rowHeight;
     });
 
 
@@ -117,10 +119,69 @@ class ExportService {
       .text('Total:', 400, summaryY + 40)
       .text(`£${(invoice.grandTotal || 0).toFixed(2)}`, 500, summaryY + 40, { align: 'right' });
 
+    let bankSectionY = summaryY + 70;
 
-    if (invoice.paymentTerms || invoice.notes) {
+    if (bankingDetails) {
+      doc
+        .moveTo(50, bankSectionY)
+        .lineTo(560, bankSectionY)
+        .stroke();
+
+      bankSectionY += 12;
+
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(10)
+        .text('Bank Details', 50, bankSectionY);
+
+      if (bankingDetails.paymentTerms) {
+        doc.text('Payment Terms', 350, bankSectionY);
+      }
+
+      bankSectionY += 16;
+
+      doc.font('Helvetica').fontSize(9);
+
+      if (bankingDetails.bankName) {
+        doc.text(`Bank: ${bankingDetails.bankName}`, 50, bankSectionY);
+        bankSectionY += 14;
+      }
+      if (bankingDetails.accountHolder) {
+        doc.text(`Account Holder: ${bankingDetails.accountHolder}`, 50, bankSectionY);
+        bankSectionY += 14;
+      }
+      if (bankingDetails.sortCode) {
+        doc.text(`Sort Code: ${bankingDetails.sortCode}`, 50, bankSectionY);
+        bankSectionY += 14;
+      }
+      if (bankingDetails.accountNumber) {
+        doc.text(`Account Number: ${bankingDetails.accountNumber}`, 50, bankSectionY);
+        bankSectionY += 14;
+      }
+
+      if (bankingDetails.paymentTerms) {
+        doc.text(bankingDetails.paymentTerms, 350, bankSectionY - (14 * [
+          bankingDetails.bankName, bankingDetails.accountHolder,
+          bankingDetails.sortCode, bankingDetails.accountNumber
+        ].filter(Boolean).length), { width: 200 });
+      }
+
+      bankSectionY += 10;
+
+      doc
+        .moveTo(50, bankSectionY)
+        .lineTo(560, bankSectionY)
+        .stroke();
+
+      bankSectionY += 14;
+    }
+
+    // Payment terms from invoice (if not already shown in bank details)
+    let footerY = bankSectionY;
+
+    if (!bankingDetails && (invoice.paymentTerms || invoice.notes)) {
       doc.fontSize(10).font('Helvetica');
-      let notesY = summaryY + 80;
+      let notesY = bankSectionY;
 
       if (invoice.paymentTerms) {
         doc.text('Payment Terms:', 50, notesY);
@@ -131,16 +192,24 @@ class ExportService {
       if (invoice.notes) {
         doc.text('Notes:', 50, notesY);
         doc.text(invoice.notes, 50, notesY + 15, { width: 500 });
+        notesY += 35;
       }
+
+      footerY = notesY;
+    } else if (bankingDetails && invoice.notes) {
+      doc.fontSize(10).font('Helvetica');
+      doc.text('Notes:', 50, bankSectionY);
+      doc.text(invoice.notes, 50, bankSectionY + 15, { width: 500 });
+      footerY = bankSectionY + 50;
     }
 
-    // Footer
+    // Footer — rendered 20px below the last content section
     doc
       .fontSize(8)
       .text(
         'Thank you for your business!',
         50,
-        750,
+        footerY + 20,
         { align: 'center', width: 500 }
       );
 
@@ -428,13 +497,11 @@ class ExportService {
     return parser.parse(data);
   }
 
-  /**
-   * Generate an invoice PDF and return it as a Buffer (for email attachments).
-   */
   async generateInvoicePDFBuffer(invoice) {
+    const bankingDetails = await prisma.bankingDetails.findFirst();
     return new Promise((resolve, reject) => {
       const chunks = [];
-      const doc = this.generateInvoicePDF(invoice);
+      const doc = this.generateInvoicePDF(invoice, bankingDetails);
       doc.on('data', chunk => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);

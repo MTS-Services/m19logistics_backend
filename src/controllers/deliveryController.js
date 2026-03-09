@@ -22,7 +22,7 @@ class DeliveryController {
       if (deliveryService.isSameDay(deliveryDate) && timeSlot !== 'SAME_DAY') {
         return res.status(400).json({
           success: false,
-          message: 'Same-day delivery requires confirmation. Please call 07971415430.',
+          message: 'Same-day delivery requires confirmation. Please call 07818077110.',
         });
       }
 

@@ -1,4 +1,5 @@
 const invoiceService = require('../services/invoiceService');
+const exportService = require('../services/exportService');
 
 class InvoiceController {
 
@@ -55,12 +56,42 @@ class InvoiceController {
     }
   }
 
+  async exportInvoicePDF(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      // Customers can only download their own invoices
+      const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
+
+      const invoice = await invoiceService.getInvoiceById(id, customerId);
+
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: 'Invoice not found',
+        });
+      }
+
+      const pdfBuffer = await exportService.generateInvoicePDFBuffer(invoice);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=Invoice-${invoice.invoiceNumber}.pdf`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('Export invoice PDF error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate invoice PDF',
+        error: error.message,
+      });
+    }
+  }
+
   async getInvoiceById(req, res) {
     try {
       const { id } = req.params;
       const invoiceId = parseInt(id);
 
-      // Validate invoice ID
+
       if (isNaN(invoiceId)) {
         return res.status(400).json({
           success: false,
@@ -68,7 +99,6 @@ class InvoiceController {
         });
       }
 
-      // For CUSTOMER, restrict to their own invoices only
       const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
 
       const invoice = await invoiceService.getInvoiceById(

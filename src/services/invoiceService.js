@@ -84,8 +84,13 @@ class InvoiceService {
             fullName: true,
             email: true,
             phone: true,
-            loginId: true,
-            depotAddress: true,
+            customerProfile: {
+              select: {
+                loginId: true,
+                storeName: true,
+                depotAddress: true,
+              },
+            },
           },
         },
         items: {
@@ -113,7 +118,13 @@ class InvoiceService {
           select: {
             fullName: true,
             email: true,
-            depotAddress: true,
+            customerProfile: {
+              select: {
+                loginId: true,
+                storeName: true,
+                depotAddress: true,
+              },
+            },
           },
         },
         items: {

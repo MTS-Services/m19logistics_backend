@@ -1774,6 +1774,7 @@ class AdminService {
   }
 
 
+
   async deleteDriver(id) {
 
     const driver = await prisma.user.findUnique({

@@ -23,7 +23,7 @@ router.get(
 );
 
 router.get('/number/:invoiceNumber', authorize('CUSTOMER', 'ADMIN', 'MANAGER'), invoiceController.getInvoiceByNumber);
-
+router.get('/:id/export/pdf', authorize('CUSTOMER', 'ADMIN', 'MANAGER'), invoiceController.exportInvoicePDF);
 router.get('/:id', authorize('CUSTOMER', 'ADMIN', 'MANAGER'), invoiceController.getInvoiceById);
 
 module.exports = router;

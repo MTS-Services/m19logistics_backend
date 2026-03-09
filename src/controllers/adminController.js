@@ -1147,12 +1147,12 @@ exports.exportInvoicePDF = async (req, res, next) => {
       });
     }
 
-    const pdfDoc = exportService.generateInvoicePDF(invoice);
+    const pdfBuffer = await exportService.generateInvoicePDFBuffer(invoice);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=Invoice-${invoice.invoiceNumber}.pdf`);
 
-    pdfDoc.pipe(res);
+    res.send(pdfBuffer);
   } catch (error) {
     next(error);
   }
@@ -1328,19 +1328,16 @@ exports.deleteDriver = async (req, res, next) => {
 };
 
 
-// ==================== DRIVER AVAILABILITY MANAGEMENT (ADMIN/MANAGER) ====================
+// DRIVER AVAILABILITY MANAGEMENT (ADMIN/MANAGER) 
 
-/**
- * Get all drivers' availability
- * Supports filtering by date, timeSlot, isAvailable
- */
+
 exports.getAllDriversAvailability = async (req, res, next) => {
   try {
     const { startDate, endDate, date, timeSlot, isAvailable, driverId } = req.query;
 
     const where = {};
 
-    // Date filtering
+
     if (date) {
       where.date = new Date(date);
     } else if (startDate || endDate) {
@@ -1349,7 +1346,7 @@ exports.getAllDriversAvailability = async (req, res, next) => {
       if (endDate) where.date.lte = new Date(endDate);
     }
 
-    // Time slot filtering
+
     if (timeSlot) {
       where.timeSlot = timeSlot;
     }
@@ -1359,7 +1356,7 @@ exports.getAllDriversAvailability = async (req, res, next) => {
       where.isAvailable = isAvailable === 'true';
     }
 
-    // Specific driver filtering
+
     if (driverId) {
       where.driverId = parseInt(driverId);
     }
@@ -1389,7 +1386,7 @@ exports.getAllDriversAvailability = async (req, res, next) => {
       ],
     });
 
-    // Group by date and time slot
+
     const grouped = {};
     availability.forEach(item => {
       const dateKey = item.date.toISOString().split('T')[0];
@@ -1429,14 +1426,11 @@ exports.getAllDriversAvailability = async (req, res, next) => {
 };
 
 
-/**
- * Get specific driver's availability
- */
 exports.getDriverAvailability = async (req, res, next) => {
   try {
     const driverId = parseInt(req.params.id);
 
-    // Verify driver exists
+
     const driver = await prisma.user.findUnique({
       where: { id: driverId, role: 'DRIVER' },
       select: { id: true, fullName: true, email: true },
@@ -1452,7 +1446,7 @@ exports.getDriverAvailability = async (req, res, next) => {
     const { startDate, endDate, date, timeSlot } = req.query;
     const where = { driverId };
 
-    // Date filtering
+
     if (date) {
       where.date = new Date(date);
     } else if (startDate || endDate) {
@@ -1461,7 +1455,7 @@ exports.getDriverAvailability = async (req, res, next) => {
       if (endDate) where.date.lte = new Date(endDate);
     }
 
-    // Time slot filtering
+
     if (timeSlot) {
       where.timeSlot = timeSlot;
     }
