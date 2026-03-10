@@ -11,24 +11,24 @@ class CronService {
   }
 
   async initializeJobs() {
-    // Weekly driver feedback summary - Every Sunday at 11:59 PM
+    // Weekly driver feedback summary - Every Sunday at 11:59 PM (Bangladesh Time)
     cron.schedule('59 23 * * 0', async () => {
       console.log('Running weekly driver feedback summary...');
       await this.sendWeeklyDriverFeedbackSummary();
-    });
+    }, { timezone: 'Asia/Dhaka' });
 
-    // Weekly invoice email reminder - Every Sunday at 11:00 PM
+    // Weekly invoice email reminder - Every Sunday at 11:00 PM (Bangladesh Time)
     cron.schedule('0 23 * * 0', async () => {
       console.log('Running weekly invoice email reminder...');
       await this.sendWeeklyInvoiceReminder();
-    });
+    }, { timezone: 'Asia/Dhaka' });
 
 
     await this.initializeInvoiceGenerationJob();
 
     console.log('✅ Cron jobs initialized:');
-    console.log('   - Weekly driver feedback summary: Every Sunday 11:59 PM');
-    console.log('   - Weekly invoice reminder: Every Sunday 11:00 PM');
+    console.log('   - Weekly driver feedback summary: Every Sunday 11:59 PM (Asia/Dhaka)');
+    console.log('   - Weekly invoice reminder: Every Sunday 11:00 PM (Asia/Dhaka)');
   }
 
 
@@ -63,9 +63,9 @@ class CronService {
       this.invoiceGenerationJob = cron.schedule(cronExpression, async () => {
         console.log(`🕐 Running automatic invoice generation (${day} at ${time})...`);
         await this.generateWeeklyInvoices();
-      });
+      }, { timezone: 'Asia/Dhaka' });
 
-      console.log(`✅ Invoice generation scheduled: ${day} at ${time} (${cronExpression})`);
+      console.log(`✅ Invoice generation scheduled: ${day} at ${time} (${cronExpression}) [Asia/Dhaka]`);
     } catch (error) {
       console.error('❌ Failed to initialize invoice generation job:', error);
     }
@@ -145,7 +145,7 @@ class CronService {
                 select: {
                   fullName: true,
                   email: true,
-                  customerProfile: { select: { storeName: true, loginId: true } },
+                  customerProfile: { select: { storeName: true, loginId: true, ccEmail: true } },
                 },
               },
               items: { include: { delivery: true } },
@@ -364,7 +364,7 @@ class CronService {
             select: {
               fullName: true,
               email: true,
-              customerProfile: { select: { storeName: true, loginId: true } },
+              customerProfile: { select: { storeName: true, loginId: true, ccEmail: true } },
             },
           },
           items: { include: { delivery: true } },

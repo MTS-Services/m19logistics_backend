@@ -37,6 +37,16 @@ router.put(
   adminController.updateUser
 );
 
+router.put(
+  '/customers/:id/cc-email',
+  authorize('ADMIN', 'MANAGER'),
+  [
+    body('ccEmail').optional({ nullable: true }).isEmail().withMessage('Must be a valid email address'),
+    validate,
+  ],
+  adminController.updateCustomerCcEmail
+);
+
 router.delete('/users/:id', authorize('ADMIN'), adminController.deleteUser);
 
 router.post('/users/:id/toggle-status', authorize('ADMIN'), adminController.toggleUserStatus);

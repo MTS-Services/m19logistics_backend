@@ -622,6 +622,25 @@ exports.generateLastWeekInvoices = async (req, res, next) => {
   }
 };
 
+exports.updateCustomerCcEmail = async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { ccEmail } = req.body;
+
+    const updated = await adminService.updateUser(userId, {
+      customerProfile: { ccEmail: ccEmail || null },
+    });
+
+    res.json({
+      success: true,
+      message: ccEmail ? `CC email set to ${ccEmail}` : 'CC email cleared',
+      data: { ccEmail: updated.customerProfile?.ccEmail || null },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.sendInvoiceReminders = async (req, res, next) => {
   try {
     const cronService = require('../services/cronService');

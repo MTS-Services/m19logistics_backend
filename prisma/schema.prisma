@@ -74,6 +74,7 @@ model CustomerProfile {
   customBasePrice Decimal? @db.Decimal(10, 2)
   customVatRate   Decimal? @default(20.00) @db.Decimal(5, 2)
   accessScope     String?
+  ccEmail         String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

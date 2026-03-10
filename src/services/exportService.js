@@ -27,8 +27,7 @@ class ExportService {
       .fontSize(10)
       .text(`Invoice Number: ${invoice.invoiceNumber}`, 50, topY)
       .text(`Invoice Date: ${new Date(invoice.invoiceDate).toLocaleDateString()}`, 50, topY + 15)
-      .text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 50, topY + 30)
-      .text(`Status: ${invoice.isPaid ? 'PAID' : 'UNPAID'}`, 50, topY + 45);
+      .text(`Status: ${invoice.isPaid ? 'PAID' : 'UNPAID'}`, 50, topY + 30);
 
     // Customer Details
     doc

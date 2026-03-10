@@ -14,7 +14,7 @@ class EmailService {
     });
   }
 
-  async sendEmail({ to, subject, html, text, attachments = [], replyTo = null }) {
+  async sendEmail({ to, cc, subject, html, text, attachments = [], replyTo = null }) {
     try {
       const mailOptions = {
         from: `M19 Logistics <${process.env.EMAIL_USER}>`,
@@ -24,6 +24,10 @@ class EmailService {
         text: text || this.stripHtml(html),
         attachments,
       };
+
+      if (cc) {
+        mailOptions.cc = cc;
+      }
 
       if (replyTo) {
         mailOptions.replyTo = replyTo;
@@ -872,8 +876,10 @@ class EmailService {
       </div>
     `;
 
+    const ccEmail = invoice.customer?.customerProfile?.ccEmail;
     return this.sendEmail({
       to: invoice.customer.email,
+      ...(ccEmail && { cc: ccEmail }),
       subject,
       html,
       attachments: [{
@@ -926,8 +932,10 @@ class EmailService {
       </div>
     `;
 
+    const ccEmail = invoice.customer?.customerProfile?.ccEmail;
     return this.sendEmail({
       to: invoice.customer.email,
+      ...(ccEmail && { cc: ccEmail }),
       subject,
       html,
       attachments: pdfBuffer ? [{
