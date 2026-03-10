@@ -1,12 +1,11 @@
-const authService = require('../services/authService');
-const userService = require('../services/userService');
-const customerService = require('../services/customerService');
-const driverService = require('../services/driverService');
-const managerService = require('../services/managerService');
-const config = require('../config');
+const authService = require("../services/authService");
+const userService = require("../services/userService");
+const customerService = require("../services/customerService");
+const driverService = require("../services/driverService");
+const managerService = require("../services/managerService");
+const config = require("../config");
 
 class AuthController {
-
   async register(req, res) {
     try {
       const {
@@ -35,12 +34,11 @@ class AuthController {
         assignedStoreCount,
       } = req.body;
 
-
-      const validRoles = ['ADMIN', 'DRIVER', 'CUSTOMER', 'MANAGER'];
+      const validRoles = ["ADMIN", "DRIVER", "CUSTOMER", "MANAGER"];
       if (!validRoles.includes(role)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid role specified.',
+          message: "Invalid role specified.",
         });
       }
 
@@ -48,7 +46,7 @@ class AuthController {
       if (existingEmail) {
         return res.status(400).json({
           success: false,
-          message: 'Email already registered.',
+          message: "Email already registered.",
         });
       }
 
@@ -56,12 +54,11 @@ class AuthController {
       if (existingUsername) {
         return res.status(400).json({
           success: false,
-          message: 'Username already taken.',
+          message: "Username already taken.",
         });
       }
 
       const hashedPassword = await authService.hashPassword(password);
-
 
       const userData = {
         email,
@@ -78,45 +75,55 @@ class AuthController {
       let profile = null;
 
       switch (role) {
-        case 'CUSTOMER':
+        case "CUSTOMER":
           profile = await customerService.createProfile(user.id, {
             storeName,
             depotAddress,
             pricingTierId: pricingTierId ? parseInt(pricingTierId) : null,
-            customBasePrice: customBasePrice ? parseFloat(customBasePrice) : null,
-            customVatRate: customVatRate ? parseFloat(customVatRate) : 20.00,
+            customBasePrice: customBasePrice
+              ? parseFloat(customBasePrice)
+              : null,
+            customVatRate: customVatRate ? parseFloat(customVatRate) : 20.0,
             accessScope,
           });
           break;
 
-        case 'DRIVER':
+        case "DRIVER":
           profile = await driverService.createProfile(user.id, {
             vehicleRegistration,
             driverLicenseNumber,
             address,
-            isActiveDriver: isActiveDriver !== undefined ? isActiveDriver : true,
-            enableSmsNotifications: enableSmsNotifications !== undefined ? enableSmsNotifications : false,
-            enableEmailNotifications: enableEmailNotifications !== undefined ? enableEmailNotifications : true,
+            isActiveDriver:
+              isActiveDriver !== undefined ? isActiveDriver : true,
+            enableSmsNotifications:
+              enableSmsNotifications !== undefined
+                ? enableSmsNotifications
+                : false,
+            enableEmailNotifications:
+              enableEmailNotifications !== undefined
+                ? enableEmailNotifications
+                : true,
           });
           break;
 
-        case 'MANAGER':
+        case "MANAGER":
           profile = await managerService.createProfile(user.id, {
             officeAddress,
             accessScope,
-            assignedStoreCount: assignedStoreCount ? parseInt(assignedStoreCount) : null,
+            assignedStoreCount: assignedStoreCount
+              ? parseInt(assignedStoreCount)
+              : null,
           });
           break;
 
-        case 'ADMIN':
-
+        case "ADMIN":
           break;
       }
       const token = await authService.generateToken(user.id);
 
       res.status(201).json({
         success: true,
-        message: 'Registration successful.',
+        message: "Registration successful.",
         data: {
           user: {
             ...user,
@@ -126,15 +133,14 @@ class AuthController {
         },
       });
     } catch (error) {
-      console.error('Register error:', error);
+      console.error("Register error:", error);
       res.status(500).json({
         success: false,
-        message: 'Registration failed.',
+        message: "Registration failed.",
         error: error.message,
       });
     }
   }
-
 
   async login(req, res) {
     try {
@@ -146,26 +152,26 @@ class AuthController {
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid credentials.',
+          message: "Invalid credentials.",
         });
       }
 
       if (!user.isActive) {
         return res.status(401).json({
           success: false,
-          message: 'Account is inactive. Please contact administrator.',
+          message: "Account is inactive. Please contact administrator.",
         });
       }
 
       const isPasswordValid = await authService.comparePassword(
         password,
-        user.password
+        user.password,
       );
 
       if (!isPasswordValid) {
         return res.status(401).json({
           success: false,
-          message: 'Invalid credentials.',
+          message: "Invalid credentials.",
         });
       }
 
@@ -177,7 +183,7 @@ class AuthController {
 
       res.json({
         success: true,
-        message: 'Login successful.',
+        message: "Login successful.",
         data: {
           user,
           token,
@@ -185,32 +191,30 @@ class AuthController {
         },
       });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       res.status(500).json({
         success: false,
-        message: 'Login failed.',
+        message: "Login failed.",
         error: error.message,
       });
     }
   }
-
 
   async logout(req, res) {
     try {
       res.json({
         success: true,
-        message: 'Logout successful. Please remove the token from client.',
+        message: "Logout successful. Please remove the token from client.",
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       res.status(500).json({
         success: false,
-        message: 'Logout failed.',
+        message: "Logout failed.",
         error: error.message,
       });
     }
   }
-
 
   async getProfile(req, res) {
     try {
@@ -221,15 +225,14 @@ class AuthController {
         data: user,
       });
     } catch (error) {
-      console.error('Get profile error:', error);
+      console.error("Get profile error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to retrieve profile.',
+        message: "Failed to retrieve profile.",
         error: error.message,
       });
     }
   }
-
 
   async changePassword(req, res) {
     try {
@@ -242,13 +245,13 @@ class AuthController {
       // Verify current password
       const isPasswordValid = await authService.comparePassword(
         currentPassword,
-        user.password
+        user.password,
       );
 
       if (!isPasswordValid) {
         return res.status(400).json({
           success: false,
-          message: 'Current password is incorrect.',
+          message: "Current password is incorrect.",
         });
       }
 
@@ -263,14 +266,14 @@ class AuthController {
 
       res.json({
         success: true,
-        message: 'Password changed successfully.',
+        message: "Password changed successfully.",
         data: { token },
       });
     } catch (error) {
-      console.error('Change password error:', error);
+      console.error("Change password error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to change password.',
+        message: "Failed to change password.",
         error: error.message,
       });
     }
@@ -282,7 +285,6 @@ class AuthController {
       const { role } = req.user;
 
       const {
-
         email,
         username,
         fullName,
@@ -305,7 +307,6 @@ class AuthController {
         assignedStoreCount,
       } = req.body;
 
-
       const userUpdateData = {};
 
       if (email !== undefined && email !== req.user.email) {
@@ -313,7 +314,8 @@ class AuthController {
         if (existingEmail) {
           return res.status(400).json({
             success: false,
-            message: 'Email already registered.', n
+            message: "Email already registered.",
+            n,
           });
         }
         userUpdateData.email = email;
@@ -324,7 +326,7 @@ class AuthController {
         if (existingUsername) {
           return res.status(400).json({
             success: false,
-            message: 'Username already taken.',
+            message: "Username already taken.",
           });
         }
         userUpdateData.username = username;
@@ -346,53 +348,76 @@ class AuthController {
       let updatedProfile = null;
 
       switch (role) {
-        case 'CUSTOMER': {
+        case "CUSTOMER": {
           const profileUpdateData = {};
           if (storeName !== undefined) profileUpdateData.storeName = storeName;
-          if (depotAddress !== undefined) profileUpdateData.depotAddress = depotAddress;
-          if (pricingTierId !== undefined) profileUpdateData.pricingTierId = parseInt(pricingTierId);
-          if (customBasePrice !== undefined) profileUpdateData.customBasePrice = parseFloat(customBasePrice);
-          if (customVatRate !== undefined) profileUpdateData.customVatRate = parseFloat(customVatRate);
-          if (accessScope !== undefined) profileUpdateData.accessScope = accessScope;
+          if (depotAddress !== undefined)
+            profileUpdateData.depotAddress = depotAddress;
+          if (pricingTierId !== undefined)
+            profileUpdateData.pricingTierId = parseInt(pricingTierId);
+          if (customBasePrice !== undefined)
+            profileUpdateData.customBasePrice = parseFloat(customBasePrice);
+          if (customVatRate !== undefined)
+            profileUpdateData.customVatRate = parseFloat(customVatRate);
+          if (accessScope !== undefined)
+            profileUpdateData.accessScope = accessScope;
 
           if (Object.keys(profileUpdateData).length > 0) {
-            updatedProfile = await customerService.updateProfile(userId, profileUpdateData);
+            updatedProfile = await customerService.updateProfile(
+              userId,
+              profileUpdateData,
+            );
           }
           break;
         }
 
-        case 'DRIVER': {
+        case "DRIVER": {
           const profileUpdateData = {};
-          if (vehicleRegistration !== undefined) profileUpdateData.vehicleRegistration = vehicleRegistration;
-          if (driverLicenseNumber !== undefined) profileUpdateData.driverLicenseNumber = driverLicenseNumber;
+          if (vehicleRegistration !== undefined)
+            profileUpdateData.vehicleRegistration = vehicleRegistration;
+          if (driverLicenseNumber !== undefined)
+            profileUpdateData.driverLicenseNumber = driverLicenseNumber;
           if (address !== undefined) profileUpdateData.address = address;
-          if (isActiveDriver !== undefined) profileUpdateData.isActiveDriver = isActiveDriver;
-          if (enableSmsNotifications !== undefined) profileUpdateData.enableSmsNotifications = enableSmsNotifications;
-          if (enableEmailNotifications !== undefined) profileUpdateData.enableEmailNotifications = enableEmailNotifications;
+          if (isActiveDriver !== undefined)
+            profileUpdateData.isActiveDriver = isActiveDriver;
+          if (enableSmsNotifications !== undefined)
+            profileUpdateData.enableSmsNotifications = enableSmsNotifications;
+          if (enableEmailNotifications !== undefined)
+            profileUpdateData.enableEmailNotifications =
+              enableEmailNotifications;
 
           if (Object.keys(profileUpdateData).length > 0) {
-            updatedProfile = await driverService.updateProfile(userId, profileUpdateData);
+            updatedProfile = await driverService.updateProfile(
+              userId,
+              profileUpdateData,
+            );
           }
           break;
         }
 
-        case 'MANAGER': {
+        case "MANAGER": {
           const profileUpdateData = {};
-          if (officeAddress !== undefined) profileUpdateData.officeAddress = officeAddress;
-          if (accessScope !== undefined) profileUpdateData.accessScope = accessScope;
-          if (assignedStoreCount !== undefined) profileUpdateData.assignedStoreCount = parseInt(assignedStoreCount);
+          if (officeAddress !== undefined)
+            profileUpdateData.officeAddress = officeAddress;
+          if (accessScope !== undefined)
+            profileUpdateData.accessScope = accessScope;
+          if (assignedStoreCount !== undefined)
+            profileUpdateData.assignedStoreCount = parseInt(assignedStoreCount);
 
           if (Object.keys(profileUpdateData).length > 0) {
-            updatedProfile = await managerService.updateProfile(userId, profileUpdateData);
+            updatedProfile = await managerService.updateProfile(
+              userId,
+              profileUpdateData,
+            );
           }
           break;
         }
 
-        case 'ADMIN':
+        case "ADMIN":
           if (Object.keys(userUpdateData).length === 0) {
             return res.status(400).json({
               success: false,
-              message: 'No fields to update.',
+              message: "No fields to update.",
             });
           }
           break;
@@ -400,35 +425,43 @@ class AuthController {
         default:
           return res.status(400).json({
             success: false,
-            message: 'Invalid user role.',
+            message: "Invalid user role.",
           });
       }
       const completeUser = await userService.findById(userId);
 
       res.json({
         success: true,
-        message: 'Profile updated successfully.',
+        message: "Profile updated successfully.",
         data: {
           user: completeUser,
           updatedFields: {
             userFields: Object.keys(userUpdateData),
-            profileFields: updatedProfile ? Object.keys(updatedProfile).filter(k => k !== 'id' && k !== 'userId' && k !== 'createdAt' && k !== 'updatedAt') : [],
+            profileFields: updatedProfile
+              ? Object.keys(updatedProfile).filter(
+                  (k) =>
+                    k !== "id" &&
+                    k !== "userId" &&
+                    k !== "createdAt" &&
+                    k !== "updatedAt",
+                )
+              : [],
           },
         },
       });
     } catch (error) {
-      console.error('Update profile error:', error);
+      console.error("Update profile error:", error);
 
-      if (error.code === 'P2025') {
+      if (error.code === "P2025") {
         return res.status(404).json({
           success: false,
-          message: 'Profile not found.',
+          message: "Profile not found.",
         });
       }
 
       res.status(500).json({
         success: false,
-        message: 'Failed to update profile.',
+        message: "Failed to update profile.",
         error: error.message,
       });
     }

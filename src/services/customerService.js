@@ -1,8 +1,7 @@
-const prisma = require('../config/database');
-const { generateCustomerLoginId } = require('../utils/generateLoginId');
+const prisma = require("../config/database");
+const { generateCustomerLoginId } = require("../utils/generateLoginId");
 
 class CustomerService {
-
   async createProfile(userId, profileData) {
     // Auto-generate loginId if not provided
     if (!profileData.loginId) {
@@ -19,7 +18,6 @@ class CustomerService {
       },
     });
   }
-
 
   async getProfileByUserId(userId) {
     return prisma.customerProfile.findUnique({
@@ -59,7 +57,6 @@ class CustomerService {
       },
     });
   }
-
 
   async loginIdExists(loginId) {
     const profile = await prisma.customerProfile.findUnique({

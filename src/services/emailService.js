@@ -1,23 +1,34 @@
-const nodemailer = require('nodemailer');
-const config = require('../config');
+const nodemailer = require("nodemailer");
+const config = require("../config");
 
 class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: process.env.EMAIL_SECURE === 'true',
+      host: process.env.MAILGUN_HOST || "smtp.mailgun.org",
+      port: parseInt(process.env.MAILGUN_PORT || "587"),
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.MAILGUN_SMTP_USER,
+        pass: process.env.MAILGUN_SMTP_PASS,
       },
     });
   }
 
-  async sendEmail({ to, cc, subject, html, text, attachments = [], replyTo = null }) {
+  async sendEmail({
+    to,
+    cc,
+    subject,
+    html,
+    text,
+    attachments = [],
+    replyTo = null,
+    from = null,
+  }) {
     try {
       const mailOptions = {
-        from: `M19 Logistics <${process.env.EMAIL_USER}>`,
+        from:
+          from ||
+          `M19 Logistics <${process.env.EMAIL_DELIVERIES || "deliveries@m19logistics.com"}>`,
         to,
         subject,
         html,
@@ -34,22 +45,22 @@ class EmailService {
       }
 
       const info = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', info.messageId);
+      console.log("Email sent successfully:", info.messageId);
       return { success: true, messageId: info.messageId };
     } catch (error) {
-      console.error('Email sending failed:', error);
+      console.error("Email sending failed:", error);
       return { success: false, error: error.message };
     }
   }
 
   stripHtml(html) {
-    return html.replace(/<[^>]*>/g, '');
+    return html.replace(/<[^>]*>/g, "");
   }
 
   // ==================== DELIVERY EMAILS ====================
 
   async sendNewDeliveryNotification(delivery, customer) {
-    const subject = `New Delivery Request – ${customer.fullName} – SPO: ${delivery.spoNumber || 'N/A'}`;
+    const subject = `New Delivery Request – ${customer.fullName} – SPO: ${delivery.spoNumber || "N/A"}`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -59,7 +70,7 @@ class EmailService {
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>SPO Number:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || "N/A"}</td>
           </tr>
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Delivery Date:</strong></td>
@@ -79,22 +90,26 @@ class EmailService {
           </tr>
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Customer Name:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.customerName || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.customerName || "N/A"}</td>
           </tr>
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Customer Phone:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.customerPhone || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.customerPhone || "N/A"}</td>
           </tr>
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Estimated Price:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">£${delivery.totalPrice?.toFixed(2) || 'TBD'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">£${delivery.totalPrice?.toFixed(2) || "TBD"}</td>
           </tr>
-          ${delivery.specialInstructions ? `
+          ${
+            delivery.specialInstructions
+              ? `
           <tr style="background-color: #fff3cd;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Special Instructions:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.specialInstructions}</td>
           </tr>
-          ` : ''}
+          `
+              : ""
+          }
         </table>
 
         <p><strong>Action Required:</strong> Review and allocate to a driver.</p>
@@ -108,15 +123,16 @@ class EmailService {
     `;
 
     return this.sendEmail({
-      to: 'hahm56825@gmail.com', // Admin email
+      to: process.env.EMAIL_ADMIN,
+      from: `M19 Logistics <${process.env.EMAIL_DELIVERIES || "deliveries@m19logistics.com"}>`,
       subject,
       html,
-      replyTo: 'deliveries@m19logistics.com',
+      replyTo: process.env.EMAIL_DELIVERIES,
     });
   }
 
   async sendDriverAssignmentNotification(delivery, driver, customer) {
-    const driverSubject = `New Delivery Assignment – ${new Date(delivery.deliveryDate).toLocaleDateString()} – SPO: ${delivery.spoNumber || 'N/A'}`;
+    const driverSubject = `New Delivery Assignment – ${new Date(delivery.deliveryDate).toLocaleDateString()} – SPO: ${delivery.spoNumber || "N/A"}`;
 
     const driverHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -132,7 +148,7 @@ class EmailService {
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Store Contact:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">
-              <a href="tel:${customer.phone}">${customer.phone || 'N/A'}</a>
+              <a href="tel:${customer.phone}">${customer.phone || "N/A"}</a>
             </td>
           </tr>
           <tr style="background-color: #f8f9fa;">
@@ -153,14 +169,18 @@ class EmailService {
           </tr>
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>SPO Number:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || "N/A"}</td>
           </tr>
-          ${delivery.specialInstructions ? `
+          ${
+            delivery.specialInstructions
+              ? `
           <tr style="background-color: #fff3cd;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Special Instructions:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.specialInstructions}</td>
           </tr>
-          ` : ''}
+          `
+              : ""
+          }
         </table>
 
         <p><strong>Action Required:</strong> Please log in to accept or reject this delivery.</p>
@@ -175,13 +195,14 @@ class EmailService {
     // Send to driver
     await this.sendEmail({
       to: driver.email,
+      from: `M19 Logistics <${process.env.EMAIL_DELIVERIES || "deliveries@m19logistics.com"}>`,
       subject: driverSubject,
       html: driverHtml,
-      replyTo: 'deliveries@m19logistics.com',
+      replyTo: process.env.EMAIL_DELIVERIES,
     });
 
     // Notify customer that driver has been assigned
-    const customerSubject = `Your Delivery Has Been Scheduled – SPO: ${delivery.spoNumber || 'N/A'}`;
+    const customerSubject = `Your Delivery Has Been Scheduled – SPO: ${delivery.spoNumber || "N/A"}`;
     const customerHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2c3e50;">Delivery Scheduled</h2>
@@ -195,7 +216,7 @@ class EmailService {
           </tr>
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Driver Contact:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">${driver.phone || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${driver.phone || "N/A"}</td>
           </tr>
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Delivery Date:</strong></td>
@@ -219,20 +240,29 @@ class EmailService {
 
     return this.sendEmail({
       to: customer.email,
+      from: `M19 Logistics <${process.env.EMAIL_DELIVERIES || "deliveries@m19logistics.com"}>`,
       subject: customerSubject,
       html: customerHtml,
-      replyTo: 'deliveries@m19logistics.com',
+      replyTo: process.env.EMAIL_DELIVERIES,
     });
   }
 
-  async sendDeliveryCompletedNotification(delivery, customer, driver, receivedBy, driverNotes, signatureUrl, photoUrl) {
-    const subject = `M19 Logistics – Completed Delivery Confirmation (SPO: ${delivery.spoNumber || 'N/A'})`;
+  async sendDeliveryCompletedNotification(
+    delivery,
+    customer,
+    driver,
+    receivedBy,
+    driverNotes,
+    signatureUrl,
+    photoUrl,
+  ) {
+    const subject = `M19 Logistics – Completed Delivery Confirmation (SPO: ${delivery.spoNumber || "N/A"})`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #28a745;">Delivery Completed ✓</h2>
         <p>Hello ${customer.fullName},</p>
-        <p>Your delivery for SPO ${delivery.spoNumber || 'N/A'} has been completed.</p>
+        <p>Your delivery for SPO ${delivery.spoNumber || "N/A"} has been completed.</p>
         
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr style="background-color: #f8f9fa;">
@@ -251,16 +281,20 @@ class EmailService {
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Driver:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${driver.fullName}</td>
           </tr>
-          ${driverNotes ? `
+          ${
+            driverNotes
+              ? `
           <tr style="background-color: #e7f3ff;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Driver Notes:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${driverNotes}</td>
           </tr>
-          ` : ''}
+          `
+              : ""
+          }
         </table>
 
-        ${signatureUrl ? `<p><strong>Signature:</strong> <a href="${signatureUrl}">View Signature</a></p>` : ''}
-        ${photoUrl ? `<p><strong>Delivery Photo:</strong> <a href="${photoUrl}">View Photo</a></p>` : ''}
+        ${signatureUrl ? `<p><strong>Signature:</strong> <a href="${signatureUrl}">View Signature</a></p>` : ""}
+        ${photoUrl ? `<p><strong>Delivery Photo:</strong> <a href="${photoUrl}">View Photo</a></p>` : ""}
         
         <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
           Thank you for choosing M19 Logistics.<br>
@@ -274,14 +308,15 @@ class EmailService {
     // To avoid file path issues
     return this.sendEmail({
       to: customer.email,
+      from: `M19 Logistics <${process.env.EMAIL_INVOICES || "invoices@m19logistics.com"}>`,
       subject,
       html,
-      replyTo: 'deliveries@m19logistics.com',
+      replyTo: process.env.EMAIL_INVOICES,
     });
   }
 
   async sendDriverAcceptanceNotification(delivery, customer) {
-    const subject = `Delivery Confirmed – Driver Accepted – SPO: ${delivery.spoNumber || 'N/A'}`;
+    const subject = `Delivery Confirmed – Driver Accepted – SPO: ${delivery.spoNumber || "N/A"}`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -292,7 +327,7 @@ class EmailService {
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>SPO Number:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || "N/A"}</td>
           </tr>
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Delivery Date:</strong></td>
@@ -315,14 +350,20 @@ class EmailService {
 
     return this.sendEmail({
       to: customer.email,
+      from: `M19 Logistics <${process.env.EMAIL_DELIVERIES || "deliveries@m19logistics.com"}>`,
       subject,
       html,
-      replyTo: 'deliveries@m19logistics.com',
+      replyTo: process.env.EMAIL_DELIVERIES,
     });
   }
 
-  async sendDriverRejectionNotification(delivery, customer, driver, rejectionReason) {
-    const subject = `⚠️ Delivery Rejected – Reassignment Required – SPO: ${delivery.spoNumber || 'N/A'} – ${customer.fullName}`;
+  async sendDriverRejectionNotification(
+    delivery,
+    customer,
+    driver,
+    rejectionReason,
+  ) {
+    const subject = `⚠️ Delivery Rejected – Reassignment Required – SPO: ${delivery.spoNumber || "N/A"} – ${customer.fullName}`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -336,7 +377,7 @@ class EmailService {
           </tr>
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>SPO Number:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || "N/A"}</td>
           </tr>
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Delivery Date:</strong></td>
@@ -361,15 +402,21 @@ class EmailService {
     `;
 
     return this.sendEmail({
-      to: 'hahm56825@gmail.com', // Admin email
+      to: process.env.EMAIL_ADMIN,
+      from: `M19 Logistics <${process.env.EMAIL_ADMIN || "admin@m19logistics.com"}>`,
       subject,
       html,
-      replyTo: 'admin@m19logistics.com',
+      replyTo: process.env.EMAIL_ADMIN,
     });
   }
 
-  async sendDeliveryCancellationNotification(delivery, customer, cancelledBy, reason) {
-    const subject = `Delivery Cancelled – SPO: ${delivery.spoNumber || 'N/A'}`;
+  async sendDeliveryCancellationNotification(
+    delivery,
+    customer,
+    cancelledBy,
+    reason,
+  ) {
+    const subject = `Delivery Cancelled – SPO: ${delivery.spoNumber || "N/A"}`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -380,7 +427,7 @@ class EmailService {
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>SPO Number:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || "N/A"}</td>
           </tr>
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Delivery Date:</strong></td>
@@ -390,12 +437,16 @@ class EmailService {
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Cancelled By:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${cancelledBy}</td>
           </tr>
-          ${reason ? `
+          ${
+            reason
+              ? `
           <tr style="background-color: #fff3cd;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Reason:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${reason}</td>
           </tr>
-          ` : ''}
+          `
+              : ""
+          }
         </table>
 
         <p>If you have any questions, please contact us.</p>
@@ -410,14 +461,15 @@ class EmailService {
 
     return this.sendEmail({
       to: customer.email,
+      from: `M19 Logistics <${process.env.EMAIL_DELIVERIES || "deliveries@m19logistics.com"}>`,
       subject,
       html,
-      replyTo: 'deliveries@m19logistics.com',
+      replyTo: process.env.EMAIL_DELIVERIES,
     });
   }
 
   async sendSameDayDeliveryAlert(delivery, customer) {
-    const subject = `⚠️ Same-Day Delivery Request – CONFIRMATION REQUIRED – SPO: ${delivery.spoNumber || 'N/A'}`;
+    const subject = `⚠️ Same-Day Delivery Request – CONFIRMATION REQUIRED – SPO: ${delivery.spoNumber || "N/A"}`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -431,7 +483,7 @@ class EmailService {
           </tr>
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>SPO Number:</strong></td>
-            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || 'N/A'}</td>
+            <td style="padding: 10px; border: 1px solid #dee2e6;">${delivery.spoNumber || "N/A"}</td>
           </tr>
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Delivery Address:</strong></td>
@@ -456,20 +508,21 @@ class EmailService {
     `;
 
     return this.sendEmail({
-      to: 'hahm56825@gmail.com', // Admin email
+      to: process.env.EMAIL_ADMIN,
+      from: `M19 Logistics <${process.env.EMAIL_ADMIN || "admin@m19logistics.com"}>`,
       subject,
       html,
-      replyTo: 'deliveries@m19logistics.com',
+      replyTo: process.env.EMAIL_DELIVERIES,
     });
   }
 
   async sendSlotCapacityWarning(date, timeSlot, booked, maxCapacity) {
     const percentage = Math.round((booked / maxCapacity) * 100);
-    const subject = `⚠️ Slot Capacity Alert – ${new Date(date).toLocaleDateString()} ${timeSlot} – ${percentage}% ${percentage >= 100 ? 'FULL' : 'Filled'}`;
+    const subject = `⚠️ Slot Capacity Alert – ${new Date(date).toLocaleDateString()} ${timeSlot} – ${percentage}% ${percentage >= 100 ? "FULL" : "Filled"}`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: ${percentage >= 100 ? '#dc3545' : '#ffc107'};">Slot Capacity ${percentage >= 100 ? 'Full' : 'Warning'}</h2>
+        <h2 style="color: ${percentage >= 100 ? "#dc3545" : "#ffc107"};">Slot Capacity ${percentage >= 100 ? "Full" : "Warning"}</h2>
         <p>The ${timeSlot} slot for ${new Date(date).toLocaleDateString()} has reached ${percentage}% capacity.</p>
         
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
@@ -491,10 +544,11 @@ class EmailService {
           </tr>
         </table>
 
-        ${percentage >= 100 ?
-        '<p style="background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545;"><strong>Slot is now FULL.</strong> No more bookings can be accepted unless capacity is increased.</p>' :
-        '<p style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107;"><strong>Suggestion:</strong> Consider increasing capacity or notifying customers of limited availability.</p>'
-      }
+        ${
+          percentage >= 100
+            ? '<p style="background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545;"><strong>Slot is now FULL.</strong> No more bookings can be accepted unless capacity is increased.</p>'
+            : '<p style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107;"><strong>Suggestion:</strong> Consider increasing capacity or notifying customers of limited availability.</p>'
+        }
         
         <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
           M19 Logistics Admin Panel
@@ -503,10 +557,11 @@ class EmailService {
     `;
 
     return this.sendEmail({
-      to: 'hahm56825@gmail.com', // Admin email
+      to: process.env.EMAIL_ADMIN,
+      from: `M19 Logistics <${process.env.EMAIL_ADMIN || "admin@m19logistics.com"}>`,
       subject,
       html,
-      replyTo: 'admin@m19logistics.com',
+      replyTo: process.env.EMAIL_ADMIN,
     });
   }
 
@@ -517,7 +572,12 @@ class EmailService {
    * @param {Date} startDate - Week start date
    * @param {Date} endDate - Week end date
    */
-  async sendWeeklyDriverFeedbackSummary(feedbackRecords, deliveriesWithNotes, startDate, endDate) {
+  async sendWeeklyDriverFeedbackSummary(
+    feedbackRecords,
+    deliveriesWithNotes,
+    startDate,
+    endDate,
+  ) {
     const subject = `📊 Weekly Driver Feedback Summary - ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
 
     const html = `
@@ -527,7 +587,9 @@ class EmailService {
         
         <hr style="border: 1px solid #e5e7eb; margin: 20px 0;">
         
-        ${feedbackRecords.length > 0 ? `
+        ${
+          feedbackRecords.length > 0
+            ? `
           <h3 style="color: #059669;">Driver Feedback (${feedbackRecords.length})</h3>
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
             <thead>
@@ -541,21 +603,29 @@ class EmailService {
               </tr>
             </thead>
             <tbody>
-              ${feedbackRecords.map((feedback, index) => `
-                <tr style="background-color: ${index % 2 === 0 ? '#f9fafb' : 'white'};">
+              ${feedbackRecords
+                .map(
+                  (feedback, index) => `
+                <tr style="background-color: ${index % 2 === 0 ? "#f9fafb" : "white"};">
                   <td style="padding: 10px; border: 1px solid #ddd;">${new Date(feedback.createdAt).toLocaleDateString()}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.driver?.fullName || 'N/A'}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.delivery?.spoNumber || 'N/A'}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.delivery?.customer?.fullName || 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.driver?.fullName || "N/A"}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.delivery?.spoNumber || "N/A"}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.delivery?.customer?.fullName || "N/A"}</td>
                   <td style="padding: 10px; border: 1px solid #ddd;">⭐ ${feedback.rating}/5</td>
-                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.comments || 'No comments'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${feedback.comments || "No comments"}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
           </table>
-        ` : '<p><em>No driver feedback submitted this week.</em></p>'}
+        `
+            : "<p><em>No driver feedback submitted this week.</em></p>"
+        }
         
-        ${deliveriesWithNotes.length > 0 ? `
+        ${
+          deliveriesWithNotes.length > 0
+            ? `
           <hr style="border: 1px solid #e5e7eb; margin: 30px 0;">
           <h3 style="color: #059669;">Completed Deliveries with Notes (${deliveriesWithNotes.length})</h3>
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
@@ -570,19 +640,25 @@ class EmailService {
               </tr>
             </thead>
             <tbody>
-              ${deliveriesWithNotes.map((delivery, index) => `
-                <tr style="background-color: ${index % 2 === 0 ? '#f9fafb' : 'white'};">
+              ${deliveriesWithNotes
+                .map(
+                  (delivery, index) => `
+                <tr style="background-color: ${index % 2 === 0 ? "#f9fafb" : "white"};">
                   <td style="padding: 10px; border: 1px solid #ddd;">${new Date(delivery.deliveredAt).toLocaleDateString()}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.driver?.fullName || 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.driver?.fullName || "N/A"}</td>
                   <td style="padding: 10px; border: 1px solid #ddd;">${delivery.spoNumber}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.customer?.fullName || 'N/A'}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.receivedBy || 'N/A'}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.customer?.fullName || "N/A"}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${delivery.receivedBy || "N/A"}</td>
                   <td style="padding: 10px; border: 1px solid #ddd; font-size: 12px;">${delivery.deliveryAddress}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
           </table>
-        ` : ''}
+        `
+            : ""
+        }
         
         <hr style="border: 1px solid #e5e7eb; margin: 30px 0;">
         
@@ -595,9 +671,14 @@ class EmailService {
             <strong>Total Deliveries Completed:</strong> ${deliveriesWithNotes.length}
           </li>
           <li style="padding: 8px; background-color: #f3f4f6; margin: 5px 0; border-radius: 4px;">
-            <strong>Average Rating:</strong> ${feedbackRecords.length > 0
-        ? (feedbackRecords.reduce((sum, f) => sum + f.rating, 0) / feedbackRecords.length).toFixed(1)
-        : 'N/A'}/5
+            <strong>Average Rating:</strong> ${
+              feedbackRecords.length > 0
+                ? (
+                    feedbackRecords.reduce((sum, f) => sum + f.rating, 0) /
+                    feedbackRecords.length
+                  ).toFixed(1)
+                : "N/A"
+            }/5
           </li>
         </ul>
         
@@ -610,11 +691,12 @@ class EmailService {
     `;
 
     return this.sendEmail({
-      to: 'hahm56825@gmail.com', // Admin email
-      cc: 'ben@m19logistics.com', // Optional: CC to Ben
+      to: process.env.EMAIL_ADMIN,
+      cc: process.env.EMAIL_BEN,
+      from: `M19 Logistics <${process.env.EMAIL_ADMIN || "admin@m19logistics.com"}>`,
       subject,
       html,
-      replyTo: 'admin@m19logistics.com',
+      replyTo: process.env.EMAIL_ADMIN,
     });
   }
 
@@ -626,15 +708,23 @@ class EmailService {
    * @param {Date} startDate
    * @param {Date} endDate
    */
-  async sendDriverWeeklyFeedbackEmail(driver, feedbackRecords, deliveriesWithNotes, startDate, endDate) {
+  async sendDriverWeeklyFeedbackEmail(
+    driver,
+    feedbackRecords,
+    deliveriesWithNotes,
+    startDate,
+    endDate,
+  ) {
     const subject = `📬 Your Weekly Driver Feedback - ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Hello ${driver.fullName || 'Driver'},</h2>
+        <h2 style="color: #2563eb;">Hello ${driver.fullName || "Driver"},</h2>
         <p>This is your weekly feedback summary for <strong>${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}</strong>.</p>
 
-        ${feedbackRecords.length > 0 ? `
+        ${
+          feedbackRecords.length > 0
+            ? `
           <h3 style="color: #059669;">Your Feedback (${feedbackRecords.length})</h3>
           <table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
             <thead>
@@ -646,19 +736,27 @@ class EmailService {
               </tr>
             </thead>
             <tbody>
-              ${feedbackRecords.map((f, i) => `
-                <tr style="background-color: ${i % 2 === 0 ? '#f9fafb' : 'white'};">
+              ${feedbackRecords
+                .map(
+                  (f, i) => `
+                <tr style="background-color: ${i % 2 === 0 ? "#f9fafb" : "white"};">
                   <td style="padding: 8px; border: 1px solid #ddd;">${new Date(f.createdAt).toLocaleDateString()}</td>
-                  <td style="padding: 8px; border: 1px solid #ddd;">${f.delivery?.spoNumber || 'N/A'}</td>
-                  <td style="padding: 8px; border: 1px solid #ddd;">${f.delivery?.customer?.fullName || 'N/A'}</td>
-                  <td style="padding: 8px; border: 1px solid #ddd;">${(f.notes || '').replace(/\n/g, '<br/>')}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${f.delivery?.spoNumber || "N/A"}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${f.delivery?.customer?.fullName || "N/A"}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${(f.notes || "").replace(/\n/g, "<br/>")}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
           </table>
-        ` : '<p><em>No feedback submitted this week.</em></p>'}
+        `
+            : "<p><em>No feedback submitted this week.</em></p>"
+        }
 
-        ${deliveriesWithNotes.length > 0 ? `
+        ${
+          deliveriesWithNotes.length > 0
+            ? `
           <h3 style="color: #059669;">Deliveries with Notes (${deliveriesWithNotes.length})</h3>
           <table style="width: 100%; border-collapse: collapse; margin: 12px 0;">
             <thead>
@@ -670,17 +768,23 @@ class EmailService {
               </tr>
             </thead>
             <tbody>
-              ${deliveriesWithNotes.map((d, i) => `
-                <tr style="background-color: ${i % 2 === 0 ? '#f9fafb' : 'white'};">
+              ${deliveriesWithNotes
+                .map(
+                  (d, i) => `
+                <tr style="background-color: ${i % 2 === 0 ? "#f9fafb" : "white"};">
                   <td style="padding: 8px; border: 1px solid #ddd;">${new Date(d.deliveredAt).toLocaleDateString()}</td>
                   <td style="padding: 8px; border: 1px solid #ddd;">${d.spoNumber}</td>
-                  <td style="padding: 8px; border: 1px solid #ddd;">${d.receivedBy || 'N/A'}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${d.receivedBy || "N/A"}</td>
                   <td style="padding: 8px; border: 1px solid #ddd;">${d.deliveryAddress}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
           </table>
-        ` : ''}
+        `
+            : ""
+        }
 
         <hr style="border: 1px solid #e5e7eb; margin: 20px 0;">
         <p style="color: #6c757d; font-size: 12px;">If you'd like to stop receiving these emails, update your notification preferences in your profile.</p>
@@ -691,9 +795,10 @@ class EmailService {
 
     return this.sendEmail({
       to: driver.email,
+      from: `M19 Logistics <${process.env.EMAIL_ADMIN || "admin@m19logistics.com"}>`,
       subject,
       html,
-      replyTo: 'admin@m19logistics.com',
+      replyTo: process.env.EMAIL_ADMIN,
     });
   }
 
@@ -714,11 +819,15 @@ class EmailService {
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Email:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><a href="mailto:${contact.email}">${contact.email}</a></td>
           </tr>
-          ${contact.phone ? `
+          ${
+            contact.phone
+              ? `
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Phone:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${contact.phone}</td>
-          </tr>` : ''}
+          </tr>`
+              : ""
+          }
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Message:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6; white-space: pre-wrap;">${contact.message}</td>
@@ -738,6 +847,7 @@ class EmailService {
     `;
     return this.sendEmail({
       to: process.env.EMAIL_ENQUIRIES,
+      from: `M19 Logistics <${process.env.EMAIL_ENQUIRIES || "enquiries@m19logistics.com"}>`,
       subject,
       html,
       replyTo: contact.email,
@@ -755,11 +865,15 @@ class EmailService {
             <td style="padding: 10px; border: 1px solid #dee2e6; width: 35%;"><strong>Full Name:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${enquiry.fullName}</td>
           </tr>
-          ${enquiry.companyName ? `
+          ${
+            enquiry.companyName
+              ? `
           <tr>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Company:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${enquiry.companyName}</td>
-          </tr>` : ''}
+          </tr>`
+              : ""
+          }
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Email:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><a href="mailto:${enquiry.email}">${enquiry.email}</a></td>
@@ -791,6 +905,7 @@ class EmailService {
     `;
     return this.sendEmail({
       to: process.env.EMAIL_ENQUIRIES,
+      from: `M19 Logistics <${process.env.EMAIL_ENQUIRIES || "enquiries@m19logistics.com"}>`,
       subject,
       html,
       replyTo: enquiry.email,
@@ -800,18 +915,24 @@ class EmailService {
   // ==================== INVOICE EMAILS ====================
 
   async sendInvoiceToCustomer(invoice, pdfBuffer) {
-    const weekStart = new Date(invoice.weekStartDate).toLocaleDateString('en-GB');
-    const weekEnd = new Date(invoice.weekEndDate).toLocaleDateString('en-GB');
+    const weekStart = new Date(invoice.weekStartDate).toLocaleDateString(
+      "en-GB",
+    );
+    const weekEnd = new Date(invoice.weekEndDate).toLocaleDateString("en-GB");
     const subject = `Invoice ${invoice.invoiceNumber} – Week ${weekStart} to ${weekEnd} – M19 Logistics`;
 
-    const itemRows = (invoice.items || []).map((item, i) => `
-      <tr style="background-color: ${i % 2 === 0 ? '#f8f9fa' : '#fff'};">
-        <td style="padding: 8px; border: 1px solid #dee2e6;">${item.description || ''}</td>
+    const itemRows = (invoice.items || [])
+      .map(
+        (item, i) => `
+      <tr style="background-color: ${i % 2 === 0 ? "#f8f9fa" : "#fff"};">
+        <td style="padding: 8px; border: 1px solid #dee2e6;">${item.description || ""}</td>
         <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">${item.quantity || 1}</td>
         <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">£${(item.unitCost || 0).toFixed(2)}</td>
         <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">£${(item.vatAmount || 0).toFixed(2)}</td>
         <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">£${(item.total || 0).toFixed(2)}</td>
-      </tr>`).join('');
+      </tr>`,
+      )
+      .join("");
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
@@ -826,7 +947,7 @@ class EmailService {
           </tr>
           <tr>
             <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Invoice Date:</strong></td>
-            <td style="padding: 8px; border: 1px solid #dee2e6;">${new Date(invoice.invoiceDate).toLocaleDateString('en-GB')}</td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${new Date(invoice.invoiceDate).toLocaleDateString("en-GB")}</td>
           </tr>
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Period:</strong></td>
@@ -834,7 +955,7 @@ class EmailService {
           </tr>
           <tr>
             <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Payment Terms:</strong></td>
-            <td style="padding: 8px; border: 1px solid #dee2e6;">${invoice.paymentTerms || '30 Days (End of Month)'}</td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${invoice.paymentTerms || "30 Days (End of Month)"}</td>
           </tr>
         </table>
 
@@ -870,8 +991,8 @@ class EmailService {
 
         <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
           M19 Logistics Limited<br>
-          Tel: ${process.env.COMPANY_PHONE || '07971415430'}<br>
-          Email: ${process.env.EMAIL_ADMIN || 'admin@m19logistics.com'}
+          Tel: ${process.env.COMPANY_PHONE || "07971415430"}<br>
+          Email: ${process.env.EMAIL_ADMIN || "admin@m19logistics.com"}
         </p>
       </div>
     `;
@@ -880,20 +1001,25 @@ class EmailService {
     return this.sendEmail({
       to: invoice.customer.email,
       ...(ccEmail && { cc: ccEmail }),
+      from: `M19 Logistics <${process.env.EMAIL_INVOICES || "invoices@m19logistics.com"}>`,
       subject,
       html,
-      attachments: [{
-        filename: `Invoice-${invoice.invoiceNumber}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf',
-      }],
-      replyTo: process.env.EMAIL_ADMIN,
+      attachments: [
+        {
+          filename: `Invoice-${invoice.invoiceNumber}.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+      replyTo: process.env.EMAIL_INVOICES,
     });
   }
 
   async sendInvoicePaymentReminder(invoice, pdfBuffer) {
-    const weekStart = new Date(invoice.weekStartDate).toLocaleDateString('en-GB');
-    const weekEnd = new Date(invoice.weekEndDate).toLocaleDateString('en-GB');
+    const weekStart = new Date(invoice.weekStartDate).toLocaleDateString(
+      "en-GB",
+    );
+    const weekEnd = new Date(invoice.weekEndDate).toLocaleDateString("en-GB");
     const subject = `Payment Reminder – Invoice ${invoice.invoiceNumber} – M19 Logistics`;
 
     const html = `
@@ -917,7 +1043,7 @@ class EmailService {
           </tr>
           <tr>
             <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>Payment Terms:</strong></td>
-            <td style="padding: 8px; border: 1px solid #dee2e6;">${invoice.paymentTerms || '30 Days (End of Month)'}</td>
+            <td style="padding: 8px; border: 1px solid #dee2e6;">${invoice.paymentTerms || "30 Days (End of Month)"}</td>
           </tr>
         </table>
 
@@ -926,8 +1052,8 @@ class EmailService {
 
         <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
           M19 Logistics Limited<br>
-          Tel: ${process.env.COMPANY_PHONE || '07971415430'}<br>
-          Email: ${process.env.EMAIL_ADMIN || 'admin@m19logistics.com'}
+          Tel: ${process.env.COMPANY_PHONE || "07971415430"}<br>
+          Email: ${process.env.EMAIL_ADMIN || "admin@m19logistics.com"}
         </p>
       </div>
     `;
@@ -936,14 +1062,19 @@ class EmailService {
     return this.sendEmail({
       to: invoice.customer.email,
       ...(ccEmail && { cc: ccEmail }),
+      from: `M19 Logistics <${process.env.EMAIL_INVOICES || "invoices@m19logistics.com"}>`,
       subject,
       html,
-      attachments: pdfBuffer ? [{
-        filename: `Invoice-${invoice.invoiceNumber}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf',
-      }] : [],
-      replyTo: process.env.EMAIL_ADMIN,
+      attachments: pdfBuffer
+        ? [
+            {
+              filename: `Invoice-${invoice.invoiceNumber}.pdf`,
+              content: pdfBuffer,
+              contentType: "application/pdf",
+            },
+          ]
+        : [],
+      replyTo: process.env.EMAIL_INVOICES,
     });
   }
 
@@ -972,11 +1103,15 @@ class EmailService {
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Position Applied:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;">${application.positionOfInterest}</td>
           </tr>
-          ${application.coverLetter ? `
+          ${
+            application.coverLetter
+              ? `
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>Cover Letter:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6; white-space: pre-wrap;">${application.coverLetter}</td>
-          </tr>` : ''}
+          </tr>`
+              : ""
+          }
           <tr style="background-color: #f8f9fa;">
             <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>CV:</strong></td>
             <td style="padding: 10px; border: 1px solid #dee2e6;"><a href="${application.cvUrl}">Download CV</a></td>
@@ -996,6 +1131,7 @@ class EmailService {
     `;
     return this.sendEmail({
       to: process.env.EMAIL_ADMIN,
+      from: `M19 Logistics <${process.env.EMAIL_ADMIN || "admin@m19logistics.com"}>`,
       subject,
       html,
       replyTo: application.email,
@@ -1023,13 +1159,14 @@ class EmailService {
         <p>If you have any questions, please contact us at <a href="mailto:${process.env.EMAIL_ADMIN}">${process.env.EMAIL_ADMIN}</a>.</p>
         <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
           M19 Logistics Limited<br>
-          Tel: ${process.env.COMPANY_PHONE || '07971415430'}<br>
-          ${process.env.COMPANY_ADDRESS || '84 Acton Hall Walks, Wrexham, LL127YJ'}
+          Tel: ${process.env.COMPANY_PHONE || "07971415430"}<br>
+          ${process.env.COMPANY_ADDRESS || "84 Acton Hall Walks, Wrexham, LL127YJ"}
         </p>
       </div>
     `;
     return this.sendEmail({
       to: application.email,
+      from: `M19 Logistics <${process.env.EMAIL_ADMIN || "admin@m19logistics.com"}>`,
       subject,
       html,
       replyTo: process.env.EMAIL_ADMIN,

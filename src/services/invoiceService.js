@@ -1,8 +1,7 @@
-const prisma = require('../config/database');
-const config = require('../config');
+const prisma = require("../config/database");
+const config = require("../config");
 
 class InvoiceService {
-
   async getCustomerInvoices(customerId, filters = {}) {
     const { startDate, endDate, isPaid, search } = filters;
 
@@ -13,7 +12,7 @@ class InvoiceService {
     }
 
     if (isPaid !== undefined) {
-      where.isPaid = isPaid === 'true';
+      where.isPaid = isPaid === "true";
     }
 
     if (startDate || endDate) {
@@ -28,7 +27,7 @@ class InvoiceService {
         {
           invoiceNumber: {
             contains: search,
-            mode: 'insensitive',
+            mode: "insensitive",
           },
         },
         {
@@ -37,7 +36,7 @@ class InvoiceService {
               delivery: {
                 spoNumber: {
                   contains: search,
-                  mode: 'insensitive',
+                  mode: "insensitive",
                 },
               },
             },
@@ -61,15 +60,14 @@ class InvoiceService {
           },
         },
       },
-      orderBy: { invoiceDate: 'desc' },
+      orderBy: { invoiceDate: "desc" },
     });
   }
-
 
   async getInvoiceById(id, customerId = null) {
     // Validate invoice ID
     if (!id || isNaN(id)) {
-      throw new Error('Invalid invoice ID');
+      throw new Error("Invalid invoice ID");
     }
 
     const where = { id };
@@ -106,7 +104,6 @@ class InvoiceService {
     });
   }
 
-
   async getInvoiceByNumber(invoiceNumber, customerId = null) {
     const where = { invoiceNumber };
     if (customerId) where.customerId = customerId;
@@ -140,12 +137,11 @@ class InvoiceService {
     });
   }
 
-
   async generateWeeklyInvoice(customerId, weekStartDate, weekEndDate) {
     const deliveries = await prisma.delivery.findMany({
       where: {
         customerId,
-        status: 'DELIVERED',
+        status: "DELIVERED",
         deliveryDate: {
           gte: new Date(weekStartDate),
           lte: new Date(weekEndDate),
@@ -158,7 +154,7 @@ class InvoiceService {
     });
 
     if (deliveries.length === 0) {
-      throw new Error('No completed deliveries found for this period');
+      throw new Error("No completed deliveries found for this period");
     }
 
     const invoiceNumber = await this.getNextInvoiceNumber();
@@ -225,24 +221,26 @@ class InvoiceService {
 
   async getNextInvoiceNumber() {
     const setting = await prisma.systemSetting.findUnique({
-      where: { key: 'LAST_INVOICE_NUMBER' },
+      where: { key: "LAST_INVOICE_NUMBER" },
     });
 
-    const currentNumber = setting ? parseInt(setting.value) : config.invoice.currentNumber;
+    const currentNumber = setting
+      ? parseInt(setting.value)
+      : config.invoice.currentNumber;
     const nextNumber = currentNumber + 1;
 
     // Update setting
     await prisma.systemSetting.upsert({
-      where: { key: 'LAST_INVOICE_NUMBER' },
+      where: { key: "LAST_INVOICE_NUMBER" },
       update: { value: nextNumber.toString() },
       create: {
-        key: 'LAST_INVOICE_NUMBER',
+        key: "LAST_INVOICE_NUMBER",
         value: nextNumber.toString(),
-        description: 'Last invoice number issued',
+        description: "Last invoice number issued",
       },
     });
 
-    return `${config.invoice.prefix}${nextNumber.toString().padStart(4, '0')}`;
+    return `${config.invoice.prefix}${nextNumber.toString().padStart(4, "0")}`;
   }
 
   async markAsPaid(id) {
