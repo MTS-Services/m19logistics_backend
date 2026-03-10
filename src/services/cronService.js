@@ -1,9 +1,9 @@
-const cron = require('node-cron');
-const prisma = require('../config/database');
-const emailService = require('./emailService');
-const auditService = require('./auditService');
-const invoiceGenerationService = require('./invoiceGenerationService');
-const config = require('../config');
+const cron = require("node-cron");
+const prisma = require("../config/database");
+const emailService = require("./emailService");
+const auditService = require("./auditService");
+const invoiceGenerationService = require("./invoiceGenerationService");
+const config = require("../config");
 
 class CronService {
   constructor() {
@@ -11,80 +11,93 @@ class CronService {
   }
 
   async initializeJobs() {
-    // Weekly driver feedback summary - Every Sunday at 11:59 PM (Bangladesh Time)
-    cron.schedule('59 23 * * 0', async () => {
-      console.log('Running weekly driver feedback summary...');
-      await this.sendWeeklyDriverFeedbackSummary();
-    }, { timezone: 'Asia/Dhaka' });
+    // Weekly driver feedback summary - Every Sunday at 11:59 PM (UK Time)
+    cron.schedule(
+      "59 23 * * 0",
+      async () => {
+        console.log("Running weekly driver feedback summary...");
+        await this.sendWeeklyDriverFeedbackSummary();
+      },
+      { timezone: "Europe/London" },
+    );
 
-    // Weekly invoice email reminder - Every Sunday at 11:00 PM (Bangladesh Time)
-    cron.schedule('0 23 * * 0', async () => {
-      console.log('Running weekly invoice email reminder...');
-      await this.sendWeeklyInvoiceReminder();
-    }, { timezone: 'Asia/Dhaka' });
-
+    // Weekly invoice email reminder - Every Sunday at 11:00 PM (UK Time)
+    cron.schedule(
+      "0 23 * * 0",
+      async () => {
+        console.log("Running weekly invoice email reminder...");
+        await this.sendWeeklyInvoiceReminder();
+      },
+      { timezone: "Europe/London" },
+    );
 
     await this.initializeInvoiceGenerationJob();
 
-    console.log('✅ Cron jobs initialized:');
-    console.log('   - Weekly driver feedback summary: Every Sunday 11:59 PM (Asia/Dhaka)');
-    console.log('   - Weekly invoice reminder: Every Sunday 11:00 PM (Asia/Dhaka)');
+    console.log("✅ Cron jobs initialized:");
+    console.log(
+      "   - Weekly driver feedback summary: Every Sunday 11:59 PM (Europe/London)",
+    );
+    console.log(
+      "   - Weekly invoice reminder: Every Sunday 11:00 PM (Europe/London)",
+    );
   }
-
 
   async initializeInvoiceGenerationJob() {
     try {
-
       const systemConfig = await prisma.systemConfiguration.findFirst();
 
       if (!systemConfig || !systemConfig.autoInvoicing) {
-        console.log('  Auto invoicing is disabled');
+        console.log("  Auto invoicing is disabled");
         // Stop existing job if any
         if (this.invoiceGenerationJob) {
           this.invoiceGenerationJob.stop();
           this.invoiceGenerationJob = null;
-          console.log('🛑 Stopped invoice generation cron job');
+          console.log("🛑 Stopped invoice generation cron job");
         }
         return;
       }
 
-      const day = systemConfig.invoiceGenerationDay || 'Sunday';
-      const time = systemConfig.invoiceGenerationTime || '12:00 AM';
-
+      const day = systemConfig.invoiceGenerationDay || "Sunday";
+      const time = systemConfig.invoiceGenerationTime || "12:00 AM";
 
       const cronExpression = this.convertToCronExpression(day, time);
-
 
       if (this.invoiceGenerationJob) {
         this.invoiceGenerationJob.stop();
       }
 
+      this.invoiceGenerationJob = cron.schedule(
+        cronExpression,
+        async () => {
+          console.log(
+            `🕐 Running automatic invoice generation (${day} at ${time})...`,
+          );
+          await this.generateWeeklyInvoices();
+        },
+        { timezone: "Europe/London" },
+      );
 
-      this.invoiceGenerationJob = cron.schedule(cronExpression, async () => {
-        console.log(`🕐 Running automatic invoice generation (${day} at ${time})...`);
-        await this.generateWeeklyInvoices();
-      }, { timezone: 'Asia/Dhaka' });
-
-      console.log(`✅ Invoice generation scheduled: ${day} at ${time} (${cronExpression}) [Asia/Dhaka]`);
+      console.log(
+        `✅ Invoice generation scheduled: ${day} at ${time} (${cronExpression}) [Europe/London]`,
+      );
     } catch (error) {
-      console.error('❌ Failed to initialize invoice generation job:', error);
+      console.error("❌ Failed to initialize invoice generation job:", error);
     }
   }
 
   convertToCronExpression(day, time) {
     // Map day names to cron day numbers (0 = Sunday, 6 = Saturday)
     const dayMap = {
-      'sunday': 0,
-      'monday': 1,
-      'tuesday': 2,
-      'wednesday': 3,
-      'thursday': 4,
-      'friday': 5,
-      'saturday': 6
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
     };
 
     const dayNumber = dayMap[day.toLowerCase()];
-
 
     const timeRegex = /(\d{1,2}):(\d{2})\s*(AM|PM)/i;
     const match = time.match(timeRegex);
@@ -98,10 +111,9 @@ class CronService {
     const minutes = parseInt(match[2]);
     const period = match[3].toUpperCase();
 
-
-    if (period === 'AM') {
+    if (period === "AM") {
       if (hours === 12) hours = 0;
-    } else if (period === 'PM') {
+    } else if (period === "PM") {
       if (hours !== 12) hours += 12;
     }
 
@@ -110,7 +122,6 @@ class CronService {
 
   async generateWeeklyInvoices() {
     try {
-
       const today = new Date();
       const dayOfWeek = today.getDay();
       const diff = dayOfWeek === 0 ? 7 : dayOfWeek;
@@ -123,18 +134,23 @@ class CronService {
       weekStartDate.setDate(weekEndDate.getDate() - 6);
       weekStartDate.setHours(0, 0, 0, 0);
 
-      console.log(`📅 Generating invoices for week: ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`);
-
-      const result = await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
-        weekStartDate,
-        weekEndDate
+      console.log(
+        `📅 Generating invoices for week: ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
       );
 
+      const result =
+        await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
+          weekStartDate,
+          weekEndDate,
+        );
+
       const generatedInvoices = result.invoices || [];
-      console.log(`✅ Automatic invoice generation completed: ${generatedInvoices.length} invoices created`);
+      console.log(
+        `✅ Automatic invoice generation completed: ${generatedInvoices.length} invoices created`,
+      );
 
       // Email each generated invoice to the customer
-      const exportService = require('./exportService');
+      const exportService = require("./exportService");
       let emailedCount = 0;
       for (const invoiceSummary of generatedInvoices) {
         try {
@@ -145,7 +161,9 @@ class CronService {
                 select: {
                   fullName: true,
                   email: true,
-                  customerProfile: { select: { storeName: true, loginId: true, ccEmail: true } },
+                  customerProfile: {
+                    select: { storeName: true, loginId: true, ccEmail: true },
+                  },
                 },
               },
               items: { include: { delivery: true } },
@@ -153,19 +171,24 @@ class CronService {
           });
 
           if (fullInvoice && fullInvoice.customer?.email) {
-            const pdfBuffer = await exportService.generateInvoicePDFBuffer(fullInvoice);
+            const pdfBuffer =
+              await exportService.generateInvoicePDFBuffer(fullInvoice);
             await emailService.sendInvoiceToCustomer(fullInvoice, pdfBuffer);
             emailedCount++;
-            console.log(`📧 Invoice ${fullInvoice.invoiceNumber} emailed to ${fullInvoice.customer.email}`);
+            console.log(
+              `📧 Invoice ${fullInvoice.invoiceNumber} emailed to ${fullInvoice.customer.email}`,
+            );
           }
         } catch (emailErr) {
-          console.error(`❌ Failed to email invoice ${invoiceSummary.invoiceNumber}: ${emailErr.message}`);
+          console.error(
+            `❌ Failed to email invoice ${invoiceSummary.invoiceNumber}: ${emailErr.message}`,
+          );
         }
       }
 
       // Create audit log
       await auditService.createAuditLog({
-        action: 'AUTO_INVOICE_GENERATION',
+        action: "AUTO_INVOICE_GENERATION",
         description: `Automatically generated ${generatedInvoices.length} weekly invoices, emailed ${emailedCount}`,
         beforeData: {
           weekStartDate: weekStartDate.toISOString(),
@@ -177,14 +200,13 @@ class CronService {
 
       return result;
     } catch (error) {
-      console.error('❌ Failed to generate weekly invoices:', error);
+      console.error("❌ Failed to generate weekly invoices:", error);
       throw error;
     }
   }
 
   async sendWeeklyDriverFeedbackSummary() {
     try {
-
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
@@ -205,8 +227,8 @@ class CronService {
               fullName: true,
               email: true,
               driverProfile: {
-                select: { enableEmailNotifications: true }
-              }
+                select: { enableEmailNotifications: true },
+              },
             },
           },
           delivery: {
@@ -226,14 +248,14 @@ class CronService {
           },
         },
         orderBy: {
-          createdAt: 'desc',
+          createdAt: "desc",
         },
       });
 
       // Also get deliveries completed with driver notes (even without feedback record)
       const deliveriesWithNotes = await prisma.delivery.findMany({
         where: {
-          status: 'DELIVERED',
+          status: "DELIVERED",
           deliveredAt: {
             gte: startDate,
             lte: endDate,
@@ -249,8 +271,8 @@ class CronService {
               fullName: true,
               email: true,
               driverProfile: {
-                select: { enableEmailNotifications: true }
-              }
+                select: { enableEmailNotifications: true },
+              },
             },
           },
           customer: {
@@ -260,12 +282,14 @@ class CronService {
           },
         },
         orderBy: {
-          deliveredAt: 'desc',
+          deliveredAt: "desc",
         },
       });
 
       if (feedbackRecords.length === 0 && deliveriesWithNotes.length === 0) {
-        console.log('No driver feedback or delivery notes this week. Skipping email.');
+        console.log(
+          "No driver feedback or delivery notes this week. Skipping email.",
+        );
         return;
       }
 
@@ -273,14 +297,16 @@ class CronService {
         feedbackRecords,
         deliveriesWithNotes,
         startDate,
-        endDate
+        endDate,
       );
 
-      console.log(`✅ Weekly driver feedback summary sent (${feedbackRecords.length} feedback records, ${deliveriesWithNotes.length} deliveries)`);
+      console.log(
+        `✅ Weekly driver feedback summary sent (${feedbackRecords.length} feedback records, ${deliveriesWithNotes.length} deliveries)`,
+      );
 
       try {
         await auditService.createAuditLog({
-          action: 'WEEKLY_DRIVER_FEEDBACK_EMAIL',
+          action: "WEEKLY_DRIVER_FEEDBACK_EMAIL",
           description: `Sent weekly driver feedback email to admins: ${feedbackRecords.length} feedback records, ${deliveriesWithNotes.length} deliveries`,
           beforeData: {
             startDate: startDate.toISOString(),
@@ -289,41 +315,64 @@ class CronService {
             deliveriesWithNotesCount: deliveriesWithNotes.length,
           },
         });
-        console.log('📝 Audit log created for weekly admin feedback email');
+        console.log("📝 Audit log created for weekly admin feedback email");
       } catch (err) {
-        console.error('❌ Failed to create audit log for weekly admin feedback email:', err);
+        console.error(
+          "❌ Failed to create audit log for weekly admin feedback email:",
+          err,
+        );
       }
 
       try {
         const driverIds = new Set();
-        feedbackRecords.forEach(f => { if (f.driver?.id) driverIds.add(f.driver.id); });
-        deliveriesWithNotes.forEach(d => { if (d.driver?.id) driverIds.add(d.driver.id); });
+        feedbackRecords.forEach((f) => {
+          if (f.driver?.id) driverIds.add(f.driver.id);
+        });
+        deliveriesWithNotes.forEach((d) => {
+          if (d.driver?.id) driverIds.add(d.driver.id);
+        });
 
         for (const id of driverIds) {
-          const driverFeedback = feedbackRecords.filter(f => f.driver?.id === id);
-          const driverDeliveries = deliveriesWithNotes.filter(d => d.driver?.id === id);
+          const driverFeedback = feedbackRecords.filter(
+            (f) => f.driver?.id === id,
+          );
+          const driverDeliveries = deliveriesWithNotes.filter(
+            (d) => d.driver?.id === id,
+          );
 
           // Take driver details from either source
-          const driver = (driverFeedback[0] && driverFeedback[0].driver) || (driverDeliveries[0] && driverDeliveries[0].driver);
+          const driver =
+            (driverFeedback[0] && driverFeedback[0].driver) ||
+            (driverDeliveries[0] && driverDeliveries[0].driver);
           if (!driver) continue;
 
-
-          const prefersEmail = driver.driverProfile ? driver.driverProfile.enableEmailNotifications !== false : true;
+          const prefersEmail = driver.driverProfile
+            ? driver.driverProfile.enableEmailNotifications !== false
+            : true;
           if (!driver.email) {
-            console.log(` Skipping driver ${driver.fullName || id} - no email on record`);
+            console.log(
+              ` Skipping driver ${driver.fullName || id} - no email on record`,
+            );
             continue;
           }
           if (!prefersEmail) {
-            console.log(`ℹ️ Skipping driver ${driver.email} - email notifications disabled`);
+            console.log(
+              `ℹ️ Skipping driver ${driver.email} - email notifications disabled`,
+            );
             continue;
           }
 
           try {
-            await emailService.sendDriverWeeklyFeedbackEmail(driver, driverFeedback, driverDeliveries, startDate, endDate);
-
+            await emailService.sendDriverWeeklyFeedbackEmail(
+              driver,
+              driverFeedback,
+              driverDeliveries,
+              startDate,
+              endDate,
+            );
 
             await auditService.createAuditLog({
-              action: 'WEEKLY_DRIVER_FEEDBACK_EMAIL_DRIVER',
+              action: "WEEKLY_DRIVER_FEEDBACK_EMAIL_DRIVER",
               userId: driver.id,
               description: `Sent weekly driver feedback email to driver ${driver.email}`,
               beforeData: {
@@ -334,19 +383,26 @@ class CronService {
               },
             });
 
-            console.log(`✉️ Sent weekly feedback email to driver: ${driver.email} (${driverFeedback.length} feedback, ${driverDeliveries.length} deliveries)`);
+            console.log(
+              `✉️ Sent weekly feedback email to driver: ${driver.email} (${driverFeedback.length} feedback, ${driverDeliveries.length} deliveries)`,
+            );
           } catch (err) {
-            console.error(` Failed to send or log driver email for ${driver.email}:`, err);
+            console.error(
+              ` Failed to send or log driver email for ${driver.email}:`,
+              err,
+            );
           }
         }
       } catch (err) {
-        console.error(' Error while sending driver-specific weekly emails:', err);
+        console.error(
+          " Error while sending driver-specific weekly emails:",
+          err,
+        );
       }
     } catch (error) {
-      console.error(' Failed to send weekly driver feedback summary:', error);
+      console.error(" Failed to send weekly driver feedback summary:", error);
     }
   }
-
 
   async sendWeeklyInvoiceReminder() {
     try {
@@ -364,41 +420,52 @@ class CronService {
             select: {
               fullName: true,
               email: true,
-              customerProfile: { select: { storeName: true, loginId: true, ccEmail: true } },
+              customerProfile: {
+                select: { storeName: true, loginId: true, ccEmail: true },
+              },
             },
           },
           items: { include: { delivery: true } },
         },
-        orderBy: { invoiceDate: 'asc' },
+        orderBy: { invoiceDate: "asc" },
       });
 
-      console.log(`ℹ️  Weekly invoice reminder: ${unpaidInvoices.length} overdue unpaid invoices found`);
+      console.log(
+        `ℹ️  Weekly invoice reminder: ${unpaidInvoices.length} overdue unpaid invoices found`,
+      );
 
       if (unpaidInvoices.length === 0) return;
 
-      const exportService = require('./exportService');
+      const exportService = require("./exportService");
       let remindersSent = 0;
 
       for (const invoice of unpaidInvoices) {
         if (!invoice.customer?.email) continue;
         try {
-          const pdfBuffer = await exportService.generateInvoicePDFBuffer(invoice);
+          const pdfBuffer =
+            await exportService.generateInvoicePDFBuffer(invoice);
           await emailService.sendInvoicePaymentReminder(invoice, pdfBuffer);
           remindersSent++;
-          console.log(`📧 Payment reminder sent for invoice ${invoice.invoiceNumber} to ${invoice.customer.email}`);
+          console.log(
+            `📧 Payment reminder sent for invoice ${invoice.invoiceNumber} to ${invoice.customer.email}`,
+          );
         } catch (err) {
-          console.error(`❌ Failed to send reminder for invoice ${invoice.invoiceNumber}: ${err.message}`);
+          console.error(
+            `❌ Failed to send reminder for invoice ${invoice.invoiceNumber}: ${err.message}`,
+          );
         }
       }
 
-      console.log(`✅ Invoice reminders sent: ${remindersSent}/${unpaidInvoices.length}`);
+      console.log(
+        `✅ Invoice reminders sent: ${remindersSent}/${unpaidInvoices.length}`,
+      );
     } catch (error) {
-      console.error('❌ Failed to process weekly invoice reminder:', error);
+      console.error("❌ Failed to process weekly invoice reminder:", error);
     }
   }
 
   async triggerDriverFeedbackSummary() {
-    console.log('Manually triggering driver feedback summary...');
+    console.log("Manually triggering driver feedback summary...");
     await this.sendWeeklyDriverFeedbackSummary();
   }
 }
