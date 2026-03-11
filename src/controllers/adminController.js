@@ -1,9 +1,9 @@
-const prisma = require('../config/database');
-const adminService = require('../services/adminService');
-const contactService = require('../services/contactService');
-const enquiryService = require('../services/enquiryService');
-const auditService = require('../services/auditService');
-const exportService = require('../services/exportService');
+const prisma = require("../config/database");
+const adminService = require("../services/adminService");
+const contactService = require("../services/contactService");
+const enquiryService = require("../services/enquiryService");
+const auditService = require("../services/auditService");
+const exportService = require("../services/exportService");
 
 // ==================== USER MANAGEMENT ====================
 
@@ -28,7 +28,7 @@ exports.getUserById = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: "User not found",
       });
     }
 
@@ -47,7 +47,7 @@ exports.createUser = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
+      message: "User created successfully",
       data: user,
     });
   } catch (error) {
@@ -63,7 +63,7 @@ exports.updateUser = async (req, res, next) => {
     if (isNaN(userId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid user ID',
+        message: "Invalid user ID",
       });
     }
 
@@ -71,20 +71,20 @@ exports.updateUser = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'User updated successfully',
+      message: "User updated successfully",
       data: user,
     });
   } catch (error) {
-    if (error.message === 'Invalid user ID') {
+    if (error.message === "Invalid user ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid user ID',
+        message: "Invalid user ID",
       });
     }
-    if (error.message === 'User not found') {
+    if (error.message === "User not found") {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: "User not found",
       });
     }
     next(error);
@@ -99,7 +99,7 @@ exports.deleteUser = async (req, res, next) => {
     if (isNaN(userId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid user ID',
+        message: "Invalid user ID",
       });
     }
 
@@ -107,19 +107,19 @@ exports.deleteUser = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'User deleted successfully',
+      message: "User deleted successfully",
     });
   } catch (error) {
-    if (error.message === 'Invalid user ID') {
+    if (error.message === "Invalid user ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid user ID',
+        message: "Invalid user ID",
       });
     }
-    if (error.message === 'User not found') {
+    if (error.message === "User not found") {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: "User not found",
       });
     }
     next(error);
@@ -134,7 +134,7 @@ exports.toggleUserStatus = async (req, res, next) => {
     if (isNaN(userId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid user ID',
+        message: "Invalid user ID",
       });
     }
 
@@ -142,20 +142,20 @@ exports.toggleUserStatus = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
+      message: `User ${user.isActive ? "activated" : "deactivated"} successfully`,
       data: user,
     });
   } catch (error) {
-    if (error.message === 'Invalid user ID') {
+    if (error.message === "Invalid user ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid user ID',
+        message: "Invalid user ID",
       });
     }
-    if (error.message === 'User not found') {
+    if (error.message === "User not found") {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: "User not found",
       });
     }
     next(error);
@@ -185,7 +185,7 @@ exports.getDeliveryById = async (req, res, next) => {
     if (isNaN(deliveryId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID',
+        message: "Invalid delivery ID",
       });
     }
 
@@ -196,16 +196,16 @@ exports.getDeliveryById = async (req, res, next) => {
       data: delivery,
     });
   } catch (error) {
-    if (error.message === 'Invalid delivery ID') {
+    if (error.message === "Invalid delivery ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID',
+        message: "Invalid delivery ID",
       });
     }
-    if (error.message === 'Delivery not found') {
+    if (error.message === "Delivery not found") {
       return res.status(404).json({
         success: false,
-        message: 'Delivery not found',
+        message: "Delivery not found",
       });
     }
     next(error);
@@ -219,37 +219,35 @@ exports.updateDelivery = async (req, res, next) => {
     if (isNaN(deliveryId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID',
+        message: "Invalid delivery ID",
       });
     }
 
-    const delivery = await adminService.updateDelivery(
-      deliveryId,
-      req.body
-    );
+    const delivery = await adminService.updateDelivery(deliveryId, req.body);
 
     res.json({
       success: true,
-      message: 'Delivery updated successfully',
+      message: "Delivery updated successfully",
       data: delivery,
     });
   } catch (error) {
-    if (error.message === 'Invalid delivery ID') {
+    if (error.message === "Invalid delivery ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID',
+        message: "Invalid delivery ID",
       });
     }
-    if (error.message === 'Delivery not found') {
+    if (error.message === "Delivery not found") {
       return res.status(404).json({
         success: false,
-        message: 'Delivery not found',
+        message: "Delivery not found",
       });
     }
-    if (error.message === 'Cannot edit delivery in current status') {
+    if (error.message === "Cannot edit delivery in current status") {
       return res.status(400).json({
         success: false,
-        message: 'Cannot edit delivery in current status. Only RECEIVED or ALLOCATED deliveries can be edited.',
+        message:
+          "Cannot edit delivery in current status. Only RECEIVED or ALLOCATED deliveries can be edited.",
       });
     }
     next(error);
@@ -263,7 +261,7 @@ exports.deleteDelivery = async (req, res, next) => {
     if (isNaN(deliveryId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID',
+        message: "Invalid delivery ID",
       });
     }
 
@@ -274,19 +272,22 @@ exports.deleteDelivery = async (req, res, next) => {
       message: result.message,
     });
   } catch (error) {
-    if (error.message === 'Invalid delivery ID') {
+    if (error.message === "Invalid delivery ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID',
+        message: "Invalid delivery ID",
       });
     }
-    if (error.message === 'Delivery not found') {
+    if (error.message === "Delivery not found") {
       return res.status(404).json({
         success: false,
-        message: 'Delivery not found',
+        message: "Delivery not found",
       });
     }
-    if (error.message && error.message.includes('Cannot delete delivery in current status')) {
+    if (
+      error.message &&
+      error.message.includes("Cannot delete delivery in current status")
+    ) {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -301,12 +302,12 @@ exports.allocateDelivery = async (req, res, next) => {
     const { driverId } = req.body;
     const delivery = await adminService.allocateDelivery(
       parseInt(req.params.id),
-      parseInt(driverId)
+      parseInt(driverId),
     );
 
     res.json({
       success: true,
-      message: 'Delivery allocated successfully',
+      message: "Delivery allocated successfully",
       data: delivery,
     });
   } catch (error) {
@@ -322,7 +323,7 @@ exports.updateDeliveryStatus = async (req, res, next) => {
     if (isNaN(deliveryId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID'
+        message: "Invalid delivery ID",
       });
     }
 
@@ -330,25 +331,25 @@ exports.updateDeliveryStatus = async (req, res, next) => {
     const delivery = await adminService.updateDeliveryStatus(
       deliveryId,
       status,
-      data
+      data,
     );
 
     res.json({
       success: true,
-      message: 'Delivery status updated successfully',
+      message: "Delivery status updated successfully",
       data: delivery,
     });
   } catch (error) {
-    if (error.message === 'Delivery not found') {
+    if (error.message === "Delivery not found") {
       return res.status(404).json({
         success: false,
-        message: 'Delivery not found'
+        message: "Delivery not found",
       });
     }
-    if (error.message === 'Invalid delivery ID') {
+    if (error.message === "Invalid delivery ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID'
+        message: "Invalid delivery ID",
       });
     }
     next(error);
@@ -363,31 +364,28 @@ exports.addExtraCharge = async (req, res, next) => {
     if (isNaN(deliveryId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID'
+        message: "Invalid delivery ID",
       });
     }
 
-    const charge = await adminService.addExtraCharge(
-      deliveryId,
-      req.body
-    );
+    const charge = await adminService.addExtraCharge(deliveryId, req.body);
 
     res.json({
       success: true,
-      message: 'Extra charge added successfully',
+      message: "Extra charge added successfully",
       data: charge,
     });
   } catch (error) {
-    if (error.message === 'Delivery not found') {
+    if (error.message === "Delivery not found") {
       return res.status(404).json({
         success: false,
-        message: 'Delivery not found'
+        message: "Delivery not found",
       });
     }
-    if (error.message === 'Invalid delivery ID') {
+    if (error.message === "Invalid delivery ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID'
+        message: "Invalid delivery ID",
       });
     }
     next(error);
@@ -402,7 +400,7 @@ exports.removeExtraCharge = async (req, res, next) => {
     if (isNaN(chargeId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid charge ID'
+        message: "Invalid charge ID",
       });
     }
 
@@ -410,19 +408,19 @@ exports.removeExtraCharge = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Extra charge removed successfully',
+      message: "Extra charge removed successfully",
     });
   } catch (error) {
-    if (error.message === 'Extra charge not found') {
+    if (error.message === "Extra charge not found") {
       return res.status(404).json({
         success: false,
-        message: 'Extra charge not found'
+        message: "Extra charge not found",
       });
     }
-    if (error.message === 'Invalid charge ID') {
+    if (error.message === "Invalid charge ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid charge ID'
+        message: "Invalid charge ID",
       });
     }
     next(error);
@@ -437,7 +435,7 @@ exports.getDeliveryExtraCharges = async (req, res, next) => {
     if (isNaN(deliveryId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid delivery ID'
+        message: "Invalid delivery ID",
       });
     }
 
@@ -473,7 +471,7 @@ exports.createPricingTier = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Pricing tier created successfully',
+      message: "Pricing tier created successfully",
       data: tier,
     });
   } catch (error) {
@@ -489,7 +487,7 @@ exports.updatePricingTier = async (req, res, next) => {
     if (isNaN(tierId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid pricing tier ID',
+        message: "Invalid pricing tier ID",
       });
     }
 
@@ -497,31 +495,28 @@ exports.updatePricingTier = async (req, res, next) => {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Request body is required',
+        message: "Request body is required",
       });
     }
 
-    const tier = await adminService.updatePricingTier(
-      tierId,
-      req.body
-    );
+    const tier = await adminService.updatePricingTier(tierId, req.body);
 
     res.json({
       success: true,
-      message: 'Pricing tier updated successfully',
+      message: "Pricing tier updated successfully",
       data: tier,
     });
   } catch (error) {
-    if (error.message === 'Invalid pricing tier ID') {
+    if (error.message === "Invalid pricing tier ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid pricing tier ID',
+        message: "Invalid pricing tier ID",
       });
     }
-    if (error.message === 'Pricing tier not found') {
+    if (error.message === "Pricing tier not found") {
       return res.status(404).json({
         success: false,
-        message: 'Pricing tier not found',
+        message: "Pricing tier not found",
       });
     }
     next(error);
@@ -536,7 +531,7 @@ exports.deletePricingTier = async (req, res, next) => {
     if (isNaN(tierId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid pricing tier ID',
+        message: "Invalid pricing tier ID",
       });
     }
 
@@ -544,22 +539,22 @@ exports.deletePricingTier = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Pricing tier deleted successfully',
+      message: "Pricing tier deleted successfully",
     });
   } catch (error) {
-    if (error.message === 'Invalid pricing tier ID') {
+    if (error.message === "Invalid pricing tier ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid pricing tier ID',
+        message: "Invalid pricing tier ID",
       });
     }
-    if (error.message === 'Pricing tier not found') {
+    if (error.message === "Pricing tier not found") {
       return res.status(404).json({
         success: false,
-        message: 'Pricing tier not found',
+        message: "Pricing tier not found",
       });
     }
-    if (error.message.includes('Cannot delete pricing tier')) {
+    if (error.message.includes("Cannot delete pricing tier")) {
       return res.status(409).json({
         success: false,
         message: error.message,
@@ -577,12 +572,12 @@ exports.generateInvoice = async (req, res, next) => {
     const invoice = await adminService.generateInvoice(
       parseInt(customerId),
       weekStartDate,
-      weekEndDate
+      weekEndDate,
     );
 
     res.status(201).json({
       success: true,
-      message: 'Invoice generated successfully',
+      message: "Invoice generated successfully",
       data: invoice,
     });
   } catch (error) {
@@ -592,13 +587,14 @@ exports.generateInvoice = async (req, res, next) => {
 
 exports.generateWeeklyInvoicesForAll = async (req, res, next) => {
   try {
-    const invoiceGenerationService = require('../services/invoiceGenerationService');
+    const invoiceGenerationService = require("../services/invoiceGenerationService");
     const { weekStartDate, weekEndDate } = req.body;
 
-    const result = await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
-      weekStartDate,
-      weekEndDate
-    );
+    const result =
+      await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
+        weekStartDate,
+        weekEndDate,
+      );
 
     res.status(201).json(result);
   } catch (error) {
@@ -608,13 +604,15 @@ exports.generateWeeklyInvoicesForAll = async (req, res, next) => {
 
 exports.generateLastWeekInvoices = async (req, res, next) => {
   try {
-    const invoiceGenerationService = require('../services/invoiceGenerationService');
-    const { weekStartDate, weekEndDate } = invoiceGenerationService.getLastWeekRange();
+    const invoiceGenerationService = require("../services/invoiceGenerationService");
+    const { weekStartDate, weekEndDate } =
+      invoiceGenerationService.getLastWeekRange();
 
-    const result = await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
-      weekStartDate,
-      weekEndDate
-    );
+    const result =
+      await invoiceGenerationService.generateWeeklyInvoicesForAllCustomers(
+        weekStartDate,
+        weekEndDate,
+      );
 
     res.status(201).json(result);
   } catch (error) {
@@ -633,7 +631,7 @@ exports.updateCustomerCcEmail = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: ccEmail ? `CC email set to ${ccEmail}` : 'CC email cleared',
+      message: ccEmail ? `CC email set to ${ccEmail}` : "CC email cleared",
       data: { ccEmail: updated.customerProfile?.ccEmail || null },
     });
   } catch (error) {
@@ -643,12 +641,12 @@ exports.updateCustomerCcEmail = async (req, res, next) => {
 
 exports.sendInvoiceReminders = async (req, res, next) => {
   try {
-    const cronService = require('../services/cronService');
+    const cronService = require("../services/cronService");
     await cronService.sendWeeklyInvoiceReminder();
 
     res.json({
       success: true,
-      message: 'Invoice payment reminders sent. Check server logs for details.',
+      message: "Invoice payment reminders sent. Check server logs for details.",
     });
   } catch (error) {
     next(error);
@@ -662,10 +660,10 @@ exports.getAllInvoices = async (req, res, next) => {
     // Calculate summary statistics
     const totalInvoices = invoices.length;
     const totalPaid = invoices
-      .filter(inv => inv.isPaid)
+      .filter((inv) => inv.isPaid)
       .reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
     const totalUnpaid = invoices
-      .filter(inv => !inv.isPaid)
+      .filter((inv) => !inv.isPaid)
       .reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
 
     res.json({
@@ -676,7 +674,7 @@ exports.getAllInvoices = async (req, res, next) => {
         totalInvoices,
         totalPaid: totalPaid.toFixed(2),
         totalUnpaid: totalUnpaid.toFixed(2),
-      }
+      },
     });
   } catch (error) {
     next(error);
@@ -691,7 +689,7 @@ exports.markInvoiceAsPaid = async (req, res, next) => {
     if (isNaN(invoiceId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid invoice ID',
+        message: "Invalid invoice ID",
       });
     }
 
@@ -699,20 +697,20 @@ exports.markInvoiceAsPaid = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Invoice marked as paid',
+      message: "Invoice marked as paid",
       data: invoice,
     });
   } catch (error) {
-    if (error.message === 'Invalid invoice ID') {
+    if (error.message === "Invalid invoice ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid invoice ID',
+        message: "Invalid invoice ID",
       });
     }
-    if (error.message === 'Invoice not found') {
+    if (error.message === "Invoice not found") {
       return res.status(404).json({
         success: false,
-        message: 'Invoice not found',
+        message: "Invoice not found",
       });
     }
     next(error);
@@ -727,37 +725,33 @@ exports.addExtraCharge = async (req, res, next) => {
     if (isNaN(invoiceId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid invoice ID',
+        message: "Invalid invoice ID",
       });
     }
 
-    const item = await adminService.addExtraCharge(
-      invoiceId,
-      req.body
-    );
+    const item = await adminService.addExtraCharge(invoiceId, req.body);
 
     res.status(201).json({
       success: true,
-      message: 'Extra charge added successfully',
+      message: "Extra charge added successfully",
       data: item,
     });
   } catch (error) {
-    if (error.message === 'Invalid invoice ID') {
+    if (error.message === "Invalid invoice ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid invoice ID',
+        message: "Invalid invoice ID",
       });
     }
-    if (error.message === 'Invoice not found') {
+    if (error.message === "Invoice not found") {
       return res.status(404).json({
         success: false,
-        message: 'Invoice not found',
+        message: "Invoice not found",
       });
     }
     next(error);
   }
 };
-
 
 exports.getInvoiceById = async (req, res, next) => {
   try {
@@ -767,7 +761,7 @@ exports.getInvoiceById = async (req, res, next) => {
     if (isNaN(invoiceId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid invoice ID',
+        message: "Invalid invoice ID",
       });
     }
 
@@ -776,7 +770,7 @@ exports.getInvoiceById = async (req, res, next) => {
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: 'Invoice not found',
+        message: "Invoice not found",
       });
     }
 
@@ -785,10 +779,10 @@ exports.getInvoiceById = async (req, res, next) => {
       data: invoice,
     });
   } catch (error) {
-    if (error.message === 'Invalid invoice ID') {
+    if (error.message === "Invalid invoice ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid invoice ID',
+        message: "Invalid invoice ID",
       });
     }
     next(error);
@@ -803,41 +797,45 @@ exports.updateInvoice = async (req, res, next) => {
     if (isNaN(invoiceId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid invoice ID',
+        message: "Invalid invoice ID",
       });
     }
 
     const invoice = await adminService.updateInvoiceComplete(
       invoiceId,
-      req.body
+      req.body,
     );
 
     res.json({
       success: true,
-      message: 'Invoice updated successfully',
+      message: "Invoice updated successfully",
       data: invoice,
     });
   } catch (error) {
-    if (error.message === 'Invalid invoice ID') {
+    if (error.message === "Invalid invoice ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid invoice ID',
+        message: "Invalid invoice ID",
       });
     }
-    if (error.message === 'Invoice not found') {
+    if (error.message === "Invoice not found") {
       return res.status(404).json({
         success: false,
-        message: 'Invoice not found',
+        message: "Invoice not found",
       });
     }
-    if (error.message.includes('Cannot edit a paid invoice')) {
+    if (error.message.includes("Cannot edit a paid invoice")) {
       return res.status(403).json({
         success: false,
-        message: 'Cannot edit a paid invoice. Contact finance team for adjustments.',
+        message:
+          "Cannot edit a paid invoice. Contact finance team for adjustments.",
         hint: 'To override this protection, include "allowEditPaid: true" in your request body.',
       });
     }
-    if (error.message.includes('Invoice number') && error.message.includes('already exists')) {
+    if (
+      error.message.includes("Invoice number") &&
+      error.message.includes("already exists")
+    ) {
       return res.status(409).json({
         success: false,
         message: error.message,
@@ -867,7 +865,7 @@ exports.setSlotAvailability = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Slot availability updated successfully',
+      message: "Slot availability updated successfully",
       data: slot,
     });
   } catch (error) {
@@ -883,14 +881,14 @@ exports.updateSlotCapacity = async (req, res, next) => {
     if (isNaN(slotId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid slot ID',
+        message: "Invalid slot ID",
       });
     }
 
     const slot = await adminService.updateSlotCapacity(
       slotId,
       method,
-      parseInt(value)
+      parseInt(value),
     );
 
     res.json({
@@ -899,16 +897,16 @@ exports.updateSlotCapacity = async (req, res, next) => {
       data: slot,
     });
   } catch (error) {
-    if (error.message === 'Invalid slot ID') {
+    if (error.message === "Invalid slot ID") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid slot ID',
+        message: "Invalid slot ID",
       });
     }
-    if (error.message === 'Slot not found') {
+    if (error.message === "Slot not found") {
       return res.status(404).json({
         success: false,
-        message: 'Slot not found',
+        message: "Slot not found",
       });
     }
     if (error.message === 'Method must be either "increase" or "decrease"') {
@@ -917,19 +915,22 @@ exports.updateSlotCapacity = async (req, res, next) => {
         message: 'Method must be either "increase" or "decrease"',
       });
     }
-    if (error.message === 'Value must be a positive number') {
+    if (error.message === "Value must be a positive number") {
       return res.status(400).json({
         success: false,
-        message: 'Value must be a positive number',
+        message: "Value must be a positive number",
       });
     }
-    if (error.message === 'Capacity cannot be negative') {
+    if (error.message === "Capacity cannot be negative") {
       return res.status(400).json({
         success: false,
-        message: 'Capacity cannot be negative',
+        message: "Capacity cannot be negative",
       });
     }
-    if (error.message && error.message.includes('cannot reduce capacity below')) {
+    if (
+      error.message &&
+      error.message.includes("cannot reduce capacity below")
+    ) {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -938,7 +939,6 @@ exports.updateSlotCapacity = async (req, res, next) => {
     next(error);
   }
 };
-
 
 exports.getDashboard = async (req, res, next) => {
   try {
@@ -953,7 +953,6 @@ exports.getDashboard = async (req, res, next) => {
   }
 };
 
-
 exports.getAnalytics = async (req, res, next) => {
   try {
     const analytics = await adminService.getAnalytics(req.query);
@@ -966,7 +965,6 @@ exports.getAnalytics = async (req, res, next) => {
     next(error);
   }
 };
-
 
 exports.getAllContacts = async (req, res, next) => {
   try {
@@ -984,12 +982,14 @@ exports.getAllContacts = async (req, res, next) => {
 
 exports.getContactById = async (req, res, next) => {
   try {
-    const contact = await contactService.getContactById(parseInt(req.params.id));
+    const contact = await contactService.getContactById(
+      parseInt(req.params.id),
+    );
 
     if (!contact) {
       return res.status(404).json({
         success: false,
-        message: 'Contact not found',
+        message: "Contact not found",
       });
     }
 
@@ -1004,11 +1004,13 @@ exports.getContactById = async (req, res, next) => {
 
 exports.markContactAsRead = async (req, res, next) => {
   try {
-    const contact = await contactService.markContactAsRead(parseInt(req.params.id));
+    const contact = await contactService.markContactAsRead(
+      parseInt(req.params.id),
+    );
 
     res.json({
       success: true,
-      message: 'Contact marked as read',
+      message: "Contact marked as read",
       data: contact,
     });
   } catch (error) {
@@ -1022,7 +1024,7 @@ exports.deleteContact = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Contact deleted successfully',
+      message: "Contact deleted successfully",
     });
   } catch (error) {
     next(error);
@@ -1045,12 +1047,14 @@ exports.getAllEnquiries = async (req, res, next) => {
 
 exports.getEnquiryById = async (req, res, next) => {
   try {
-    const enquiry = await enquiryService.getEnquiryById(parseInt(req.params.id));
+    const enquiry = await enquiryService.getEnquiryById(
+      parseInt(req.params.id),
+    );
 
     if (!enquiry) {
       return res.status(404).json({
         success: false,
-        message: 'Enquiry not found',
+        message: "Enquiry not found",
       });
     }
 
@@ -1065,11 +1069,13 @@ exports.getEnquiryById = async (req, res, next) => {
 
 exports.markEnquiryAsRead = async (req, res, next) => {
   try {
-    const enquiry = await enquiryService.markEnquiryAsRead(parseInt(req.params.id));
+    const enquiry = await enquiryService.markEnquiryAsRead(
+      parseInt(req.params.id),
+    );
 
     res.json({
       success: true,
-      message: 'Enquiry marked as read',
+      message: "Enquiry marked as read",
       data: enquiry,
     });
   } catch (error) {
@@ -1083,7 +1089,7 @@ exports.deleteEnquiry = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Enquiry deleted successfully',
+      message: "Enquiry deleted successfully",
     });
   } catch (error) {
     next(error);
@@ -1117,7 +1123,7 @@ exports.getCustomerAnalytics = async (req, res, next) => {
   }
 };
 
-// AUDIT LOGS (ADMIN) 
+// AUDIT LOGS (ADMIN)
 
 exports.getAllAuditLogs = async (req, res, next) => {
   try {
@@ -1140,7 +1146,7 @@ exports.getAuditLogById = async (req, res, next) => {
     if (!log) {
       return res.status(404).json({
         success: false,
-        message: 'Audit log not found',
+        message: "Audit log not found",
       });
     }
 
@@ -1153,7 +1159,6 @@ exports.getAuditLogById = async (req, res, next) => {
   }
 };
 
-
 // Export Invoice as PDF
 exports.exportInvoicePDF = async (req, res, next) => {
   try {
@@ -1162,14 +1167,17 @@ exports.exportInvoicePDF = async (req, res, next) => {
     if (!invoice) {
       return res.status(404).json({
         success: false,
-        message: 'Invoice not found',
+        message: "Invoice not found",
       });
     }
 
     const pdfBuffer = await exportService.generateInvoicePDFBuffer(invoice);
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=Invoice-${invoice.invoiceNumber}.pdf`);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Invoice-${invoice.invoiceNumber}.pdf`,
+    );
 
     res.send(pdfBuffer);
   } catch (error) {
@@ -1177,27 +1185,37 @@ exports.exportInvoicePDF = async (req, res, next) => {
   }
 };
 
-// Export Deliveries (Excel or CSV) 
+// Export Deliveries (Excel or CSV)
 exports.exportDeliveries = async (req, res, next) => {
   try {
-    const { format = 'excel' } = req.query;
+    const { format = "excel" } = req.query;
 
     const deliveries = await adminService.getAllDeliveries({
       ...req.query,
       includeAll: true,
     });
 
-    if (format === 'csv') {
+    if (format === "csv") {
       const csv = exportService.generateDeliveriesCSV(deliveries);
 
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename=Deliveries-${new Date().toISOString().split('T')[0]}.csv`);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=Deliveries-${new Date().toISOString().split("T")[0]}.csv`,
+      );
       res.send(csv);
     } else {
-      const excelBuffer = await exportService.generateDeliveriesExcel(deliveries);
+      const excelBuffer =
+        await exportService.generateDeliveriesExcel(deliveries);
 
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename=Deliveries-${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=Deliveries-${new Date().toISOString().split("T")[0]}.xlsx`,
+      );
       res.send(excelBuffer);
     }
   } catch (error) {
@@ -1208,21 +1226,31 @@ exports.exportDeliveries = async (req, res, next) => {
 // Export Analytics (Excel or CSV)
 exports.exportAnalytics = async (req, res, next) => {
   try {
-    const { format = 'excel' } = req.query;
+    const { format = "excel" } = req.query;
 
     const analyticsData = await adminService.getAnalytics(req.query);
 
-    if (format === 'csv') {
+    if (format === "csv") {
       const csv = exportService.generateAnalyticsCSV(analyticsData);
 
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename=Analytics-${new Date().toISOString().split('T')[0]}.csv`);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=Analytics-${new Date().toISOString().split("T")[0]}.csv`,
+      );
       res.send(csv);
     } else {
-      const excelBuffer = await exportService.generateAnalyticsExcel(analyticsData);
+      const excelBuffer =
+        await exportService.generateAnalyticsExcel(analyticsData);
 
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename=Analytics-${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=Analytics-${new Date().toISOString().split("T")[0]}.xlsx`,
+      );
       res.send(excelBuffer);
     }
   } catch (error) {
@@ -1238,8 +1266,13 @@ exports.getAllDrivers = async (req, res, next) => {
 
     // Calculate summary stats for UI
     const totalDrivers = drivers.length;
-    const activeDrivers = drivers.filter(d => d.isActive && d.driverProfile?.isActiveDriver).length;
-    const thisWeekDeliveries = drivers.reduce((sum, d) => sum + (d.performance?.thisWeek || 0), 0);
+    const activeDrivers = drivers.filter(
+      (d) => d.isActive && d.driverProfile?.isActiveDriver,
+    ).length;
+    const thisWeekDeliveries = drivers.reduce(
+      (sum, d) => sum + (d.performance?.thisWeek || 0),
+      0,
+    );
 
     res.json({
       success: true,
@@ -1248,8 +1281,8 @@ exports.getAllDrivers = async (req, res, next) => {
       summary: {
         totalDrivers,
         activeDrivers,
-        thisWeekDeliveries
-      }
+        thisWeekDeliveries,
+      },
     });
   } catch (error) {
     next(error);
@@ -1265,10 +1298,10 @@ exports.getDriverById = async (req, res, next) => {
       data: driver,
     });
   } catch (error) {
-    if (error.message === 'Driver not found') {
+    if (error.message === "Driver not found") {
       return res.status(404).json({
         success: false,
-        message: 'Driver not found',
+        message: "Driver not found",
       });
     }
     next(error);
@@ -1281,11 +1314,14 @@ exports.createDriver = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Driver created successfully',
+      message: "Driver created successfully",
       data: driver,
     });
   } catch (error) {
-    if (error.message === 'Email already exists' || error.message === 'Username already exists') {
+    if (
+      error.message === "Email already exists" ||
+      error.message === "Username already exists"
+    ) {
       return res.status(409).json({
         success: false,
         message: error.message,
@@ -1297,21 +1333,27 @@ exports.createDriver = async (req, res, next) => {
 
 exports.updateDriver = async (req, res, next) => {
   try {
-    const driver = await adminService.updateDriver(parseInt(req.params.id), req.body);
+    const driver = await adminService.updateDriver(
+      parseInt(req.params.id),
+      req.body,
+    );
 
     res.json({
       success: true,
-      message: 'Driver updated successfully',
+      message: "Driver updated successfully",
       data: driver,
     });
   } catch (error) {
-    if (error.message === 'Driver not found') {
+    if (error.message === "Driver not found") {
       return res.status(404).json({
         success: false,
-        message: 'Driver not found',
+        message: "Driver not found",
       });
     }
-    if (error.message === 'Email already exists' || error.message === 'Username already exists') {
+    if (
+      error.message === "Email already exists" ||
+      error.message === "Username already exists"
+    ) {
       return res.status(409).json({
         success: false,
         message: error.message,
@@ -1330,13 +1372,17 @@ exports.deleteDriver = async (req, res, next) => {
       message: result.message,
     });
   } catch (error) {
-    if (error.message === 'Driver not found') {
+    if (error.message === "Driver not found") {
       return res.status(404).json({
         success: false,
-        message: 'Driver not found',
+        message: "Driver not found",
       });
     }
-    if (error.message.includes('Cannot delete driver with active or allocated deliveries')) {
+    if (
+      error.message.includes(
+        "Cannot delete driver with active or allocated deliveries",
+      )
+    ) {
       return res.status(409).json({
         success: false,
         message: error.message,
@@ -1346,16 +1392,14 @@ exports.deleteDriver = async (req, res, next) => {
   }
 };
 
-
-// DRIVER AVAILABILITY MANAGEMENT (ADMIN/MANAGER) 
-
+// DRIVER AVAILABILITY MANAGEMENT (ADMIN/MANAGER)
 
 exports.getAllDriversAvailability = async (req, res, next) => {
   try {
-    const { startDate, endDate, date, timeSlot, isAvailable, driverId } = req.query;
+    const { startDate, endDate, date, timeSlot, isAvailable, driverId } =
+      req.query;
 
     const where = {};
-
 
     if (date) {
       where.date = new Date(date);
@@ -1365,16 +1409,14 @@ exports.getAllDriversAvailability = async (req, res, next) => {
       if (endDate) where.date.lte = new Date(endDate);
     }
 
-
     if (timeSlot) {
       where.timeSlot = timeSlot;
     }
 
     // Availability filtering
     if (isAvailable !== undefined) {
-      where.isAvailable = isAvailable === 'true';
+      where.isAvailable = isAvailable === "true";
     }
-
 
     if (driverId) {
       where.driverId = parseInt(driverId);
@@ -1393,29 +1435,28 @@ exports.getAllDriversAvailability = async (req, res, next) => {
               select: {
                 vehicleRegistration: true,
                 isActiveDriver: true,
-              }
-            }
-          }
-        }
+              },
+            },
+          },
+        },
       },
       orderBy: [
-        { date: 'asc' },
-        { timeSlot: 'asc' },
-        { driver: { fullName: 'asc' } }
+        { date: "asc" },
+        { timeSlot: "asc" },
+        { driver: { fullName: "asc" } },
       ],
     });
 
-
     const grouped = {};
-    availability.forEach(item => {
-      const dateKey = item.date.toISOString().split('T')[0];
+    availability.forEach((item) => {
+      const dateKey = item.date.toISOString().split("T")[0];
       const slotKey = `${dateKey}_${item.timeSlot}`;
 
       if (!grouped[slotKey]) {
         grouped[slotKey] = {
           date: item.date,
           timeSlot: item.timeSlot,
-          drivers: []
+          drivers: [],
         };
       }
 
@@ -1439,32 +1480,29 @@ exports.getAllDriversAvailability = async (req, res, next) => {
       grouped: Object.values(grouped),
     });
   } catch (error) {
-    console.error('Get all drivers availability error:', error);
+    console.error("Get all drivers availability error:", error);
     next(error);
   }
 };
-
 
 exports.getDriverAvailability = async (req, res, next) => {
   try {
     const driverId = parseInt(req.params.id);
 
-
     const driver = await prisma.user.findUnique({
-      where: { id: driverId, role: 'DRIVER' },
+      where: { id: driverId, role: "DRIVER" },
       select: { id: true, fullName: true, email: true },
     });
 
     if (!driver) {
       return res.status(404).json({
         success: false,
-        message: 'Driver not found',
+        message: "Driver not found",
       });
     }
 
     const { startDate, endDate, date, timeSlot } = req.query;
     const where = { driverId };
-
 
     if (date) {
       where.date = new Date(date);
@@ -1474,17 +1512,13 @@ exports.getDriverAvailability = async (req, res, next) => {
       if (endDate) where.date.lte = new Date(endDate);
     }
 
-
     if (timeSlot) {
       where.timeSlot = timeSlot;
     }
 
     const availability = await prisma.driverAvailability.findMany({
       where,
-      orderBy: [
-        { date: 'asc' },
-        { timeSlot: 'asc' }
-      ],
+      orderBy: [{ date: "asc" }, { timeSlot: "asc" }],
     });
 
     res.json({
@@ -1498,8 +1532,7 @@ exports.getDriverAvailability = async (req, res, next) => {
       data: availability,
     });
   } catch (error) {
-    console.error('Get driver availability error:', error);
+    console.error("Get driver availability error:", error);
     next(error);
   }
 };
-
