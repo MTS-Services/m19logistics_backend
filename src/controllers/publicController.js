@@ -1,6 +1,6 @@
-const contactService = require('../services/contactService');
-const enquiryService = require('../services/enquiryService');
-const prisma = require('../config/database');
+const contactService = require("../services/contactService");
+const enquiryService = require("../services/enquiryService");
+const prisma = require("../config/database");
 
 // ==================== SLOT AVAILABILITY ====================
 
@@ -14,9 +14,9 @@ exports.getSlotAvailability = async (req, res, next) => {
 
       const slots = await prisma.slotAvailability.findMany({
         where: {
-          date: targetDate
+          date: targetDate,
         },
-        orderBy: { timeSlot: 'asc' }
+        orderBy: { timeSlot: "asc" },
       });
 
       const availability = {
@@ -26,21 +26,22 @@ exports.getSlotAvailability = async (req, res, next) => {
             available: false,
             maxCapacity: 0,
             booked: 0,
-            remaining: 0
+            remaining: 0,
           },
           PM: {
             available: false,
             maxCapacity: 0,
             booked: 0,
-            remaining: 0
-          }
-        }
+            remaining: 0,
+          },
+        },
       };
 
-      slots.forEach(slot => {
-        if (slot.timeSlot === 'AM' || slot.timeSlot === 'PM') {
+      slots.forEach((slot) => {
+        if (slot.timeSlot === "AM" || slot.timeSlot === "PM") {
           const remaining = slot.maxCapacity - slot.booked;
-          const isAvailable = !slot.isFull && remaining > 0 && slot.booked < slot.maxCapacity;
+          const isAvailable =
+            !slot.isFull && remaining > 0 && slot.booked < slot.maxCapacity;
 
           availability.slots[slot.timeSlot] = {
             available: isAvailable,
@@ -48,39 +49,36 @@ exports.getSlotAvailability = async (req, res, next) => {
             booked: slot.booked,
             remaining: remaining,
             isFull: slot.isFull,
-            canBook: isAvailable  // Explicit flag for frontend
+            canBook: isAvailable, // Explicit flag for frontend
           };
         }
       });
 
       return res.json({
         success: true,
-        data: availability
+        data: availability,
       });
     }
 
     // If no date provided, return all upcoming slots (from today onwards)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayString = today.toISOString().split('T')[0];
+    const todayString = today.toISOString().split("T")[0];
 
     const slots = await prisma.slotAvailability.findMany({
       where: {
         date: {
-          gte: today
-        }
+          gte: today,
+        },
       },
-      orderBy: [
-        { date: 'asc' },
-        { timeSlot: 'asc' }
-      ]
+      orderBy: [{ date: "asc" }, { timeSlot: "asc" }],
     });
 
     // Group slots by date
     const slotsByDate = {};
 
-    slots.forEach(slot => {
-      const dateKey = slot.date.toISOString().split('T')[0];
+    slots.forEach((slot) => {
+      const dateKey = slot.date.toISOString().split("T")[0];
 
       // Skip dates before today
       if (dateKey < todayString) {
@@ -95,25 +93,25 @@ exports.getSlotAvailability = async (req, res, next) => {
               available: false,
               maxCapacity: 0,
               booked: 0,
-              remaining: 0
+              remaining: 0,
             },
             PM: {
               available: false,
               maxCapacity: 0,
               booked: 0,
-              remaining: 0
-            }
-          }
+              remaining: 0,
+            },
+          },
         };
       }
 
-      if (slot.timeSlot === 'AM' || slot.timeSlot === 'PM') {
+      if (slot.timeSlot === "AM" || slot.timeSlot === "PM") {
         const remaining = slot.maxCapacity - slot.booked;
         slotsByDate[dateKey].slots[slot.timeSlot] = {
           available: !slot.isFull && remaining > 0,
           maxCapacity: slot.maxCapacity,
           booked: slot.booked,
-          remaining: remaining
+          remaining: remaining,
         };
       }
     });
@@ -124,7 +122,7 @@ exports.getSlotAvailability = async (req, res, next) => {
     res.json({
       success: true,
       count: availabilityArray.length,
-      data: availabilityArray
+      data: availabilityArray,
     });
   } catch (error) {
     next(error);
@@ -139,7 +137,7 @@ exports.submitContact = async (req, res, next) => {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Request body is required',
+        message: "Request body is required",
       });
     }
 
@@ -147,7 +145,7 @@ exports.submitContact = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Thank you for contacting us. We will get back to you soon.',
+      message: "Thank you for contacting us. We will get back to you soon.",
       data: {
         id: contact.id,
         createdAt: contact.createdAt,
@@ -158,14 +156,12 @@ exports.submitContact = async (req, res, next) => {
   }
 };
 
-
 exports.submitEnquiry = async (req, res, next) => {
   try {
-
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Request body is required',
+        message: "Request body is required",
       });
     }
 
@@ -173,7 +169,7 @@ exports.submitEnquiry = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: 'Thank you for your enquiry. We will respond shortly.',
+      message: "Thank you for your enquiry. We will respond shortly.",
       data: {
         id: enquiry.id,
         createdAt: enquiry.createdAt,

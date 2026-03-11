@@ -1,11 +1,10 @@
-const prisma = require('../config/database');
-const bcrypt = require('bcryptjs');
-const emailService = require('./emailService');
-const deliveryService = require('./deliveryService');
+const prisma = require("../config/database");
+const bcrypt = require("bcryptjs");
+const emailService = require("./emailService");
+const deliveryService = require("./deliveryService");
 
 class AdminService {
   // ==================== USER MANAGEMENT ====================
-
 
   async getAllUsers(filters = {}) {
     const { role, isActive, search } = filters;
@@ -13,11 +12,11 @@ class AdminService {
     const where = {};
 
     if (role) where.role = role;
-    if (isActive !== undefined) where.isActive = isActive === 'true';
+    if (isActive !== undefined) where.isActive = isActive === "true";
     if (search) {
       where.OR = [
-        { fullName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
+        { fullName: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -27,7 +26,7 @@ class AdminService {
         customerProfile: {
           include: {
             pricingTier: true,
-          }
+          },
         },
         driverProfile: true,
         managerProfile: true,
@@ -35,13 +34,12 @@ class AdminService {
           select: {
             deliveriesRequested: true,
             deliveriesAssigned: true,
-          }
-        }
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
-
 
   async getUserById(id) {
     return prisma.user.findUnique({
@@ -50,41 +48,38 @@ class AdminService {
         customerProfile: {
           include: {
             pricingTier: true,
-          }
+          },
         },
         driverProfile: true,
         managerProfile: true,
         deliveriesRequested: {
           take: 10,
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: "desc" },
         },
         deliveriesAssigned: {
           take: 10,
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: "desc" },
         },
       },
     });
   }
 
-
   async createUser(userData) {
     const { email, password, role, ...profileData } = userData;
-
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      throw new Error('Email already registered');
+      throw new Error("Email already registered");
     }
-
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const data = {
       email,
-      username: email.split('@')[0],
+      username: email.split("@")[0],
       password: hashedPassword,
       fullName: userData.fullName,
       phone: userData.phone,
@@ -92,7 +87,7 @@ class AdminService {
       isActive: userData.isActive !== false,
     };
 
-    if (role === 'CUSTOMER') {
+    if (role === "CUSTOMER") {
       data.customerProfile = {
         create: {
           storeName: profileData.storeName,
@@ -100,20 +95,20 @@ class AdminService {
           loginId: profileData.loginId,
           pricingTierId: profileData.pricingTierId,
           customBasePrice: profileData.customBasePrice,
-        }
+        },
       };
-    } else if (role === 'DRIVER') {
+    } else if (role === "DRIVER") {
       data.driverProfile = {
         create: {
           vehicleRegistration: profileData.vehicleRegistration,
           isActiveDriver: profileData.isActiveDriver !== false,
-        }
+        },
       };
-    } else if (role === 'MANAGER') {
+    } else if (role === "MANAGER") {
       data.managerProfile = {
         create: {
-          accessScope: profileData.accessScope || 'FULL',
-        }
+          accessScope: profileData.accessScope || "FULL",
+        },
       };
     }
 
@@ -127,14 +122,52 @@ class AdminService {
     });
   }
 
-
   async updateUser(id, updateData) {
     // Validate user ID
     if (!id || isNaN(id)) {
-      throw new Error('Invalid user ID');
+      throw new Error("Invalid user ID");
     }
 
-    const { password, role, ...data } = updateData;
+    // Fields that belong to CustomerProfile, not User
+    const CUSTOMER_PROFILE_FIELDS = [
+      "storeName",
+      "depotAddress",
+      "loginId",
+      "pricingTierId",
+      "customBasePrice",
+      "ccEmail",
+      "accessScope",
+    ];
+    // Fields that belong to DriverProfile
+    const DRIVER_PROFILE_FIELDS = [
+      "vehicleRegistration",
+      "isActiveDriver",
+      "licenseNumber",
+    ];
+
+    const {
+      password,
+      role,
+      customerProfile: customerProfileOverride,
+      driverProfile: driverProfileOverride,
+      managerProfile: managerProfileOverride,
+      ...rest
+    } = updateData;
+
+    // Separate profile-level fields from user-level fields
+    const customerProfileFields = {};
+    const driverProfileFields = {};
+    const data = {};
+
+    for (const [key, value] of Object.entries(rest)) {
+      if (CUSTOMER_PROFILE_FIELDS.includes(key)) {
+        customerProfileFields[key] = value;
+      } else if (DRIVER_PROFILE_FIELDS.includes(key)) {
+        driverProfileFields[key] = value;
+      } else {
+        data[key] = value;
+      }
+    }
 
     if (password) {
       data.password = await bcrypt.hash(password, 10);
@@ -142,25 +175,35 @@ class AdminService {
 
     const user = await prisma.user.findUnique({
       where: { id },
-      select: { role: true }
+      select: { role: true },
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
-    if (user.role === 'CUSTOMER' && updateData.customerProfile) {
-      data.customerProfile = {
-        update: updateData.customerProfile
-      };
-    } else if (user.role === 'DRIVER' && updateData.driverProfile) {
-      data.driverProfile = {
-        update: updateData.driverProfile
-      };
-    } else if (user.role === 'MANAGER' && updateData.managerProfile) {
-      data.managerProfile = {
-        update: updateData.managerProfile
-      };
+    // Merge explicit nested overrides with auto-detected profile fields
+    const mergedCustomerProfile = {
+      ...customerProfileFields,
+      ...(customerProfileOverride || {}),
+    };
+    const mergedDriverProfile = {
+      ...driverProfileFields,
+      ...(driverProfileOverride || {}),
+    };
+
+    if (
+      user.role === "CUSTOMER" &&
+      Object.keys(mergedCustomerProfile).length > 0
+    ) {
+      data.customerProfile = { update: mergedCustomerProfile };
+    } else if (
+      user.role === "DRIVER" &&
+      Object.keys(mergedDriverProfile).length > 0
+    ) {
+      data.driverProfile = { update: mergedDriverProfile };
+    } else if (user.role === "MANAGER" && managerProfileOverride) {
+      data.managerProfile = { update: managerProfileOverride };
     }
 
     return prisma.user.update({
@@ -174,11 +217,9 @@ class AdminService {
     });
   }
 
-
   async deleteUser(id) {
-
     if (!id || isNaN(id)) {
-      throw new Error('Invalid user ID');
+      throw new Error("Invalid user ID");
     }
 
     const user = await prisma.user.findUnique({
@@ -188,16 +229,19 @@ class AdminService {
           select: {
             deliveriesRequested: true,
             deliveriesAssigned: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
-    if (user._count.deliveriesRequested > 0 || user._count.deliveriesAssigned > 0) {
+    if (
+      user._count.deliveriesRequested > 0 ||
+      user._count.deliveriesAssigned > 0
+    ) {
       // Soft delete - deactivate instead
       return this.updateUser(id, { isActive: false });
     }
@@ -207,20 +251,18 @@ class AdminService {
     });
   }
 
-
   async toggleUserStatus(id) {
-
     if (!id || isNaN(id)) {
-      throw new Error('Invalid user ID');
+      throw new Error("Invalid user ID");
     }
 
     const user = await prisma.user.findUnique({
       where: { id },
-      select: { isActive: true }
+      select: { isActive: true },
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     return prisma.user.update({
@@ -229,13 +271,13 @@ class AdminService {
     });
   }
 
-
   async getAllDeliveries(filters = {}) {
-    const { status, startDate, endDate, customerId, driverId, search } = filters;
+    const { status, startDate, endDate, customerId, driverId, search } =
+      filters;
 
     const where = {};
 
-    if (status && status !== 'ALL') where.status = status;
+    if (status && status !== "ALL") where.status = status;
     if (customerId) where.customerId = parseInt(customerId);
     if (driverId) where.driverId = parseInt(driverId);
 
@@ -247,9 +289,9 @@ class AdminService {
 
     if (search) {
       where.OR = [
-        { spoNumber: { contains: search, mode: 'insensitive' } },
-        { deliveryAddress: { contains: search, mode: 'insensitive' } },
-        { customerName: { contains: search, mode: 'insensitive' } },
+        { spoNumber: { contains: search, mode: "insensitive" } },
+        { deliveryAddress: { contains: search, mode: "insensitive" } },
+        { customerName: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -265,8 +307,8 @@ class AdminService {
               select: {
                 loginId: true,
                 storeName: true,
-              }
-            }
+              },
+            },
           },
         },
         driver: {
@@ -278,13 +320,13 @@ class AdminService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
   async getDeliveryById(id) {
     if (!id || isNaN(id)) {
-      throw new Error('Invalid delivery ID');
+      throw new Error("Invalid delivery ID");
     }
 
     const delivery = await prisma.delivery.findUnique({
@@ -301,8 +343,8 @@ class AdminService {
                 loginId: true,
                 storeName: true,
                 depotAddress: true,
-              }
-            }
+              },
+            },
           },
         },
         driver: {
@@ -314,8 +356,8 @@ class AdminService {
             driverProfile: {
               select: {
                 vehicleRegistration: true,
-              }
-            }
+              },
+            },
           },
         },
         extraCharges: true,
@@ -324,7 +366,7 @@ class AdminService {
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found');
+      throw new Error("Delivery not found");
     }
 
     return delivery;
@@ -332,7 +374,7 @@ class AdminService {
 
   async updateDelivery(id, updateData) {
     if (!id || isNaN(id)) {
-      throw new Error('Invalid delivery ID');
+      throw new Error("Invalid delivery ID");
     }
 
     const delivery = await prisma.delivery.findUnique({
@@ -340,12 +382,12 @@ class AdminService {
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found');
+      throw new Error("Delivery not found");
     }
 
     // Admin/Manager can edit deliveries in RECEIVED or ALLOCATED status
-    if (!['RECEIVED', 'ALLOCATED'].includes(delivery.status)) {
-      throw new Error('Cannot edit delivery in current status');
+    if (!["RECEIVED", "ALLOCATED"].includes(delivery.status)) {
+      throw new Error("Cannot edit delivery in current status");
     }
 
     // Recalculate pricing if weight or address changes
@@ -355,12 +397,13 @@ class AdminService {
         pricing = await deliveryService.calculateDeliveryPrice(
           delivery.customerId,
           updateData.weight ? parseFloat(updateData.weight) : delivery.weight,
-          updateData.deliveryAddress || delivery.deliveryAddress
+          updateData.deliveryAddress || delivery.deliveryAddress,
         );
-        console.log(`✓ Pricing recalculated for delivery #${id}: Total ${pricing.totalPrice}`);
+        console.log(
+          `✓ Pricing recalculated for delivery #${id}: Total ${pricing.totalPrice}`,
+        );
       } catch (pricingError) {
-        console.error('Failed to recalculate pricing:', pricingError);
-
+        console.error("Failed to recalculate pricing:", pricingError);
       }
     }
 
@@ -380,8 +423,8 @@ class AdminService {
               select: {
                 loginId: true,
                 storeName: true,
-              }
-            }
+              },
+            },
           },
         },
         driver: {
@@ -398,7 +441,7 @@ class AdminService {
 
   async deleteDelivery(id) {
     if (!id || isNaN(id)) {
-      throw new Error('Invalid delivery ID');
+      throw new Error("Invalid delivery ID");
     }
 
     const delivery = await prisma.delivery.findUnique({
@@ -409,14 +452,15 @@ class AdminService {
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found');
+      throw new Error("Delivery not found");
     }
 
     // Admin/Manager can only delete RECEIVED or CANCELLED deliveries
-    if (!['RECEIVED', 'CANCELLED'].includes(delivery.status)) {
-      throw new Error('Cannot delete delivery in current status. Only RECEIVED or CANCELLED deliveries can be deleted.');
+    if (!["RECEIVED", "CANCELLED"].includes(delivery.status)) {
+      throw new Error(
+        "Cannot delete delivery in current status. Only RECEIVED or CANCELLED deliveries can be deleted.",
+      );
     }
-
 
     if (delivery.extraCharges.length > 0) {
       await prisma.extraCharge.deleteMany({
@@ -428,43 +472,42 @@ class AdminService {
       where: { id },
     });
 
-    return { message: 'Delivery deleted successfully' };
+    return { message: "Delivery deleted successfully" };
   }
 
   async allocateDelivery(deliveryId, driverId) {
-
     const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found');
+      throw new Error("Delivery not found");
     }
 
-    if (delivery.status !== 'RECEIVED') {
-      throw new Error('Can only allocate pending deliveries');
+    if (delivery.status !== "RECEIVED") {
+      throw new Error("Can only allocate pending deliveries");
     }
 
     const driver = await prisma.user.findUnique({
       where: { id: driverId },
-      include: { driverProfile: true }
+      include: { driverProfile: true },
     });
 
-    if (!driver || driver.role !== 'DRIVER') {
-      throw new Error('Invalid driver');
+    if (!driver || driver.role !== "DRIVER") {
+      throw new Error("Invalid driver");
     }
 
     if (!driver.driverProfile?.isActiveDriver) {
-      throw new Error('Driver is not active');
+      throw new Error("Driver is not active");
     }
 
     const updated = await prisma.delivery.update({
       where: { id: deliveryId },
       data: {
         driver: {
-          connect: { id: driverId }
+          connect: { id: driverId },
         },
-        status: 'ALLOCATED',
+        status: "ALLOCATED",
         acceptedAt: null,
         rejectedAt: null,
         rejectionReason: null,
@@ -474,42 +517,42 @@ class AdminService {
           select: {
             fullName: true,
             email: true,
-          }
+          },
         },
         driver: {
           select: {
             fullName: true,
             email: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
-
 
     await prisma.auditLog.create({
       data: {
         userId: driverId,
         deliveryId: deliveryId,
-        action: 'ALLOCATE_DELIVERY',
+        action: "ALLOCATE_DELIVERY",
         description: `Delivery #${deliveryId} allocated to ${driver.fullName}`,
       },
     });
 
-
     try {
-      await emailService.sendDriverAssignmentNotification(updated, driver, updated.customer);
+      await emailService.sendDriverAssignmentNotification(
+        updated,
+        driver,
+        updated.customer,
+      );
     } catch (emailError) {
-      console.error('Failed to send driver assignment emails:', emailError);
-
+      console.error("Failed to send driver assignment emails:", emailError);
     }
 
     return updated;
   }
 
   async updateDeliveryStatus(deliveryId, status, data = {}) {
-
     if (!deliveryId || isNaN(deliveryId)) {
-      throw new Error('Invalid delivery ID');
+      throw new Error("Invalid delivery ID");
     }
 
     const delivery = await prisma.delivery.findUnique({
@@ -520,24 +563,25 @@ class AdminService {
             id: true,
             fullName: true,
             email: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found');
+      throw new Error("Delivery not found");
     }
 
     const updateData = { status };
 
-    if (status === 'DELIVERED') {
+    if (status === "DELIVERED") {
       updateData.deliveredAt = new Date();
-      if (data.proofOfDelivery) updateData.proofOfDelivery = data.proofOfDelivery;
+      if (data.proofOfDelivery)
+        updateData.proofOfDelivery = data.proofOfDelivery;
       if (data.signature) updateData.signature = data.signature;
-    } else if (status === 'CANCELLED') {
+    } else if (status === "CANCELLED") {
       updateData.cancelledAt = new Date();
-      updateData.cancellationReason = data.reason || 'Cancelled by admin';
+      updateData.cancellationReason = data.reason || "Cancelled by admin";
     }
 
     const updated = await prisma.delivery.update({
@@ -546,16 +590,16 @@ class AdminService {
     });
 
     // Send cancellation email if admin cancels delivery
-    if (status === 'CANCELLED') {
+    if (status === "CANCELLED") {
       try {
         await emailService.sendDeliveryCancellationNotification(
           updated,
           delivery.customer,
-          'Admin',
-          updateData.cancellationReason
+          "Admin",
+          updateData.cancellationReason,
         );
       } catch (emailError) {
-        console.error('Failed to send cancellation email:', emailError);
+        console.error("Failed to send cancellation email:", emailError);
       }
     }
 
@@ -563,9 +607,8 @@ class AdminService {
   }
 
   async addExtraCharge(deliveryId, chargeData) {
-
     if (!deliveryId || isNaN(deliveryId)) {
-      throw new Error('Invalid delivery ID');
+      throw new Error("Invalid delivery ID");
     }
 
     const delivery = await prisma.delivery.findUnique({
@@ -573,7 +616,7 @@ class AdminService {
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found');
+      throw new Error("Delivery not found");
     }
 
     return prisma.extraCharge.create({
@@ -586,9 +629,8 @@ class AdminService {
   }
 
   async removeExtraCharge(chargeId) {
-
     if (!chargeId || isNaN(chargeId)) {
-      throw new Error('Invalid charge ID');
+      throw new Error("Invalid charge ID");
     }
 
     const charge = await prisma.extraCharge.findUnique({
@@ -596,7 +638,7 @@ class AdminService {
     });
 
     if (!charge) {
-      throw new Error('Extra charge not found');
+      throw new Error("Extra charge not found");
     }
 
     return prisma.extraCharge.delete({
@@ -605,17 +647,15 @@ class AdminService {
   }
 
   async getDeliveryExtraCharges(deliveryId) {
-
     if (!deliveryId || isNaN(deliveryId)) {
-      throw new Error('Invalid delivery ID');
+      throw new Error("Invalid delivery ID");
     }
 
     return prisma.extraCharge.findMany({
       where: { deliveryId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
-
 
   async getAllPricingTiers() {
     return prisma.pricingTier.findMany({
@@ -623,16 +663,14 @@ class AdminService {
         _count: {
           select: {
             customerProfiles: true,
-          }
-        }
+          },
+        },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 
-
   async createPricingTier(tierData) {
-
     if (tierData.isDefault) {
       await prisma.pricingTier.updateMany({
         where: { isDefault: true },
@@ -645,26 +683,24 @@ class AdminService {
     });
   }
 
-
   async updatePricingTier(id, tierData) {
-
     if (!id || isNaN(id)) {
-      throw new Error('Invalid pricing tier ID');
+      throw new Error("Invalid pricing tier ID");
     }
 
     const tier = await prisma.pricingTier.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!tier) {
-      throw new Error('Pricing tier not found');
+      throw new Error("Pricing tier not found");
     }
 
     if (tierData.isDefault) {
       await prisma.pricingTier.updateMany({
         where: {
           isDefault: true,
-          NOT: { id }
+          NOT: { id },
         },
         data: { isDefault: false },
       });
@@ -676,28 +712,27 @@ class AdminService {
     });
   }
 
-
   async deletePricingTier(id) {
-
     if (!id || isNaN(id)) {
-      throw new Error('Invalid pricing tier ID');
+      throw new Error("Invalid pricing tier ID");
     }
 
-
     const tier = await prisma.pricingTier.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!tier) {
-      throw new Error('Pricing tier not found');
+      throw new Error("Pricing tier not found");
     }
 
     const count = await prisma.customerProfile.count({
-      where: { pricingTierId: id }
+      where: { pricingTierId: id },
     });
 
     if (count > 0) {
-      throw new Error(`Cannot delete pricing tier. ${count} customers are using it.`);
+      throw new Error(
+        `Cannot delete pricing tier. ${count} customers are using it.`,
+      );
     }
 
     return prisma.pricingTier.delete({
@@ -705,13 +740,11 @@ class AdminService {
     });
   }
 
-
   async generateInvoice(customerId, weekStartDate, weekEndDate) {
-
     const deliveries = await prisma.delivery.findMany({
       where: {
         customerId,
-        status: 'DELIVERED',
+        status: "DELIVERED",
         deliveredAt: {
           gte: new Date(weekStartDate),
           lte: new Date(weekEndDate),
@@ -721,22 +754,29 @@ class AdminService {
     });
 
     if (deliveries.length === 0) {
-      throw new Error('No deliveries to invoice for this period');
+      throw new Error("No deliveries to invoice for this period");
     }
 
     const lastInvoiceSetting = await prisma.systemSetting.findUnique({
-      where: { key: 'LAST_INVOICE_NUMBER' },
+      where: { key: "LAST_INVOICE_NUMBER" },
     });
 
-    const lastNumber = parseInt(lastInvoiceSetting?.value || '326');
+    const lastNumber = parseInt(lastInvoiceSetting?.value || "326");
     const nextNumber = lastNumber + 1;
-    const invoiceNumber = `T${String(nextNumber).padStart(4, '0')}`;
+    const invoiceNumber = `T${String(nextNumber).padStart(4, "0")}`;
 
-
-    const subtotal = deliveries.reduce((sum, d) => sum + parseFloat(d.subtotal), 0);
-    const vatTotal = deliveries.reduce((sum, d) => sum + parseFloat(d.vatAmount), 0);
-    const grandTotal = deliveries.reduce((sum, d) => sum + parseFloat(d.totalPrice), 0);
-
+    const subtotal = deliveries.reduce(
+      (sum, d) => sum + parseFloat(d.subtotal),
+      0,
+    );
+    const vatTotal = deliveries.reduce(
+      (sum, d) => sum + parseFloat(d.vatAmount),
+      0,
+    );
+    const grandTotal = deliveries.reduce(
+      (sum, d) => sum + parseFloat(d.totalPrice),
+      0,
+    );
 
     const invoice = await prisma.invoice.create({
       data: {
@@ -749,9 +789,9 @@ class AdminService {
         vatTotal,
         grandTotal,
         isPaid: false,
-        paymentTerms: '30 Days (End of Month)',
+        paymentTerms: "30 Days (End of Month)",
         items: {
-          create: deliveries.map(delivery => ({
+          create: deliveries.map((delivery) => ({
             deliveryId: delivery.id,
             description: `Cust. Ref: ${delivery.spoNumber} / ${new Date(delivery.deliveryDate).toLocaleDateString()} / ${delivery.deliveryAddress}`,
             quantity: 1,
@@ -766,20 +806,18 @@ class AdminService {
         items: {
           include: {
             delivery: true,
-          }
+          },
         },
       },
     });
 
-
     await prisma.systemSetting.update({
-      where: { key: 'LAST_INVOICE_NUMBER' },
+      where: { key: "LAST_INVOICE_NUMBER" },
       data: { value: String(nextNumber) },
     });
 
     return invoice;
   }
-
 
   async getAllInvoices(filters = {}) {
     const { customerId, isPaid, startDate, endDate } = filters;
@@ -787,7 +825,7 @@ class AdminService {
     const where = {};
 
     if (customerId) where.customerId = parseInt(customerId);
-    if (isPaid !== undefined) where.isPaid = isPaid === 'true';
+    if (isPaid !== undefined) where.isPaid = isPaid === "true";
 
     if (startDate || endDate) {
       where.invoiceDate = {};
@@ -807,28 +845,27 @@ class AdminService {
               select: {
                 loginId: true,
                 storeName: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         items: true,
       },
-      orderBy: { invoiceDate: 'desc' },
+      orderBy: { invoiceDate: "desc" },
     });
   }
 
-
   async markInvoiceAsPaid(invoiceId) {
     if (!invoiceId || isNaN(invoiceId)) {
-      throw new Error('Invalid invoice ID');
+      throw new Error("Invalid invoice ID");
     }
 
     const invoice = await prisma.invoice.findUnique({
-      where: { id: invoiceId }
+      where: { id: invoiceId },
     });
 
     if (!invoice) {
-      throw new Error('Invoice not found');
+      throw new Error("Invoice not found");
     }
 
     return prisma.invoice.update({
@@ -841,24 +878,22 @@ class AdminService {
   }
 
   async addExtraCharge(invoiceId, chargeData) {
-
     if (!invoiceId || isNaN(invoiceId)) {
-      throw new Error('Invalid invoice ID');
+      throw new Error("Invalid invoice ID");
     }
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      include: { items: true }
+      include: { items: true },
     });
 
     if (!invoice) {
-      throw new Error('Invoice not found');
+      throw new Error("Invoice not found");
     }
 
     if (invoice.isPaid) {
-      throw new Error('Cannot modify paid invoice');
+      throw new Error("Cannot modify paid invoice");
     }
-
 
     const item = await prisma.invoiceItem.create({
       data: {
@@ -872,9 +907,12 @@ class AdminService {
       },
     });
 
-    const subtotal = parseFloat(invoice.subtotal) + parseFloat(chargeData.unitCost);
-    const vatTotal = parseFloat(invoice.vatTotal) + parseFloat(chargeData.vatAmount);
-    const grandTotal = parseFloat(invoice.grandTotal) + parseFloat(chargeData.total);
+    const subtotal =
+      parseFloat(invoice.subtotal) + parseFloat(chargeData.unitCost);
+    const vatTotal =
+      parseFloat(invoice.vatTotal) + parseFloat(chargeData.vatAmount);
+    const grandTotal =
+      parseFloat(invoice.grandTotal) + parseFloat(chargeData.total);
 
     await prisma.invoice.update({
       where: { id: invoiceId },
@@ -884,10 +922,9 @@ class AdminService {
     return item;
   }
 
-
   async getInvoiceById(invoiceId) {
     if (!invoiceId || isNaN(invoiceId)) {
-      throw new Error('Invalid invoice ID');
+      throw new Error("Invalid invoice ID");
     }
 
     return prisma.invoice.findUnique({
@@ -896,68 +933,82 @@ class AdminService {
         customer: {
           include: {
             customerProfile: {
-              include: { pricingTier: true }
-            }
-          }
+              include: { pricingTier: true },
+            },
+          },
         },
         items: {
           include: {
             delivery: {
               include: {
                 customer: {
-                  include: { customerProfile: true }
+                  include: { customerProfile: true },
                 },
                 driver: {
-                  include: { driverProfile: true }
+                  include: { driverProfile: true },
                 },
                 extraCharges: true,
-              }
-            }
+              },
+            },
           },
-          orderBy: { id: 'asc' }
-        }
-      }
+          orderBy: { id: "asc" },
+        },
+      },
     });
   }
 
   async updateInvoiceComplete(invoiceId, updateData) {
-
     if (!invoiceId || isNaN(invoiceId)) {
-      throw new Error('Invalid invoice ID');
+      throw new Error("Invalid invoice ID");
     }
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      include: { items: true }
+      include: { items: true },
     });
 
     if (!invoice) {
-      throw new Error('Invoice not found');
+      throw new Error("Invoice not found");
     }
 
     if (invoice.isPaid && !updateData.allowEditPaid) {
-      throw new Error('Cannot edit a paid invoice. Contact finance team for adjustments.');
+      throw new Error(
+        "Cannot edit a paid invoice. Contact finance team for adjustments.",
+      );
     }
 
-
-    if (updateData.invoiceNumber && updateData.invoiceNumber !== invoice.invoiceNumber) {
+    if (
+      updateData.invoiceNumber &&
+      updateData.invoiceNumber !== invoice.invoiceNumber
+    ) {
       const existing = await prisma.invoice.findFirst({
         where: {
           invoiceNumber: updateData.invoiceNumber,
-          id: { not: invoiceId }
-        }
+          id: { not: invoiceId },
+        },
       });
       if (existing) {
-        throw new Error(`Invoice number ${updateData.invoiceNumber} already exists`);
+        throw new Error(
+          `Invoice number ${updateData.invoiceNumber} already exists`,
+        );
       }
     }
 
     const invoiceUpdateData = {};
-    const allowedFields = ['invoiceNumber', 'customerId', 'invoiceDate', 'dueDate', 'status', 'customerRef', 'notes', 'paymentTerms'];
+    const allowedFields = [
+      "invoiceNumber",
+      "customerId",
+      "invoiceDate",
+      "dueDate",
+      "status",
+      "customerRef",
+      "notes",
+      "paymentTerms",
+    ];
 
     for (const field of allowedFields) {
       if (updateData[field] !== undefined) {
-        if (field === 'invoiceDate' || field === 'dueDate') {
+        if (field === "invoiceDate" || field === "dueDate") {
           invoiceUpdateData[field] = new Date(updateData[field]);
         } else {
           invoiceUpdateData[field] = updateData[field];
@@ -965,14 +1016,12 @@ class AdminService {
       }
     }
 
-
     if (updateData.items && Array.isArray(updateData.items)) {
-
       await prisma.invoiceItem.deleteMany({
-        where: { invoiceId }
+        where: { invoiceId },
       });
 
-      const itemsToCreate = updateData.items.map(item => ({
+      const itemsToCreate = updateData.items.map((item) => ({
         invoiceId,
         deliveryId: item.deliveryId || null,
         spoNumber: item.spoNumber || null,
@@ -986,7 +1035,7 @@ class AdminService {
 
       if (itemsToCreate.length > 0) {
         await prisma.invoiceItem.createMany({
-          data: itemsToCreate
+          data: itemsToCreate,
         });
       }
 
@@ -994,7 +1043,7 @@ class AdminService {
       let vatTotal = 0;
       let grandTotal = 0;
 
-      itemsToCreate.forEach(item => {
+      itemsToCreate.forEach((item) => {
         const itemSubtotal = item.quantity * item.unitCost;
         const itemVat = item.vatAmount;
         const itemTotal = item.total;
@@ -1009,7 +1058,6 @@ class AdminService {
       invoiceUpdateData.grandTotal = grandTotal.toFixed(2);
     }
 
-
     const updatedInvoice = await prisma.invoice.update({
       where: { id: invoiceId },
       data: invoiceUpdateData,
@@ -1017,23 +1065,21 @@ class AdminService {
         customer: {
           include: {
             customerProfile: {
-              include: { pricingTier: true }
-            }
-          }
+              include: { pricingTier: true },
+            },
+          },
         },
         items: {
           include: {
-            delivery: true
+            delivery: true,
           },
-          orderBy: { id: 'asc' }
-        }
-      }
+          orderBy: { id: "asc" },
+        },
+      },
     });
 
     return updatedInvoice;
   }
-
-
 
   async getSlotAvailability(filters = {}) {
     const { date, timeSlot } = filters;
@@ -1045,7 +1091,7 @@ class AdminService {
 
     return prisma.slotAvailability.findMany({
       where,
-      orderBy: [{ date: 'asc' }, { timeSlot: 'asc' }],
+      orderBy: [{ date: "asc" }, { timeSlot: "asc" }],
     });
   }
 
@@ -1053,11 +1099,11 @@ class AdminService {
     const { date, timeSlot, maxCapacity } = slotData;
 
     if (!date || !timeSlot) {
-      throw new Error('Date and timeSlot are required');
+      throw new Error("Date and timeSlot are required");
     }
 
-    if (!['AM', 'PM', 'SAME_DAY'].includes(timeSlot)) {
-      throw new Error('Invalid timeSlot. Must be AM, PM, or SAME_DAY');
+    if (!["AM", "PM", "SAME_DAY"].includes(timeSlot)) {
+      throw new Error("Invalid timeSlot. Must be AM, PM, or SAME_DAY");
     }
 
     const slotDate = new Date(date);
@@ -1067,28 +1113,28 @@ class AdminService {
         date_timeSlot: {
           date: slotDate,
           timeSlot,
-        }
-      }
+        },
+      },
     });
 
     if (existing) {
-
-      const updatedMaxCapacity = maxCapacity !== undefined ? maxCapacity : existing.maxCapacity;
-
+      const updatedMaxCapacity =
+        maxCapacity !== undefined ? maxCapacity : existing.maxCapacity;
 
       if (updatedMaxCapacity < existing.booked) {
-        throw new Error(`Cannot set capacity to ${updatedMaxCapacity}. Current bookings: ${existing.booked}. Cancel bookings first or set higher capacity.`);
+        throw new Error(
+          `Cannot set capacity to ${updatedMaxCapacity}. Current bookings: ${existing.booked}. Cancel bookings first or set higher capacity.`,
+        );
       }
 
       return prisma.slotAvailability.update({
         where: { id: existing.id },
         data: {
           maxCapacity: updatedMaxCapacity,
-          isFull: existing.booked >= updatedMaxCapacity
+          isFull: existing.booked >= updatedMaxCapacity,
         },
       });
     }
-
 
     return prisma.slotAvailability.create({
       data: {
@@ -1103,7 +1149,7 @@ class AdminService {
 
   async updateSlotCapacity(slotId, method, value) {
     if (!slotId || isNaN(slotId)) {
-      throw new Error('Invalid slot ID');
+      throw new Error("Invalid slot ID");
     }
 
     const slot = await prisma.slotAvailability.findUnique({
@@ -1111,26 +1157,28 @@ class AdminService {
     });
 
     if (!slot) {
-      throw new Error('Slot not found');
+      throw new Error("Slot not found");
     }
 
-    if (!['increase', 'decrease'].includes(method)) {
+    if (!["increase", "decrease"].includes(method)) {
       throw new Error('Method must be either "increase" or "decrease"');
     }
 
     if (value <= 0) {
-      throw new Error('Value must be a positive number');
+      throw new Error("Value must be a positive number");
     }
 
-    const capacityChange = method === 'increase' ? value : -value;
+    const capacityChange = method === "increase" ? value : -value;
     const newMaxCapacity = slot.maxCapacity + capacityChange;
 
     if (newMaxCapacity < 0) {
-      throw new Error('Capacity cannot be negative');
+      throw new Error("Capacity cannot be negative");
     }
 
     if (newMaxCapacity < slot.booked) {
-      throw new Error(`Cannot reduce capacity below current bookings (${slot.booked}). Cancel some bookings first.`);
+      throw new Error(
+        `Cannot reduce capacity below current bookings (${slot.booked}). Cancel some bookings first.`,
+      );
     }
 
     return prisma.slotAvailability.update({
@@ -1146,11 +1194,21 @@ class AdminService {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+    );
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
 
     const [
-
       totalBookings,
       totalBookingsLastMonth,
       activeCustomers,
@@ -1164,70 +1222,63 @@ class AdminService {
       inProgressBookings,
       completedToday,
 
-
       recentBookings,
     ] = await Promise.all([
-
       prisma.delivery.count(),
-
 
       prisma.delivery.count({
         where: {
           createdAt: {
-            lt: startOfMonth
-          }
-        }
+            lt: startOfMonth,
+          },
+        },
       }),
 
       prisma.user.count({
         where: {
-          role: 'CUSTOMER',
-          isActive: true
-        }
+          role: "CUSTOMER",
+          isActive: true,
+        },
       }),
-
 
       prisma.user.count({
         where: {
-          role: 'CUSTOMER',
+          role: "CUSTOMER",
           isActive: true,
           createdAt: {
-            lt: startOfMonth
-          }
-        }
+            lt: startOfMonth,
+          },
+        },
       }),
-
 
       prisma.user.count({
         where: {
-          role: 'DRIVER',
+          role: "DRIVER",
           isActive: true,
           driverProfile: {
-            isActiveDriver: true
-          }
-        }
+            isActiveDriver: true,
+          },
+        },
       }),
-
 
       prisma.user.count({
         where: {
-          role: 'DRIVER',
+          role: "DRIVER",
           isActive: true,
           driverProfile: {
-            isActiveDriver: true
+            isActiveDriver: true,
           },
           createdAt: {
-            lt: startOfMonth
-          }
-        }
+            lt: startOfMonth,
+          },
+        },
       }),
-
 
       prisma.invoice.aggregate({
         _sum: { grandTotal: true },
         where: {
-          invoiceDate: { gte: startOfMonth }
-        }
+          invoiceDate: { gte: startOfMonth },
+        },
       }),
 
       prisma.invoice.aggregate({
@@ -1235,38 +1286,36 @@ class AdminService {
         where: {
           invoiceDate: {
             gte: startOfLastMonth,
-            lte: endOfLastMonth
-          }
-        }
+            lte: endOfLastMonth,
+          },
+        },
       }),
 
-
       prisma.delivery.count({
-        where: { status: 'RECEIVED' }
+        where: { status: "RECEIVED" },
       }),
 
-
       prisma.delivery.count({
-        where: { status: 'ALLOCATED' }
+        where: { status: "ALLOCATED" },
       }),
 
       prisma.delivery.count({
         where: {
-          status: 'DELIVERED'
-        }
+          status: "DELIVERED",
+        },
       }),
 
       // Recent bookings
       prisma.delivery.findMany({
         take: 10,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           customer: {
             include: {
-              customerProfile: true
-            }
-          }
-        }
+              customerProfile: true,
+            },
+          },
+        },
       }),
     ]);
 
@@ -1275,63 +1324,68 @@ class AdminService {
       return Math.round(((current - previous) / previous) * 100);
     };
 
-    const revenueThisMonthValue = parseFloat(revenueThisMonth._sum.grandTotal || 0);
-    const revenueLastMonthValue = parseFloat(revenueLastMonth._sum.grandTotal || 0);
+    const revenueThisMonthValue = parseFloat(
+      revenueThisMonth._sum.grandTotal || 0,
+    );
+    const revenueLastMonthValue = parseFloat(
+      revenueLastMonth._sum.grandTotal || 0,
+    );
 
     return {
       metrics: {
         totalBookings: {
           count: totalBookings,
           change: calculateChange(totalBookings, totalBookingsLastMonth),
-          changeText: `${Math.abs(calculateChange(totalBookings, totalBookingsLastMonth))}% from last month`
+          changeText: `${Math.abs(calculateChange(totalBookings, totalBookingsLastMonth))}% from last month`,
         },
         activeCustomers: {
           count: activeCustomers,
           change: calculateChange(activeCustomers, activeCustomersLastMonth),
-          changeText: `${Math.abs(calculateChange(activeCustomers, activeCustomersLastMonth))}% from last month`
+          changeText: `${Math.abs(calculateChange(activeCustomers, activeCustomersLastMonth))}% from last month`,
         },
         activeDrivers: {
           count: activeDrivers,
           change: calculateChange(activeDrivers, activeDriversLastMonth),
-          changeText: `${Math.abs(calculateChange(activeDrivers, activeDriversLastMonth))}% from last month`
+          changeText: `${Math.abs(calculateChange(activeDrivers, activeDriversLastMonth))}% from last month`,
         },
         revenue: {
           amount: revenueThisMonthValue,
-          currency: 'GBP',
-          formatted: `£${revenueThisMonthValue.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+          currency: "GBP",
+          formatted: `£${revenueThisMonthValue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
           change: calculateChange(revenueThisMonthValue, revenueLastMonthValue),
-          changeText: `${Math.abs(calculateChange(revenueThisMonthValue, revenueLastMonthValue))}% from last month`
-        }
+          changeText: `${Math.abs(calculateChange(revenueThisMonthValue, revenueLastMonthValue))}% from last month`,
+        },
       },
       statusCards: {
         pending: {
           count: pendingBookings,
-          label: 'Pending Bookings',
-          description: 'Requires allocation to drivers',
+          label: "Pending Bookings",
+          description: "Requires allocation to drivers",
           //color: 'teal'
         },
         inProgress: {
           count: inProgressBookings,
-          label: 'In Progress',
-          description: 'Currently out for delivery',
+          label: "In Progress",
+          description: "Currently out for delivery",
           //color: 'blue'
         },
         completedToday: {
           count: completedToday,
-          label: 'Completed',
-          description: 'Successfully delivered',
+          label: "Completed",
+          description: "Successfully delivered",
           //color: 'green'
-        }
+        },
       },
-      recentBookings: recentBookings.map(booking => ({
-        invoiceNumber: booking.invoiceNumber || `T${String(booking.id).padStart(4, '0')}`,
-        customer: `${booking.customer.customerProfile?.storeName || booking.customer.fullName} (${booking.customer.customerProfile?.loginId || 'N/A'})`,
+      recentBookings: recentBookings.map((booking) => ({
+        invoiceNumber:
+          booking.invoiceNumber || `T${String(booking.id).padStart(4, "0")}`,
+        customer: `${booking.customer.customerProfile?.storeName || booking.customer.fullName} (${booking.customer.customerProfile?.loginId || "N/A"})`,
         date: booking.deliveryDate,
         timeSlot: booking.timeSlot,
         weight: `${booking.weight}kg`,
         status: booking.status,
-        deliveryId: booking.id
-      }))
+        deliveryId: booking.id,
+      })),
     };
   }
 
@@ -1354,64 +1408,63 @@ class AdminService {
     ] = await Promise.all([
       // Total deliveries
       prisma.delivery.count({
-        where: startDate || endDate ? { createdAt: dateFilter } : {}
+        where: startDate || endDate ? { createdAt: dateFilter } : {},
       }),
 
       prisma.delivery.groupBy({
-        by: ['status'],
+        by: ["status"],
         _count: true,
-        where: startDate || endDate ? { createdAt: dateFilter } : {}
+        where: startDate || endDate ? { createdAt: dateFilter } : {},
       }),
 
       prisma.invoice.aggregate({
         _sum: { grandTotal: true },
         where: {
           ...(startDate || endDate ? { invoiceDate: dateFilter } : {}),
-        }
+        },
       }),
 
       prisma.invoice.count({
-        where: startDate || endDate ? { invoiceDate: dateFilter } : {}
+        where: startDate || endDate ? { invoiceDate: dateFilter } : {},
       }),
 
       prisma.invoice.count({
         where: {
           isPaid: true,
-          ...(startDate || endDate ? { invoiceDate: dateFilter } : {})
-        }
+          ...(startDate || endDate ? { invoiceDate: dateFilter } : {}),
+        },
       }),
 
       prisma.user.count({
-        where: { role: 'CUSTOMER', isActive: true }
+        where: { role: "CUSTOMER", isActive: true },
       }),
 
       prisma.user.count({
         where: {
-          role: 'DRIVER',
+          role: "DRIVER",
           isActive: true,
           driverProfile: {
-            isActiveDriver: true
-          }
-        }
+            isActiveDriver: true,
+          },
+        },
       }),
-
 
       prisma.delivery.findMany({
         take: 10,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           customer: {
             select: {
               fullName: true,
               customerProfile: {
-                select: { loginId: true }
-              }
-            }
+                select: { loginId: true },
+              },
+            },
           },
           driver: {
-            select: { fullName: true }
-          }
-        }
+            select: { fullName: true },
+          },
+        },
       }),
     ]);
 
@@ -1433,7 +1486,6 @@ class AdminService {
     };
   }
 
-
   async getDriverPerformance(filters = {}) {
     const { startDate, endDate } = filters;
 
@@ -1443,10 +1495,10 @@ class AdminService {
 
     const drivers = await prisma.user.findMany({
       where: {
-        role: 'DRIVER',
+        role: "DRIVER",
         driverProfile: {
-          isActiveDriver: true
-        }
+          isActiveDriver: true,
+        },
       },
       include: {
         driverProfile: true,
@@ -1455,15 +1507,17 @@ class AdminService {
           select: {
             status: true,
             deliveredAt: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
-    return drivers.map(driver => {
+    return drivers.map((driver) => {
       const deliveries = driver.deliveriesAssigned;
-      const completed = deliveries.filter(d => d.status === 'DELIVERED').length;
-      const pending = deliveries.filter(d => d.status === 'ALLOCATED').length;
+      const completed = deliveries.filter(
+        (d) => d.status === "DELIVERED",
+      ).length;
+      const pending = deliveries.filter((d) => d.status === "ALLOCATED").length;
 
       return {
         id: driver.id,
@@ -1474,11 +1528,13 @@ class AdminService {
         totalAssigned: deliveries.length,
         completed,
         pending,
-        completionRate: deliveries.length > 0 ? ((completed / deliveries.length) * 100).toFixed(2) : 0,
+        completionRate:
+          deliveries.length > 0
+            ? ((completed / deliveries.length) * 100).toFixed(2)
+            : 0,
       };
     });
   }
-
 
   async getCustomerAnalytics(filters = {}) {
     const { startDate, endDate } = filters;
@@ -1489,26 +1545,29 @@ class AdminService {
 
     const customers = await prisma.user.findMany({
       where: {
-        role: 'CUSTOMER',
-        isActive: true
+        role: "CUSTOMER",
+        isActive: true,
       },
       include: {
         customerProfile: {
           include: {
-            pricingTier: true
-          }
+            pricingTier: true,
+          },
         },
         deliveriesRequested: {
           where: startDate || endDate ? { createdAt: dateFilter } : {},
         },
         invoices: {
           where: startDate || endDate ? { invoiceDate: dateFilter } : {},
-        }
-      }
+        },
+      },
     });
 
-    return customers.map(customer => {
-      const totalSpent = customer.invoices.reduce((sum, inv) => sum + parseFloat(inv.grandTotal), 0);
+    return customers.map((customer) => {
+      const totalSpent = customer.invoices.reduce(
+        (sum, inv) => sum + parseFloat(inv.grandTotal),
+        0,
+      );
       const totalDeliveries = customer.deliveriesRequested.length;
 
       return {
@@ -1520,7 +1579,8 @@ class AdminService {
         pricingTier: customer.customerProfile?.pricingTier?.name,
         totalDeliveries,
         totalSpent: totalSpent.toFixed(2),
-        averageOrderValue: totalDeliveries > 0 ? (totalSpent / totalDeliveries).toFixed(2) : 0,
+        averageOrderValue:
+          totalDeliveries > 0 ? (totalSpent / totalDeliveries).toFixed(2) : 0,
       };
     });
   }
@@ -1529,18 +1589,18 @@ class AdminService {
     const { isActive, search, status } = filters;
 
     const where = {
-      role: 'DRIVER'
+      role: "DRIVER",
     };
 
     if (isActive !== undefined) {
-      where.isActive = isActive === 'true';
+      where.isActive = isActive === "true";
     }
 
     if (search) {
       where.OR = [
-        { fullName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { username: { contains: search, mode: 'insensitive' } },
+        { fullName: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { username: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -1554,15 +1614,15 @@ class AdminService {
             status: true,
             deliveryDate: true,
             deliveredAt: true,
-          }
+          },
         },
         _count: {
           select: {
             deliveriesAssigned: true,
-          }
-        }
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     // Calculate this week's deliveries (Monday to Sunday)
@@ -1575,16 +1635,20 @@ class AdminService {
     endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
     endOfWeek.setHours(23, 59, 59, 999);
 
-    return drivers.map(driver => {
+    return drivers.map((driver) => {
       const allDeliveries = driver.deliveriesAssigned;
-      const thisWeekDeliveries = allDeliveries.filter(d => {
+      const thisWeekDeliveries = allDeliveries.filter((d) => {
         const deliveryDate = new Date(d.deliveryDate);
         return deliveryDate >= startOfWeek && deliveryDate <= endOfWeek;
       });
 
       const totalDeliveries = allDeliveries.length;
-      const completed = allDeliveries.filter(d => d.status === 'DELIVERED').length;
-      const pending = allDeliveries.filter(d => d.status === 'ALLOCATED').length;
+      const completed = allDeliveries.filter(
+        (d) => d.status === "DELIVERED",
+      ).length;
+      const pending = allDeliveries.filter(
+        (d) => d.status === "ALLOCATED",
+      ).length;
 
       return {
         id: driver.id,
@@ -1600,15 +1664,15 @@ class AdminService {
           totalDeliveries,
           completed,
           pending,
-          thisWeek: thisWeekDeliveries.length
-        }
+          thisWeek: thisWeekDeliveries.length,
+        },
       };
     });
   }
 
   async getDriverById(id) {
     const driver = await prisma.user.findUnique({
-      where: { id, role: 'DRIVER' },
+      where: { id, role: "DRIVER" },
       include: {
         driverProfile: true,
         deliveriesAssigned: {
@@ -1617,24 +1681,28 @@ class AdminService {
               select: {
                 fullName: true,
                 email: true,
-              }
+              },
             },
             driverFeedback: true,
           },
-          orderBy: { deliveryDate: 'desc' },
-          take: 50
+          orderBy: { deliveryDate: "desc" },
+          take: 50,
         },
       },
     });
 
     if (!driver) {
-      throw new Error('Driver not found');
+      throw new Error("Driver not found");
     }
 
     // Calculate statistics
     const totalDeliveries = driver.deliveriesAssigned.length;
-    const completedDeliveries = driver.deliveriesAssigned.filter(d => d.status === 'DELIVERED').length;
-    const pendingDeliveries = driver.deliveriesAssigned.filter(d => d.status === 'ALLOCATED').length;
+    const completedDeliveries = driver.deliveriesAssigned.filter(
+      (d) => d.status === "DELIVERED",
+    ).length;
+    const pendingDeliveries = driver.deliveriesAssigned.filter(
+      (d) => d.status === "ALLOCATED",
+    ).length;
 
     return {
       ...driver,
@@ -1642,21 +1710,33 @@ class AdminService {
         totalDeliveries,
         completedDeliveries,
         pendingDeliveries,
-        completionRate: totalDeliveries > 0 ? ((completedDeliveries / totalDeliveries) * 100).toFixed(1) : 0,
-      }
+        completionRate:
+          totalDeliveries > 0
+            ? ((completedDeliveries / totalDeliveries) * 100).toFixed(1)
+            : 0,
+      },
     };
   }
 
-
   async createDriver(driverData) {
-    const { email, password, username, fullName, phone, profilePicture, vehicleRegistration, driverLicenseNumber, address } = driverData;
+    const {
+      email,
+      password,
+      username,
+      fullName,
+      phone,
+      profilePicture,
+      vehicleRegistration,
+      driverLicenseNumber,
+      address,
+    } = driverData;
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      throw new Error('Email already exists');
+      throw new Error("Email already exists");
     }
 
     if (username) {
@@ -1665,7 +1745,7 @@ class AdminService {
       });
 
       if (existingUsername) {
-        throw new Error('Username already exists');
+        throw new Error("Username already exists");
       }
     }
 
@@ -1679,44 +1759,54 @@ class AdminService {
         fullName,
         phone,
         profilePicture,
-        role: 'DRIVER',
+        role: "DRIVER",
         isActive: true,
         driverProfile: {
           create: {
-            vehicleRegistration: vehicleRegistration || '',
-            driverLicenseNumber: driverLicenseNumber || '',
-            address: address || '',
+            vehicleRegistration: vehicleRegistration || "",
+            driverLicenseNumber: driverLicenseNumber || "",
+            address: address || "",
             isActiveDriver: true,
             enableSmsNotifications: true,
             enableEmailNotifications: true,
-          }
-        }
+          },
+        },
       },
       include: {
         driverProfile: true,
-      }
+      },
     });
 
     try {
       await emailService.sendWelcomeEmail(driver.email, driver.fullName);
     } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
+      console.error("Failed to send welcome email:", emailError);
     }
 
     return driver;
   }
 
   async updateDriver(id, updateData) {
-    const { email, username, fullName, phone, profilePicture, isActive, vehicleRegistration, driverLicenseNumber, address, isActiveDriver } = updateData;
-
+    const {
+      email,
+      username,
+      fullName,
+      phone,
+      profilePicture,
+      isActive,
+      vehicleRegistration,
+      driverLicenseNumber,
+      address,
+      isActiveDriver,
+    } = updateData;
 
     const driver = await prisma.user.findUnique({
-      where: { id, role: 'DRIVER' },
-      include: { driverProfile: true }
+      where: { id, role: "DRIVER" },
+      include: { driverProfile: true },
     });
 
     if (!driver) {
-      throw new Error('Driver not found');
+      throw new Error("Driver not found");
     }
 
     if (email && email !== driver.email) {
@@ -1725,7 +1815,7 @@ class AdminService {
       });
 
       if (existingEmail) {
-        throw new Error('Email already exists');
+        throw new Error("Email already exists");
       }
     }
 
@@ -1735,7 +1825,7 @@ class AdminService {
       });
 
       if (existingUsername) {
-        throw new Error('Username already exists');
+        throw new Error("Username already exists");
       }
     }
 
@@ -1744,16 +1834,18 @@ class AdminService {
     if (username !== undefined) userUpdateData.username = username;
     if (fullName !== undefined) userUpdateData.fullName = fullName;
     if (phone !== undefined) userUpdateData.phone = phone;
-    if (profilePicture !== undefined) userUpdateData.profilePicture = profilePicture;
+    if (profilePicture !== undefined)
+      userUpdateData.profilePicture = profilePicture;
     if (isActive !== undefined) userUpdateData.isActive = isActive;
 
-
     const profileUpdateData = {};
-    if (vehicleRegistration !== undefined) profileUpdateData.vehicleRegistration = vehicleRegistration;
-    if (driverLicenseNumber !== undefined) profileUpdateData.driverLicenseNumber = driverLicenseNumber;
+    if (vehicleRegistration !== undefined)
+      profileUpdateData.vehicleRegistration = vehicleRegistration;
+    if (driverLicenseNumber !== undefined)
+      profileUpdateData.driverLicenseNumber = driverLicenseNumber;
     if (address !== undefined) profileUpdateData.address = address;
-    if (isActiveDriver !== undefined) profileUpdateData.isActiveDriver = isActiveDriver;
-
+    if (isActiveDriver !== undefined)
+      profileUpdateData.isActiveDriver = isActiveDriver;
 
     const updatedDriver = await prisma.user.update({
       where: { id },
@@ -1761,57 +1853,53 @@ class AdminService {
         ...userUpdateData,
         ...(Object.keys(profileUpdateData).length > 0 && {
           driverProfile: {
-            update: profileUpdateData
-          }
-        })
+            update: profileUpdateData,
+          },
+        }),
       },
       include: {
         driverProfile: true,
-      }
+      },
     });
 
     return updatedDriver;
   }
 
-
-
   async deleteDriver(id) {
-
     const driver = await prisma.user.findUnique({
-      where: { id, role: 'DRIVER' },
+      where: { id, role: "DRIVER" },
       include: {
         deliveriesAssigned: {
           where: {
             status: {
-              in: ['ALLOCATED', 'RECEIVED']
-            }
-          }
-        }
-      }
+              in: ["ALLOCATED", "RECEIVED"],
+            },
+          },
+        },
+      },
     });
 
     if (!driver) {
-      throw new Error('Driver not found');
+      throw new Error("Driver not found");
     }
-
 
     if (driver.deliveriesAssigned.length > 0) {
-      throw new Error('Cannot delete driver with active or allocated deliveries. Please reassign or complete deliveries first.');
+      throw new Error(
+        "Cannot delete driver with active or allocated deliveries. Please reassign or complete deliveries first.",
+      );
     }
-
 
     if (driver.driverProfile) {
       await prisma.driverProfile.delete({
-        where: { userId: id }
+        where: { userId: id },
       });
     }
 
-
     await prisma.user.delete({
-      where: { id }
+      where: { id },
     });
 
-    return { message: 'Driver deleted successfully' };
+    return { message: "Driver deleted successfully" };
   }
 }
 

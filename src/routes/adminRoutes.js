@@ -1,440 +1,685 @@
-const express = require('express');
-const { body } = require('express-validator');
+const express = require("express");
+const { body } = require("express-validator");
 const router = express.Router();
-const adminController = require('../controllers/adminController');
-const authenticate = require('../middleware/authenticate');
-const authorize = require('../middleware/authorize');
-const validate = require('../middleware/validate');
+const adminController = require("../controllers/adminController");
+const authenticate = require("../middleware/authenticate");
+const authorize = require("../middleware/authorize");
+const validate = require("../middleware/validate");
 
 router.use(authenticate);
-router.use(authorize('ADMIN', 'MANAGER'));
+router.use(authorize("ADMIN", "MANAGER"));
 
-router.get('/users', adminController.getAllUsers);
+router.get("/users", adminController.getAllUsers);
 
-router.get('/users/:id', adminController.getUserById);
-
-router.post(
-  '/users',
-  authorize('ADMIN'),
-  [
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('fullName').notEmpty().withMessage('Full name is required'),
-    body('role').isIn(['ADMIN', 'DRIVER', 'CUSTOMER', 'MANAGER']).withMessage('Invalid role'),
-    validate,
-  ],
-  adminController.createUser
-);
-
-router.put(
-  '/users/:id',
-  authorize('ADMIN'),
-  [
-    body('email').optional().isEmail().withMessage('Valid email is required'),
-    body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    validate,
-  ],
-  adminController.updateUser
-);
-
-router.put(
-  '/customers/:id/cc-email',
-  authorize('ADMIN', 'MANAGER'),
-  [
-    body('ccEmail').optional({ nullable: true }).isEmail().withMessage('Must be a valid email address'),
-    validate,
-  ],
-  adminController.updateCustomerCcEmail
-);
-
-router.delete('/users/:id', authorize('ADMIN'), adminController.deleteUser);
-
-router.post('/users/:id/toggle-status', authorize('ADMIN'), adminController.toggleUserStatus);
-
-
-router.get('/drivers', adminController.getAllDrivers);
-
-router.get('/drivers/:id', adminController.getDriverById);
+router.get("/users/:id", adminController.getUserById);
 
 router.post(
-  '/drivers',
+  "/users",
+  authorize("ADMIN"),
   [
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('fullName').notEmpty().withMessage('Full name is required'),
-    body('phone').notEmpty().withMessage('Phone number is required'),
-    body('username').optional().isString().withMessage('Username must be a string'),
-    body('vehicleRegistration').optional().isString().withMessage('Vehicle registration must be a string'),
-    body('driverLicenseNumber').optional().isString().withMessage('Driver license number must be a string'),
-    body('address').optional().isString().withMessage('Address must be a string'),
+    body("email").isEmail().withMessage("Valid email is required"),
+    body("password")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters"),
+    body("fullName").notEmpty().withMessage("Full name is required"),
+    body("role")
+      .isIn(["ADMIN", "DRIVER", "CUSTOMER", "MANAGER"])
+      .withMessage("Invalid role"),
     validate,
   ],
-  adminController.createDriver
+  adminController.createUser,
 );
 
 router.put(
-  '/drivers/:id',
+  "/users/:id",
+  authorize("ADMIN"),
   [
-    body('email').optional().isEmail().withMessage('Valid email is required'),
-    body('fullName').optional().notEmpty().withMessage('Full name cannot be empty'),
-    body('phone').optional().notEmpty().withMessage('Phone cannot be empty'),
-    body('username').optional().isString().withMessage('Username must be a string'),
-    body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
-    body('vehicleRegistration').optional().isString().withMessage('Vehicle registration must be a string'),
-    body('driverLicenseNumber').optional().isString().withMessage('Driver license number must be a string'),
-    body('address').optional().isString().withMessage('Address must be a string'),
-    body('isActiveDriver').optional().isBoolean().withMessage('isActiveDriver must be a boolean'),
+    body("email").optional().isEmail().withMessage("Valid email is required"),
+    body("password")
+      .optional()
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters"),
     validate,
   ],
-  adminController.updateDriver
+  adminController.updateUser,
 );
-
-router.delete('/drivers/:id', adminController.deleteDriver);
-
-router.get('/deliveries', adminController.getAllDeliveries);
-
-router.get('/deliveries/:id', adminController.getDeliveryById);
 
 router.put(
-  '/deliveries/:id',
+  "/customers/:id/cc-email",
+  authorize("ADMIN", "MANAGER"),
   [
-    body('deliveryDate').optional().isISO8601().withMessage('Valid delivery date is required'),
-    body('timeSlot').optional().isIn(['AM', 'PM', 'SAME_DAY']).withMessage('Invalid time slot'),
-    body('weight').optional().isFloat({ min: 0 }).withMessage('Weight must be a positive number'),
-    body('deliveryAddress').optional().notEmpty().withMessage('Delivery address is required'),
-    body('customerName').optional().notEmpty().withMessage('Customer name is required'),
-    body('customerPhone').optional().notEmpty().withMessage('Customer phone is required'),
-    body('spoNumber').optional().notEmpty().withMessage('SPO number is required'),
-    body('specialInstructions').optional().isString(),
+    body("ccEmail")
+      .optional({ nullable: true })
+      .isEmail()
+      .withMessage("Must be a valid email address"),
     validate,
   ],
-  adminController.updateDelivery
+  adminController.updateCustomerCcEmail,
 );
 
-router.delete('/deliveries/:id', adminController.deleteDelivery);
+router.delete("/users/:id", authorize("ADMIN"), adminController.deleteUser);
 
 router.post(
-  '/deliveries/:id/allocate',
+  "/users/:id/toggle-status",
+  authorize("ADMIN"),
+  adminController.toggleUserStatus,
+);
+
+router.get("/drivers", adminController.getAllDrivers);
+
+router.get("/drivers/:id", adminController.getDriverById);
+
+router.post(
+  "/drivers",
   [
-    body('driverId').isInt().withMessage('Driver ID is required'),
+    body("email").isEmail().withMessage("Valid email is required"),
+    body("password")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters"),
+    body("fullName").notEmpty().withMessage("Full name is required"),
+    body("phone").notEmpty().withMessage("Phone number is required"),
+    body("username")
+      .optional()
+      .isString()
+      .withMessage("Username must be a string"),
+    body("vehicleRegistration")
+      .optional()
+      .isString()
+      .withMessage("Vehicle registration must be a string"),
+    body("driverLicenseNumber")
+      .optional()
+      .isString()
+      .withMessage("Driver license number must be a string"),
+    body("address")
+      .optional()
+      .isString()
+      .withMessage("Address must be a string"),
     validate,
   ],
-  adminController.allocateDelivery
+  adminController.createDriver,
 );
 
 router.put(
-  '/deliveries/:id/status',
+  "/drivers/:id",
   [
-    body('status').isIn(['RECEIVED', 'ALLOCATED', 'DELIVERED', 'CANCELLED']).withMessage('Invalid status'),
+    body("email").optional().isEmail().withMessage("Valid email is required"),
+    body("fullName")
+      .optional()
+      .notEmpty()
+      .withMessage("Full name cannot be empty"),
+    body("phone").optional().notEmpty().withMessage("Phone cannot be empty"),
+    body("username")
+      .optional()
+      .isString()
+      .withMessage("Username must be a string"),
+    body("isActive")
+      .optional()
+      .isBoolean()
+      .withMessage("isActive must be a boolean"),
+    body("vehicleRegistration")
+      .optional()
+      .isString()
+      .withMessage("Vehicle registration must be a string"),
+    body("driverLicenseNumber")
+      .optional()
+      .isString()
+      .withMessage("Driver license number must be a string"),
+    body("address")
+      .optional()
+      .isString()
+      .withMessage("Address must be a string"),
+    body("isActiveDriver")
+      .optional()
+      .isBoolean()
+      .withMessage("isActiveDriver must be a boolean"),
     validate,
   ],
-  adminController.updateDeliveryStatus
+  adminController.updateDriver,
+);
+
+router.delete("/drivers/:id", adminController.deleteDriver);
+
+router.get("/deliveries", adminController.getAllDeliveries);
+
+router.get("/deliveries/:id", adminController.getDeliveryById);
+
+router.put(
+  "/deliveries/:id",
+  [
+    body("deliveryDate")
+      .optional()
+      .isISO8601()
+      .withMessage("Valid delivery date is required"),
+    body("timeSlot")
+      .optional()
+      .isIn(["AM", "PM", "SAME_DAY"])
+      .withMessage("Invalid time slot"),
+    body("weight")
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage("Weight must be a positive number"),
+    body("deliveryAddress")
+      .optional()
+      .notEmpty()
+      .withMessage("Delivery address is required"),
+    body("customerName")
+      .optional()
+      .notEmpty()
+      .withMessage("Customer name is required"),
+    body("customerPhone")
+      .optional()
+      .notEmpty()
+      .withMessage("Customer phone is required"),
+    body("spoNumber")
+      .optional()
+      .notEmpty()
+      .withMessage("SPO number is required"),
+    body("specialInstructions").optional().isString(),
+    validate,
+  ],
+  adminController.updateDelivery,
+);
+
+router.delete("/deliveries/:id", adminController.deleteDelivery);
+
+router.post(
+  "/deliveries/:id/allocate",
+  [body("driverId").isInt().withMessage("Driver ID is required"), validate],
+  adminController.allocateDelivery,
+);
+
+router.put(
+  "/deliveries/:id/status",
+  [
+    body("status")
+      .isIn(["RECEIVED", "ALLOCATED", "DELIVERED", "CANCELLED"])
+      .withMessage("Invalid status"),
+    validate,
+  ],
+  adminController.updateDeliveryStatus,
 );
 
 router.post(
-  '/deliveries/:id/extra-charges',
+  "/deliveries/:id/extra-charges",
   [
-    body('description').notEmpty().withMessage('Description is required'),
-    body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
+    body("description").notEmpty().withMessage("Description is required"),
+    body("amount")
+      .isFloat({ min: 0 })
+      .withMessage("Amount must be a positive number"),
     validate,
   ],
-  adminController.addExtraCharge
+  adminController.addExtraCharge,
 );
 
 router.delete(
-  '/deliveries/:id/extra-charges/:chargeId',
-  adminController.removeExtraCharge
+  "/deliveries/:id/extra-charges/:chargeId",
+  adminController.removeExtraCharge,
 );
 
 router.get(
-  '/deliveries/:id/extra-charges',
-  adminController.getDeliveryExtraCharges
+  "/deliveries/:id/extra-charges",
+  adminController.getDeliveryExtraCharges,
 );
 
-//  PRICING TIER MANAGEMENT 
+//  PRICING TIER MANAGEMENT
 
-
-router.get('/pricing-tiers', adminController.getAllPricingTiers);
+router.get("/pricing-tiers", adminController.getAllPricingTiers);
 
 router.post(
-  '/pricing-tiers',
-  authorize('ADMIN'),
+  "/pricing-tiers",
+  authorize("ADMIN"),
   [
-    body('name').notEmpty().withMessage('Tier name is required'),
-    body('basePrice').isFloat({ min: 0 }).withMessage('Base price must be a positive number'),
-    body('vatRate').optional().isFloat({ min: 0, max: 100 }).withMessage('VAT rate must be between 0 and 100'),
-    body('weightUnit').optional().isInt({ min: 1 }).withMessage('Weight unit must be a positive integer'),
-    body('maxDistance').optional().isInt({ min: 1 }).withMessage('Max distance must be a positive integer'),
-    body('surchargeRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Surcharge rate must be between 0 and 1'),
-    body('isDefault').optional().isBoolean().withMessage('isDefault must be a boolean'),
+    body("name").notEmpty().withMessage("Tier name is required"),
+    body("basePrice")
+      .isFloat({ min: 0 })
+      .withMessage("Base price must be a positive number"),
+    body("vatRate")
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage("VAT rate must be between 0 and 100"),
+    body("weightUnit")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Weight unit must be a positive integer"),
+    body("maxDistance")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Max distance must be a positive integer"),
+    body("surchargeRate")
+      .optional()
+      .isFloat({ min: 0, max: 1 })
+      .withMessage("Surcharge rate must be between 0 and 1"),
+    body("isDefault")
+      .optional()
+      .isBoolean()
+      .withMessage("isDefault must be a boolean"),
     validate,
   ],
-  adminController.createPricingTier
+  adminController.createPricingTier,
 );
 
 router.put(
-  '/pricing-tiers/:id',
-  authorize('ADMIN'),
+  "/pricing-tiers/:id",
+  authorize("ADMIN"),
   [
-    body('basePrice').optional().isFloat({ min: 0 }).withMessage('Base price must be a positive number'),
-    body('vatRate').optional().isFloat({ min: 0, max: 100 }).withMessage('VAT rate must be between 0 and 100'),
-    body('weightUnit').optional().isInt({ min: 1 }).withMessage('Weight unit must be a positive integer'),
-    body('maxDistance').optional().isInt({ min: 1 }).withMessage('Max distance must be a positive integer'),
-    body('surchargeRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Surcharge rate must be between 0 and 1'),
-    body('isDefault').optional().isBoolean().withMessage('isDefault must be a boolean'),
+    body("basePrice")
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage("Base price must be a positive number"),
+    body("vatRate")
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage("VAT rate must be between 0 and 100"),
+    body("weightUnit")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Weight unit must be a positive integer"),
+    body("maxDistance")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Max distance must be a positive integer"),
+    body("surchargeRate")
+      .optional()
+      .isFloat({ min: 0, max: 1 })
+      .withMessage("Surcharge rate must be between 0 and 1"),
+    body("isDefault")
+      .optional()
+      .isBoolean()
+      .withMessage("isDefault must be a boolean"),
     validate,
   ],
-  adminController.updatePricingTier
+  adminController.updatePricingTier,
 );
 
-router.delete('/pricing-tiers/:id', authorize('ADMIN'), adminController.deletePricingTier);
+router.delete(
+  "/pricing-tiers/:id",
+  authorize("ADMIN"),
+  adminController.deletePricingTier,
+);
 
-//INVOICE MANAGEMENT 
+//INVOICE MANAGEMENT
 
-
-router.get('/invoices', adminController.getAllInvoices);
+router.get("/invoices", adminController.getAllInvoices);
 
 router.post(
-  '/invoices/generate',
+  "/invoices/generate",
   [
-    body('customerId').isInt().withMessage('Customer ID is required'),
-    body('weekStartDate').isISO8601().withMessage('Valid start date is required'),
-    body('weekEndDate').isISO8601().withMessage('Valid end date is required'),
+    body("customerId").isInt().withMessage("Customer ID is required"),
+    body("weekStartDate")
+      .isISO8601()
+      .withMessage("Valid start date is required"),
+    body("weekEndDate").isISO8601().withMessage("Valid end date is required"),
     validate,
   ],
-  adminController.generateInvoice
+  adminController.generateInvoice,
 );
 
 router.post(
-  '/invoices/generate-all',
+  "/invoices/generate-all",
   [
-    body('weekStartDate').isISO8601().withMessage('Valid start date is required'),
-    body('weekEndDate').isISO8601().withMessage('Valid end date is required'),
+    body("weekStartDate")
+      .isISO8601()
+      .withMessage("Valid start date is required"),
+    body("weekEndDate").isISO8601().withMessage("Valid end date is required"),
     validate,
   ],
-  adminController.generateWeeklyInvoicesForAll
+  adminController.generateWeeklyInvoicesForAll,
 );
 
 router.post(
-  '/invoices/generate-last-week',
-  adminController.generateLastWeekInvoices
+  "/invoices/generate-last-week",
+  adminController.generateLastWeekInvoices,
 );
 
-router.post(
-  '/invoices/send-reminders',
-  adminController.sendInvoiceReminders
-);
+router.post("/invoices/send-reminders", adminController.sendInvoiceReminders);
 
-router.post('/invoices/:id/mark-paid', adminController.markInvoiceAsPaid);
+router.post("/invoices/:id/mark-paid", adminController.markInvoiceAsPaid);
 
 router.post(
-  '/invoices/:id/extra-charge',
+  "/invoices/:id/extra-charge",
   [
-    body('description').notEmpty().withMessage('Description is required'),
-    body('unitCost').isFloat({ min: 0 }).withMessage('Unit cost must be a positive number'),
-    body('vatAmount').isFloat({ min: 0 }).withMessage('VAT amount must be a positive number'),
-    body('total').isFloat({ min: 0 }).withMessage('Total must be a positive number'),
+    body("description").notEmpty().withMessage("Description is required"),
+    body("unitCost")
+      .isFloat({ min: 0 })
+      .withMessage("Unit cost must be a positive number"),
+    body("vatAmount")
+      .isFloat({ min: 0 })
+      .withMessage("VAT amount must be a positive number"),
+    body("total")
+      .isFloat({ min: 0 })
+      .withMessage("Total must be a positive number"),
     validate,
   ],
-  adminController.addExtraCharge
+  adminController.addExtraCharge,
 );
 
-router.get('/invoices/:id', adminController.getInvoiceById);
+router.get("/invoices/:id", adminController.getInvoiceById);
 
 router.put(
-  '/invoices/:id',
+  "/invoices/:id",
   [
-    body('invoiceNumber').optional().matches(/^T\d{4,}$/).withMessage('Invoice number must be in format T#### (e.g., T0326)'),
-    body('customerId').optional().isInt().withMessage('Customer ID must be an integer'),
-    body('invoiceDate').optional().isISO8601().withMessage('Valid invoice date is required'),
-    body('dueDate').optional().isISO8601().withMessage('Valid due date is required'),
-    body('status').optional().isString().trim(),
-    body('customerRef').optional().isString().trim(),
-    body('notes').optional().isString().trim(),
-    body('paymentTerms').optional().isString().trim(),
-    body('items').optional().isArray().withMessage('Items must be an array'),
-    body('items.*.deliveryId').optional().isInt().withMessage('Delivery ID must be an integer'),
-    body('items.*.spoNumber').optional().isString().trim(),
-    body('items.*.description').notEmpty().withMessage('Item description is required'),
-    body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
-    body('items.*.unitCost').isFloat({ min: 0 }).withMessage('Unit cost must be a positive number'),
-    body('items.*.vatAmount').isFloat({ min: 0 }).withMessage('VAT amount must be a positive number'),
-    body('items.*.total').isFloat({ min: 0 }).withMessage('Total must be a positive number'),
-    body('items.*.deliveryDate').optional().isISO8601().withMessage('Valid delivery date is required'),
-    body('items.*.address').optional().isString().trim(),
-    body('items.*.basePrice').optional().isFloat({ min: 0 }).withMessage('Base price must be a positive number'),
-    body('items.*.distanceSurcharge').optional().isFloat({ min: 0 }).withMessage('Distance surcharge must be a positive number'),
+    body("invoiceNumber")
+      .optional()
+      .matches(/^T\d{4,}$/)
+      .withMessage("Invoice number must be in format T#### (e.g., T0326)"),
+    body("customerId")
+      .optional()
+      .isInt()
+      .withMessage("Customer ID must be an integer"),
+    body("invoiceDate")
+      .optional()
+      .isISO8601()
+      .withMessage("Valid invoice date is required"),
+    body("dueDate")
+      .optional()
+      .isISO8601()
+      .withMessage("Valid due date is required"),
+    body("status").optional().isString().trim(),
+    body("customerRef").optional().isString().trim(),
+    body("notes").optional().isString().trim(),
+    body("paymentTerms").optional().isString().trim(),
+    body("items").optional().isArray().withMessage("Items must be an array"),
+    body("items.*.deliveryId")
+      .optional()
+      .isInt()
+      .withMessage("Delivery ID must be an integer"),
+    body("items.*.spoNumber").optional().isString().trim(),
+    body("items.*.description")
+      .notEmpty()
+      .withMessage("Item description is required"),
+    body("items.*.quantity")
+      .isInt({ min: 1 })
+      .withMessage("Quantity must be at least 1"),
+    body("items.*.unitCost")
+      .isFloat({ min: 0 })
+      .withMessage("Unit cost must be a positive number"),
+    body("items.*.vatAmount")
+      .isFloat({ min: 0 })
+      .withMessage("VAT amount must be a positive number"),
+    body("items.*.total")
+      .isFloat({ min: 0 })
+      .withMessage("Total must be a positive number"),
+    body("items.*.deliveryDate")
+      .optional()
+      .isISO8601()
+      .withMessage("Valid delivery date is required"),
+    body("items.*.address").optional().isString().trim(),
+    body("items.*.basePrice")
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage("Base price must be a positive number"),
+    body("items.*.distanceSurcharge")
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage("Distance surcharge must be a positive number"),
     validate,
   ],
-  adminController.updateInvoice
+  adminController.updateInvoice,
 );
 
 // SLOT AVAILABILITY MANAGEMENT
 
-
-router.get('/slots', adminController.getSlotAvailability);
+router.get("/slots", adminController.getSlotAvailability);
 
 router.post(
-  '/slots',
+  "/slots",
   [
-    body('date').isISO8601().withMessage('Valid date is required'),
-    body('timeSlot').isIn(['AM', 'PM', 'SAME_DAY']).withMessage('Invalid time slot'),
-    body('maxCapacity').isInt({ min: 0 }).withMessage('Max capacity must be a positive integer'),
+    body("date").isISO8601().withMessage("Valid date is required"),
+    body("timeSlot")
+      .isIn(["AM", "PM", "SAME_DAY"])
+      .withMessage("Invalid time slot"),
+    body("maxCapacity")
+      .isInt({ min: 0 })
+      .withMessage("Max capacity must be a positive integer"),
     validate,
   ],
-  adminController.setSlotAvailability
+  adminController.setSlotAvailability,
 );
 
 router.put(
-  '/slots/:id/capacity',
+  "/slots/:id/capacity",
   [
-    body('method').isIn(['increase', 'decrease']).withMessage('Method must be either "increase" or "decrease"'),
-    body('value').isInt({ min: 1 }).withMessage('Value must be a positive integer'),
+    body("method")
+      .isIn(["increase", "decrease"])
+      .withMessage('Method must be either "increase" or "decrease"'),
+    body("value")
+      .isInt({ min: 1 })
+      .withMessage("Value must be a positive integer"),
     validate,
   ],
-  adminController.updateSlotCapacity
+  adminController.updateSlotCapacity,
 );
 
-router.get('/dashboard', adminController.getDashboard);
+router.get("/dashboard", adminController.getDashboard);
 
-// ANALYTICS DASHBOARD 
+// ANALYTICS DASHBOARD
 
+router.get("/analytics", adminController.getAnalytics);
 
-router.get('/analytics', adminController.getAnalytics);
+router.get("/analytics/drivers", adminController.getDriverPerformance);
 
-router.get('/analytics/drivers', adminController.getDriverPerformance);
+router.get("/analytics/customers", adminController.getCustomerAnalytics);
 
-router.get('/analytics/customers', adminController.getCustomerAnalytics);
+router.get("/contacts", adminController.getAllContacts);
 
-router.get('/contacts', adminController.getAllContacts);
+router.get("/contacts/:id", adminController.getContactById);
 
-router.get('/contacts/:id', adminController.getContactById);
+router.post("/contacts/:id/mark-read", adminController.markContactAsRead);
 
-router.post('/contacts/:id/mark-read', adminController.markContactAsRead);
+router.delete(
+  "/contacts/:id",
+  authorize("ADMIN"),
+  adminController.deleteContact,
+);
 
-router.delete('/contacts/:id', authorize('ADMIN'), adminController.deleteContact);
+router.get("/enquiries", adminController.getAllEnquiries);
 
-router.get('/enquiries', adminController.getAllEnquiries);
+router.get("/enquiries/:id", adminController.getEnquiryById);
 
-router.get('/enquiries/:id', adminController.getEnquiryById);
+router.post("/enquiries/:id/mark-read", adminController.markEnquiryAsRead);
 
-router.post('/enquiries/:id/mark-read', adminController.markEnquiryAsRead);
+router.delete(
+  "/enquiries/:id",
+  authorize("ADMIN"),
+  adminController.deleteEnquiry,
+);
 
-router.delete('/enquiries/:id', authorize('ADMIN'), adminController.deleteEnquiry);
+const jobApplicationController = require("../controllers/jobApplicationController");
 
-const jobApplicationController = require('../controllers/jobApplicationController');
+router.get("/job-applications", jobApplicationController.getAllJobApplications);
+router.get(
+  "/job-applications/stats",
+  jobApplicationController.getJobApplicationStats,
+);
 
-router.get('/job-applications', jobApplicationController.getAllJobApplications);
-router.get('/job-applications/stats', jobApplicationController.getJobApplicationStats);
-
-router.get('/job-applications/:id', jobApplicationController.getJobApplicationById);
+router.get(
+  "/job-applications/:id",
+  jobApplicationController.getJobApplicationById,
+);
 
 router.patch(
-  '/job-applications/:id/status',
+  "/job-applications/:id/status",
   [
-    body('status')
+    body("status")
       .optional()
-      .isIn(['PENDING', 'REVIEWED', 'SHORTLISTED', 'REJECTED'])
-      .withMessage('Invalid status value'),
-    body('adminNotes').optional().isString().withMessage('Admin notes must be a string'),
+      .isIn(["PENDING", "REVIEWED", "SHORTLISTED", "REJECTED"])
+      .withMessage("Invalid status value"),
+    body("adminNotes")
+      .optional()
+      .isString()
+      .withMessage("Admin notes must be a string"),
   ],
-  jobApplicationController.updateJobApplicationStatus
+  jobApplicationController.updateJobApplicationStatus,
 );
 
-router.delete('/job-applications/:id', authorize('ADMIN'), jobApplicationController.deleteJobApplication);
+router.delete(
+  "/job-applications/:id",
+  authorize("ADMIN"),
+  jobApplicationController.deleteJobApplication,
+);
 
 // AUDIT LOGS (ADMIN)
 
-router.get('/audit-logs', adminController.getAllAuditLogs);
+router.get("/audit-logs", adminController.getAllAuditLogs);
 
-router.get('/audit-logs/:id', adminController.getAuditLogById);
+router.get("/audit-logs/:id", adminController.getAuditLogById);
 
+router.get("/invoices/:id/export/pdf", adminController.exportInvoicePDF);
 
-router.get('/invoices/:id/export/pdf', adminController.exportInvoicePDF);
-
-router.get('/deliveries/export', adminController.exportDeliveries);
+router.get("/deliveries/export", adminController.exportDeliveries);
 
 // Export Analytics (Excel or CSV)
-router.get('/analytics/export', adminController.exportAnalytics);
+router.get("/analytics/export", adminController.exportAnalytics);
 
+const settingsController = require("../controllers/settingsController");
 
-const settingsController = require('../controllers/settingsController');
+router.get("/settings", authorize("ADMIN"), settingsController.getAllSettings);
 
-router.get('/settings', authorize('ADMIN'), settingsController.getAllSettings);
+router.get(
+  "/settings/status/summary",
+  authorize("ADMIN"),
+  settingsController.getSystemStatus,
+);
 
-router.get('/settings/status/summary', authorize('ADMIN'), settingsController.getSystemStatus);
-
-router.get('/settings/:category', authorize('ADMIN'), settingsController.getSettingsByCategory);
+router.get(
+  "/settings/:category",
+  authorize("ADMIN"),
+  settingsController.getSettingsByCategory,
+);
 
 // Get invoice generation config
-router.get('/settings/invoice/config', authorize('ADMIN'), settingsController.getInvoiceConfig);
-
-router.put(
-  '/settings/company',
-  authorize('ADMIN'),
-  [
-    body('name').optional().isString().withMessage('Company name must be a string'),
-    body('vat_number').optional().isString().withMessage('VAT number must be a string'),
-    body('primary_phone').optional().isString().withMessage('Primary phone must be a string'),
-    body('alternative_phone').optional().isString().withMessage('Alternative phone must be a string'),
-    body('email').optional().isEmail().withMessage('Valid email is required'),
-    body('website').optional().isURL().withMessage('Valid website URL is required'),
-    body('address').optional().isString().withMessage('Address must be a string'),
-    body('founded_year').optional().isString().withMessage('Founded year must be a string'),
-    validate,
-  ],
-  settingsController.updateCompanyInfo
+router.get(
+  "/settings/invoice/config",
+  authorize("ADMIN"),
+  settingsController.getInvoiceConfig,
 );
 
 router.put(
-  '/settings/banking',
-  authorize('ADMIN'),
+  "/settings/company",
+  authorize("ADMIN"),
   [
-    body('bank_name').optional().isString().withMessage('Bank name must be a string'),
-    body('account_holder').optional().isString().withMessage('Account holder must be a string'),
-    body('sort_code').optional().isString().withMessage('Sort code must be a string'),
-    body('account_number').optional().isString().withMessage('Account number must be a string'),
-    body('payment_terms').optional().isString().withMessage('Payment terms must be a string'),
+    body("name")
+      .optional()
+      .isString()
+      .withMessage("Company name must be a string"),
+    body("vat_number")
+      .optional()
+      .isString()
+      .withMessage("VAT number must be a string"),
+    body("primary_phone")
+      .optional()
+      .isString()
+      .withMessage("Primary phone must be a string"),
+    body("alternative_phone")
+      .optional()
+      .isString()
+      .withMessage("Alternative phone must be a string"),
+    body("email").optional().isEmail().withMessage("Valid email is required"),
+    body("website")
+      .optional()
+      .isURL()
+      .withMessage("Valid website URL is required"),
+    body("address")
+      .optional()
+      .isString()
+      .withMessage("Address must be a string"),
+    body("founded_year")
+      .optional()
+      .isString()
+      .withMessage("Founded year must be a string"),
     validate,
   ],
-  settingsController.updateBankingDetails
+  settingsController.updateCompanyInfo,
+);
+
+router.put(
+  "/settings/banking",
+  authorize("ADMIN"),
+  [
+    body("bank_name")
+      .optional()
+      .isString()
+      .withMessage("Bank name must be a string"),
+    body("account_holder")
+      .optional()
+      .isString()
+      .withMessage("Account holder must be a string"),
+    body("sort_code")
+      .optional()
+      .isString()
+      .withMessage("Sort code must be a string"),
+    body("account_number")
+      .optional()
+      .isString()
+      .withMessage("Account number must be a string"),
+    body("payment_terms")
+      .optional()
+      .isString()
+      .withMessage("Payment terms must be a string"),
+    validate,
+  ],
+  settingsController.updateBankingDetails,
 );
 
 // Update system configuration
 router.put(
-  '/settings/system',
-  authorize('ADMIN'),
+  "/settings/system",
+  authorize("ADMIN"),
   [
-    body('invoice_generation_day').optional().isString().withMessage('Invoice generation day must be a string'),
-    body('invoice_generation_time').optional().isString().withMessage('Invoice generation time must be a string'),
-    body('session_timeout').optional().isString().withMessage('Session timeout must be a string'),
-    body('auto_invoicing').optional().isString().withMessage('Auto invoicing must be a string'),
-    body('email_notifications').optional().isString().withMessage('Email notifications must be a string'),
-    body('sms_notifications').optional().isString().withMessage('SMS notifications must be a string'),
-    body('maps_api_enabled').optional().isString().withMessage('Maps API enabled must be a string'),
+    body("invoice_generation_day")
+      .optional()
+      .isString()
+      .withMessage("Invoice generation day must be a string"),
+    body("invoice_generation_time")
+      .optional()
+      .isString()
+      .withMessage("Invoice generation time must be a string"),
+    body("session_timeout")
+      .optional()
+      .isString()
+      .withMessage("Session timeout must be a string"),
+    body("auto_invoicing")
+      .optional()
+      .isString()
+      .withMessage("Auto invoicing must be a string"),
+    body("email_notifications")
+      .optional()
+      .isString()
+      .withMessage("Email notifications must be a string"),
+    body("sms_notifications")
+      .optional()
+      .isString()
+      .withMessage("SMS notifications must be a string"),
+    body("maps_api_enabled")
+      .optional()
+      .isString()
+      .withMessage("Maps API enabled must be a string"),
     validate,
   ],
-  settingsController.updateSystemConfig
+  settingsController.updateSystemConfig,
 );
 
 router.put(
-  '/settings/single',
-  authorize('ADMIN'),
+  "/settings/single",
+  authorize("ADMIN"),
   [
-    body('key').notEmpty().withMessage('Setting key is required'),
-    body('value').notEmpty().withMessage('Setting value is required'),
-    body('description').optional().isString().withMessage('Description must be a string'),
+    body("key").notEmpty().withMessage("Setting key is required"),
+    body("value").notEmpty().withMessage("Setting value is required"),
+    body("description")
+      .optional()
+      .isString()
+      .withMessage("Description must be a string"),
     validate,
   ],
-  settingsController.updateSingleSetting
+  settingsController.updateSingleSetting,
 );
 
 // ==================== DRIVER AVAILABILITY ROUTES (ADMIN/MANAGER) ====================
 
 // Get all drivers' availability (with optional filters)
-router.get('/driver-availability', adminController.getAllDriversAvailability);
+router.get("/driver-availability", adminController.getAllDriversAvailability);
 
 // Get specific driver's availability
-router.get('/drivers/:id/availability', adminController.getDriverAvailability);
+router.get("/drivers/:id/availability", adminController.getDriverAvailability);
 
 module.exports = router;
