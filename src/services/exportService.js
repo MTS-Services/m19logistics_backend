@@ -244,12 +244,10 @@ class ExportService {
     }
 
     // Footer — rendered 20px below the last content section
-    doc
-      .fontSize(8)
-      .text("Thank you for your business!", 50, footerY + 20, {
-        align: "center",
-        width: 500,
-      });
+    doc.fontSize(8).text("Thank you for your business!", 50, footerY + 20, {
+      align: "center",
+      width: 500,
+    });
 
     doc.end();
     return doc;

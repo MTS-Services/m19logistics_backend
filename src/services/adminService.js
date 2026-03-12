@@ -1389,8 +1389,94 @@ class AdminService {
     };
   }
 
+  resolvePeriod(period) {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+    const monday = (d) => {
+      const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
+      const m = new Date(d);
+      m.setDate(d.getDate() + diff);
+      m.setHours(0, 0, 0, 0);
+      return m;
+    };
+    const sunday = (mon) => {
+      const s = new Date(mon);
+      s.setDate(mon.getDate() + 6);
+      s.setHours(23, 59, 59, 999);
+      return s;
+    };
+
+    switch (period) {
+      case "this_week": {
+        const start = monday(now);
+        const end = sunday(start);
+        return { startDate: start, endDate: end };
+      }
+      case "last_week": {
+        const thisMonday = monday(now);
+        const lastMon = new Date(thisMonday);
+        lastMon.setDate(thisMonday.getDate() - 7);
+        return { startDate: lastMon, endDate: sunday(lastMon) };
+      }
+      case "this_month": {
+        const start = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          1,
+          0,
+          0,
+          0,
+          0,
+        );
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        );
+        return { startDate: start, endDate: end };
+      }
+      case "last_month": {
+        const start = new Date(
+          now.getFullYear(),
+          now.getMonth() - 1,
+          1,
+          0,
+          0,
+          0,
+          0,
+        );
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          0,
+          23,
+          59,
+          59,
+          999,
+        );
+        return { startDate: start, endDate: end };
+      }
+      default:
+        return null;
+    }
+  }
+
   async getAnalytics(filters = {}) {
-    const { startDate, endDate } = filters;
+    const { period } = filters;
+    let { startDate, endDate } = filters;
+
+    // If a named period is provided, resolve it to actual dates
+    if (period) {
+      const resolved = this.resolvePeriod(period);
+      if (resolved) {
+        startDate = resolved.startDate;
+        endDate = resolved.endDate;
+      }
+    }
 
     const dateFilter = {};
     if (startDate) dateFilter.gte = new Date(startDate);
@@ -1469,6 +1555,13 @@ class AdminService {
     ]);
 
     return {
+      period: period || "custom",
+      dateRange: {
+        startDate: startDate
+          ? new Date(startDate).toISOString().split("T")[0]
+          : null,
+        endDate: endDate ? new Date(endDate).toISOString().split("T")[0] : null,
+      },
       summary: {
         totalDeliveries,
         totalRevenue: totalRevenue._sum.grandTotal || 0,
