@@ -3,15 +3,22 @@ const config = require("../config");
 
 class EmailService {
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.MAILGUN_HOST || "smtp.mailgun.org",
-      port: parseInt(process.env.MAILGUN_PORT || "587"),
-      secure: false,
-      auth: {
-        user: process.env.MAILGUN_SMTP_USER,
-        pass: process.env.MAILGUN_SMTP_PASS,
-      },
-    });
+    this._transporter = null;
+  }
+
+  get transporter() {
+    if (!this._transporter) {
+      this._transporter = nodemailer.createTransport({
+        host: process.env.MAILGUN_HOST || "smtp.ionos.co.uk",
+        port: parseInt(process.env.MAILGUN_PORT || "587"),
+        secure: false,
+        auth: {
+          user: process.env.MAILGUN_SMTP_USER,
+          pass: process.env.MAILGUN_SMTP_PASS,
+        },
+      });
+    }
+    return this._transporter;
   }
 
   async sendEmail({
