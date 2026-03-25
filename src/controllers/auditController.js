@@ -1,4 +1,4 @@
-const auditService = require('../services/auditService');
+const auditService = require("../services/auditService");
 
 exports.getMyAuditLogs = async (req, res, next) => {
   try {
@@ -18,12 +18,15 @@ exports.getMyAuditLogs = async (req, res, next) => {
 exports.getMyAuditLogById = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const log = await auditService.getAuditLogById(parseInt(req.params.id), userId);
+    const log = await auditService.getAuditLogById(
+      parseInt(req.params.id),
+      userId,
+    );
 
     if (!log) {
       return res.status(404).json({
         success: false,
-        message: 'Audit log not found or access denied',
+        message: "Audit log not found or access denied",
       });
     }
 
