@@ -9,9 +9,12 @@ class AdminService {
   async getAllUsers(filters = {}) {
     const { role, isActive, search } = filters;
 
-    const where = {};
+    // Never expose ADMIN accounts in the user list
+    const where = {
+      role: { not: "ADMIN" },
+    };
 
-    if (role) where.role = role;
+    if (role && role !== "ADMIN") where.role = role;
     if (isActive !== undefined) where.isActive = isActive === "true";
     if (search) {
       where.OR = [
@@ -741,6 +744,21 @@ class AdminService {
   }
 
   async generateInvoice(customerId, weekStartDate, weekEndDate) {
+    // Guard: prevent duplicate invoice for same customer + overlapping week
+    const existingInvoice = await prisma.invoice.findFirst({
+      where: {
+        customerId,
+        weekStartDate: { lte: new Date(weekEndDate) },
+        weekEndDate: { gte: new Date(weekStartDate) },
+      },
+    });
+    if (existingInvoice) {
+      throw new Error(
+        `An invoice (${existingInvoice.invoiceNumber}) already exists for this customer covering this period. Edit that invoice instead of generating a new one.`,
+      );
+    }
+
+    // Fix: use relation filter (invoiceItem: null), not the non-existent field invoiceItemId
     const deliveries = await prisma.delivery.findMany({
       where: {
         customerId,
@@ -749,21 +767,13 @@ class AdminService {
           gte: new Date(weekStartDate),
           lte: new Date(weekEndDate),
         },
-        invoiceItemId: null,
+        invoiceItem: null,
       },
     });
 
     if (deliveries.length === 0) {
       throw new Error("No deliveries to invoice for this period");
     }
-
-    const lastInvoiceSetting = await prisma.systemSetting.findUnique({
-      where: { key: "LAST_INVOICE_NUMBER" },
-    });
-
-    const lastNumber = parseInt(lastInvoiceSetting?.value || "326");
-    const nextNumber = lastNumber + 1;
-    const invoiceNumber = `T${String(nextNumber).padStart(4, "0")}`;
 
     const subtotal = deliveries.reduce(
       (sum, d) => sum + parseFloat(d.subtotal),
@@ -778,42 +788,59 @@ class AdminService {
       0,
     );
 
-    const invoice = await prisma.invoice.create({
-      data: {
-        customerId,
-        invoiceNumber,
-        invoiceDate: new Date(),
-        weekStartDate: new Date(weekStartDate),
-        weekEndDate: new Date(weekEndDate),
-        subtotal,
-        vatTotal,
-        grandTotal,
-        isPaid: false,
-        paymentTerms: "30 Days (End of Month)",
-        items: {
-          create: deliveries.map((delivery) => ({
-            deliveryId: delivery.id,
-            description: `Cust. Ref: ${delivery.spoNumber} / ${new Date(delivery.deliveryDate).toLocaleDateString()} / ${delivery.deliveryAddress}`,
-            quantity: 1,
-            unitCost: parseFloat(delivery.subtotal),
-            vatAmount: parseFloat(delivery.vatAmount),
-            total: parseFloat(delivery.totalPrice),
-            isAdditional: false,
-          })),
+    // Reserve invoice number and create invoice atomically
+    let invoice;
+    await prisma.$transaction(async (tx) => {
+      const lastInvoiceSetting = await tx.systemSetting.findUnique({
+        where: { key: "LAST_INVOICE_NUMBER" },
+      });
+
+      const lastNumber = parseInt(lastInvoiceSetting?.value || "326");
+      const nextNumber = lastNumber + 1;
+      const invoiceNumber = `T${String(nextNumber).padStart(4, "0")}`;
+
+      await tx.systemSetting.upsert({
+        where: { key: "LAST_INVOICE_NUMBER" },
+        update: { value: String(nextNumber) },
+        create: {
+          key: "LAST_INVOICE_NUMBER",
+          value: String(nextNumber),
+          description: "Last invoice number issued",
         },
-      },
-      include: {
-        items: {
-          include: {
-            delivery: true,
+      });
+
+      invoice = await tx.invoice.create({
+        data: {
+          customerId,
+          invoiceNumber,
+          invoiceDate: new Date(),
+          weekStartDate: new Date(weekStartDate),
+          weekEndDate: new Date(weekEndDate),
+          subtotal,
+          vatTotal,
+          grandTotal,
+          isPaid: false,
+          paymentTerms: "30 Days (End of Month)",
+          items: {
+            create: deliveries.map((delivery) => ({
+              deliveryId: delivery.id,
+              description: `Cust. Ref: ${delivery.spoNumber} / ${new Date(delivery.deliveryDate).toLocaleDateString()} / ${delivery.deliveryAddress}`,
+              quantity: 1,
+              unitCost: parseFloat(delivery.subtotal),
+              vatAmount: parseFloat(delivery.vatAmount),
+              total: parseFloat(delivery.totalPrice),
+              isAdditional: false,
+            })),
           },
         },
-      },
-    });
-
-    await prisma.systemSetting.update({
-      where: { key: "LAST_INVOICE_NUMBER" },
-      data: { value: String(nextNumber) },
+        include: {
+          items: {
+            include: {
+              delivery: true,
+            },
+          },
+        },
+      });
     });
 
     return invoice;
