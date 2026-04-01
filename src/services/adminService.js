@@ -648,7 +648,7 @@ class AdminService {
       where: { id: chargeId },
     });
   }
-
+  // Note: This method is used by both Admin and Driver when viewing delivery details, so it includes all extra charges regardless of who added them.
   async getDeliveryExtraCharges(deliveryId) {
     if (!deliveryId || isNaN(deliveryId)) {
       throw new Error("Invalid delivery ID");
