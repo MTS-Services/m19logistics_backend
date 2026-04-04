@@ -50,8 +50,8 @@ module.exports = {
   },
 
   invoice: {
-    prefix: process.env.INVOICE_PREFIX || "T",
-    currentNumber: parseInt(process.env.CURRENT_INVOICE_NUMBER) || 326,
+    prefix: process.env.INVOICE_PREFIX || "MX1X-",
+    currentNumber: parseInt(process.env.CURRENT_INVOICE_NUMBER) || 0,
   },
 
   pricing: {

@@ -795,9 +795,9 @@ class AdminService {
         where: { key: "LAST_INVOICE_NUMBER" },
       });
 
-      const lastNumber = parseInt(lastInvoiceSetting?.value || "326");
+      const lastNumber = parseInt(lastInvoiceSetting?.value || "0");
       const nextNumber = lastNumber + 1;
-      const invoiceNumber = `T${String(nextNumber).padStart(4, "0")}`;
+      const invoiceNumber = `MX1X-${String(nextNumber).padStart(2, "0")}`;
 
       await tx.systemSetting.upsert({
         where: { key: "LAST_INVOICE_NUMBER" },
@@ -1405,7 +1405,8 @@ class AdminService {
       },
       recentBookings: recentBookings.map((booking) => ({
         invoiceNumber:
-          booking.invoiceNumber || `T${String(booking.id).padStart(4, "0")}`,
+          booking.invoiceNumber ||
+          `MX1X-${String(booking.id).padStart(2, "0")}`,
         customer: `${booking.customer.customerProfile?.storeName || booking.customer.fullName} (${booking.customer.customerProfile?.loginId || "N/A"})`,
         date: booking.deliveryDate,
         timeSlot: booking.timeSlot,

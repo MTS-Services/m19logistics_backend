@@ -240,7 +240,7 @@ class InvoiceService {
       },
     });
 
-    return `${config.invoice.prefix}${nextNumber.toString().padStart(4, "0")}`;
+    return `${config.invoice.prefix}${nextNumber.toString().padStart(2, "0")}`;
   }
 
   async markAsPaid(id) {
