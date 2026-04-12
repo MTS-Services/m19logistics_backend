@@ -1,19 +1,20 @@
-const invoiceService = require('../services/invoiceService');
-const exportService = require('../services/exportService');
+const invoiceService = require("../services/invoiceService");
+const exportService = require("../services/exportService");
 
 class InvoiceController {
-
   async getMyInvoices(req, res) {
     try {
       // For CUSTOMER role, use their own ID
       // For ADMIN/MANAGER, allow querying specific customer or all
       let customerId;
 
-      if (req.user.role === 'CUSTOMER') {
+      if (req.user.role === "CUSTOMER") {
         customerId = req.user.id;
-      } else if (req.user.role === 'ADMIN' || req.user.role === 'MANAGER') {
+      } else if (req.user.role === "ADMIN" || req.user.role === "MANAGER") {
         // Admin/Manager can specify customerId or get all invoices
-        customerId = req.query.customerId ? parseInt(req.query.customerId) : null;
+        customerId = req.query.customerId
+          ? parseInt(req.query.customerId)
+          : null;
       }
 
       const { startDate, endDate, isPaid, search } = req.query;
@@ -27,12 +28,15 @@ class InvoiceController {
 
       // Calculate summary statistics
       const totalInvoices = invoices.length;
-      const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
+      const totalAmount = invoices.reduce(
+        (sum, inv) => sum + parseFloat(inv.grandTotal || 0),
+        0,
+      );
       const totalPaid = invoices
-        .filter(inv => inv.isPaid)
+        .filter((inv) => inv.isPaid)
         .reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
       const totalUnpaid = invoices
-        .filter(inv => !inv.isPaid)
+        .filter((inv) => !inv.isPaid)
         .reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
 
       res.json({
@@ -47,10 +51,10 @@ class InvoiceController {
         },
       });
     } catch (error) {
-      console.error('Get invoices error:', error);
+      console.error("Get invoices error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch invoices',
+        message: "Failed to fetch invoices",
         error: error.message,
       });
     }
@@ -60,27 +64,30 @@ class InvoiceController {
     try {
       const id = parseInt(req.params.id);
       // Customers can only download their own invoices
-      const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
+      const customerId = req.user.role === "CUSTOMER" ? req.user.id : null;
 
       const invoice = await invoiceService.getInvoiceById(id, customerId);
 
       if (!invoice) {
         return res.status(404).json({
           success: false,
-          message: 'Invoice not found',
+          message: "Invoice not found",
         });
       }
 
       const pdfBuffer = await exportService.generateInvoicePDFBuffer(invoice);
 
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename=Invoice-${invoice.invoiceNumber}.pdf`);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=Invoice-${invoice.invoiceNumber}.pdf`,
+      );
       res.send(pdfBuffer);
     } catch (error) {
-      console.error('Export invoice PDF error:', error);
+      console.error("Export invoice PDF error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to generate invoice PDF',
+        message: "Failed to generate invoice PDF",
         error: error.message,
       });
     }
@@ -91,25 +98,24 @@ class InvoiceController {
       const { id } = req.params;
       const invoiceId = parseInt(id);
 
-
       if (isNaN(invoiceId)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid invoice ID',
+          message: "Invalid invoice ID",
         });
       }
 
-      const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
+      const customerId = req.user.role === "CUSTOMER" ? req.user.id : null;
 
       const invoice = await invoiceService.getInvoiceById(
         invoiceId,
-        customerId
+        customerId,
       );
 
       if (!invoice) {
         return res.status(404).json({
           success: false,
-          message: 'Invoice not found',
+          message: "Invoice not found",
         });
       }
 
@@ -118,10 +124,10 @@ class InvoiceController {
         data: invoice,
       });
     } catch (error) {
-      console.error('Get invoice error:', error);
+      console.error("Get invoice error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch invoice',
+        message: "Failed to fetch invoice",
         error: error.message,
       });
     }
@@ -132,17 +138,17 @@ class InvoiceController {
       const { invoiceNumber } = req.params;
 
       // For CUSTOMER, restrict to their own invoices only
-      const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
+      const customerId = req.user.role === "CUSTOMER" ? req.user.id : null;
 
       const invoice = await invoiceService.getInvoiceByNumber(
         invoiceNumber,
-        customerId
+        customerId,
       );
 
       if (!invoice) {
         return res.status(404).json({
           success: false,
-          message: 'Invoice not found',
+          message: "Invoice not found",
         });
       }
 
@@ -151,10 +157,10 @@ class InvoiceController {
         data: invoice,
       });
     } catch (error) {
-      console.error('Get invoice error:', error);
+      console.error("Get invoice error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch invoice',
+        message: "Failed to fetch invoice",
         error: error.message,
       });
     }

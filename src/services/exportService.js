@@ -130,23 +130,33 @@ class ExportService {
     doc
       .fontSize(10)
       .text("Subtotal:", 400, summaryY)
-      .text(`£${(invoice.subtotal || 0).toFixed(2)}`, 500, summaryY, {
+      .text(`£${parseFloat(invoice.subtotal || 0).toFixed(2)}`, 500, summaryY, {
         align: "right",
       });
 
     doc
       .text("VAT (20%):", 400, summaryY + 20)
-      .text(`£${(invoice.vatAmount || 0).toFixed(2)}`, 500, summaryY + 20, {
-        align: "right",
-      });
+      .text(
+        `£${parseFloat(invoice.vatTotal || 0).toFixed(2)}`,
+        500,
+        summaryY + 20,
+        {
+          align: "right",
+        },
+      );
 
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
       .text("Total:", 400, summaryY + 40)
-      .text(`£${(invoice.grandTotal || 0).toFixed(2)}`, 500, summaryY + 40, {
-        align: "right",
-      });
+      .text(
+        `£${parseFloat(invoice.grandTotal || 0).toFixed(2)}`,
+        500,
+        summaryY + 40,
+        {
+          align: "right",
+        },
+      );
 
     let bankSectionY = summaryY + 70;
 
