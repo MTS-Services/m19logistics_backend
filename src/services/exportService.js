@@ -4,18 +4,23 @@ const { Parser } = require("json2csv");
 const prisma = require("../config/database");
 
 class ExportService {
-  generateInvoicePDF(invoice, bankingDetails = null) {
+  generateInvoicePDF(invoice, bankingDetails = null, companyInfo = null) {
     const doc = new PDFDocument({ margin: 50 });
 
-    // Company Header
+    // Company Header — use DB values, fall back to defaults
+    const companyName = companyInfo?.name || "M19 Logistics";
+    const companyAddress = companyInfo?.address || "Wrexham, United Kingdom";
+    const companyPhone = companyInfo?.primaryPhone || "07818077110";
+    const companyEmail = companyInfo?.email || "invoices@m19logistics.com";
+
     doc
       .fontSize(20)
-      .text("M19 Logistics", 50, 50)
+      .text(companyName, 50, 50)
       .fontSize(10)
       .text("Courier Management System", 50, 75)
-      .text("Address: Wrexham, United Kingdom", 50, 90)
-      .text("Phone: 07818077110", 50, 105)
-      .text("Email: invoices@m19logistics.com", 50, 120)
+      .text(`Address: ${companyAddress}`, 50, 90)
+      .text(`Phone: ${companyPhone}`, 50, 105)
+      .text(`Email: ${companyEmail}`, 50, 120)
       .moveDown();
 
     // Invoice Title
@@ -26,7 +31,7 @@ class ExportService {
       .fontSize(10)
       .text(`Invoice Number: ${invoice.invoiceNumber}`, 50, topY)
       .text(
-        `Invoice Date: ${new Date(invoice.invoiceDate).toLocaleDateString()}`,
+        `Invoice Date: ${new Date(invoice.invoiceDate).toLocaleDateString("en-GB")}`,
         50,
         topY + 15,
       )
@@ -85,9 +90,9 @@ class ExportService {
 
       const spoNumber = item.delivery?.spoNumber || item.spoNumber || "N/A";
       const deliveryDate = item.deliveryDate
-        ? new Date(item.deliveryDate).toLocaleDateString()
+        ? new Date(item.deliveryDate).toLocaleDateString("en-GB")
         : item.delivery?.deliveryDate
-          ? new Date(item.delivery.deliveryDate).toLocaleDateString()
+          ? new Date(item.delivery.deliveryDate).toLocaleDateString("en-GB")
           : "N/A";
       const description = item.description || "Delivery Service";
       const qty = String(item.quantity || 1);
@@ -613,10 +618,13 @@ class ExportService {
   }
 
   async generateInvoicePDFBuffer(invoice) {
-    const bankingDetails = await prisma.bankingDetails.findFirst();
+    const [bankingDetails, companyInfo] = await Promise.all([
+      prisma.bankingDetails.findFirst(),
+      prisma.companyInformation.findFirst(),
+    ]);
     return new Promise((resolve, reject) => {
       const chunks = [];
-      const doc = this.generateInvoicePDF(invoice, bankingDetails);
+      const doc = this.generateInvoicePDF(invoice, bankingDetails, companyInfo);
       doc.on("data", (chunk) => chunks.push(chunk));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
       doc.on("error", reject);
