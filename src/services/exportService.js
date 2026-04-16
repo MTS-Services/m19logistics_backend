@@ -17,10 +17,9 @@ class ExportService {
       .fontSize(20)
       .text(companyName, 50, 50)
       .fontSize(10)
-      .text("Courier Management System", 50, 75)
-      .text(`Address: ${companyAddress}`, 50, 90)
-      .text(`Phone: ${companyPhone}`, 50, 105)
-      .text(`Email: ${companyEmail}`, 50, 120)
+      .text(`Address: ${companyAddress}`, 50, 75)
+      .text(`Phone: ${companyPhone}`, 50, 90)
+      .text(`Email: ${companyEmail}`, 50, 105)
       .moveDown();
 
     // Invoice Title
