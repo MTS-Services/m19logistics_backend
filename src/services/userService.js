@@ -1,7 +1,6 @@
-const prisma = require('../config/database');
+const prisma = require("../config/database");
 
 class UserService {
- 
   async createUser(userData) {
     return prisma.user.create({
       data: userData,
@@ -18,7 +17,6 @@ class UserService {
     });
   }
 
- 
   async findByEmail(email) {
     return prisma.user.findUnique({
       where: { email },
@@ -34,14 +32,12 @@ class UserService {
     });
   }
 
- 
   async findByUsername(username) {
     return prisma.user.findUnique({
       where: { username },
     });
   }
 
- 
   async findById(id) {
     return prisma.user.findUnique({
       where: { id },
@@ -56,18 +52,13 @@ class UserService {
         isActive: true,
         createdAt: true,
         lastLogin: true,
-        customerProfile: {
-          include: {
-            pricingTier: true,
-          },
-        },
+        customerProfile: true,
         driverProfile: true,
         managerProfile: true,
       },
     });
   }
 
- 
   async updateUser(id, updateData) {
     return prisma.user.update({
       where: { id },
@@ -85,14 +76,12 @@ class UserService {
     });
   }
 
- 
   async updateLastLogin(id) {
     return prisma.user.update({
       where: { id },
       data: { lastLogin: new Date() },
     });
   }
-
 
   async getUsersByRole(role) {
     return prisma.user.findMany({
@@ -110,7 +99,6 @@ class UserService {
     });
   }
 
- 
   async deleteUser(id) {
     return prisma.user.delete({
       where: { id },
