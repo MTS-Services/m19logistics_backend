@@ -388,9 +388,20 @@ class AdminService {
       throw new Error("Delivery not found");
     }
 
-    // Admin/Manager can edit deliveries in RECEIVED or ALLOCATED status
-    if (!["RECEIVED", "ALLOCATED"].includes(delivery.status)) {
+    // Admin/Manager can edit deliveries in RECEIVED, ALLOCATED, or DELIVERED (if not yet invoiced)
+    if (!["RECEIVED", "ALLOCATED", "DELIVERED"].includes(delivery.status)) {
       throw new Error("Cannot edit delivery in current status");
+    }
+
+    if (delivery.status === "DELIVERED") {
+      const invoiceItem = await prisma.invoiceItem.findFirst({
+        where: { deliveryId: id },
+      });
+      if (invoiceItem) {
+        throw new Error(
+          "Cannot edit a delivered delivery that has already been invoiced",
+        );
+      }
     }
 
     // Recalculate pricing if weight or address changes
