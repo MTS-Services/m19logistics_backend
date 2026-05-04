@@ -191,8 +191,10 @@ class DeliveryService {
       throw new Error("Delivery not found or access denied");
     }
 
-    if (delivery.status !== "RECEIVED") {
-      throw new Error("Cannot edit delivery once it has been allocated");
+    if (!["RECEIVED", "ALLOCATED"].includes(delivery.status)) {
+      throw new Error(
+        "Cannot edit delivery once it has been delivered or cancelled",
+      );
     }
 
     let pricing = {};

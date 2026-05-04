@@ -1,33 +1,35 @@
-require('dotenv').config();
-require('express-async-errors');
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const cookieParser = require('cookie-parser');
-const path = require('path');
+require("dotenv").config();
+require("express-async-errors");
+const express = require("express");
+const cors = require("cors");
+const morgan = require("morgan");
+const cookieParser = require("cookie-parser");
+const path = require("path");
 
-const config = require('./config');
-const routes = require('./routes');
-const errorHandler = require('./middleware/errorHandler');
+const config = require("./config");
+const routes = require("./routes");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
-app.use(cors({
-  origin: '*',
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(
+  cors({
+    origin: "*",
+    credentials: false,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Handle JSON parsing errors
 app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
     return res.status(400).json({
       success: false,
-      message: 'Invalid JSON format. Please check your request body.',
+      message: "Invalid JSON format. Please check your request body.",
     });
   }
   next(err);
@@ -35,24 +37,23 @@ app.use((err, req, res, next) => {
 
 app.use(cookieParser());
 
-if (config.nodeEnv === 'development') {
-  app.use(morgan('dev'));
+if (config.nodeEnv === "development") {
+  app.use(morgan("dev"));
 } else {
-  app.use(morgan('combined'));
+  app.use(morgan("combined"));
 }
 
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use(express.static(path.join(__dirname, '../public')));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use(express.static(path.join(__dirname, "../public")));
 
-app.use('/api', routes);
+app.use("/api", routes);
 
-
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: 'Welcome to M19 Logistics API',
-    version: '1.0.0',
-    documentation: '/api/health',
+    message: "Welcome to M19 Logistics API",
+    version: "1.0.0",
+    documentation: "/api/health",
   });
 });
 

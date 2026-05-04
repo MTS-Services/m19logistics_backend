@@ -73,6 +73,14 @@ router.put(
     body("timeSlot").optional().isIn(["AM", "PM", "SAME_DAY"]),
     body("deliveryAddress").optional().trim().notEmpty(),
     body("specialInstructions").optional().trim(),
+    body("weight")
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage("Weight must be a positive number"),
+    body("spoNumber").optional().trim(),
+    body("requestedBy").optional().trim(),
+    body("customerPhone").optional().trim(),
+    body("customerName").optional().trim(),
     validate,
   ],
   deliveryController.updateDelivery,
