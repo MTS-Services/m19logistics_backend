@@ -127,7 +127,7 @@ model PricingTier {
   vatRate       Decimal @default(20.00) @db.Decimal(5, 2)
   weightUnit    Int     @default(800) // Weight per block in kg
   maxDistance   Int     @default(45) // Base distance in miles
-  surchargeRate Decimal @default(0.5) @db.Decimal(3, 2) // Rate for distance surcharge (0-1)
+  surchargeRate Decimal @default(0.5) @db.Decimal(3, 2) // Rate for distance surcharge (e.g. 0.5 = 50%, 1.5 = 150%)
   isDefault     Boolean @default(false)
   isActive      Boolean @default(true)
 

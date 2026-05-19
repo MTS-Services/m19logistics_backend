@@ -111,24 +111,38 @@ class InvoiceGenerationService {
       });
     });
 
+    // Get customer's VAT rate from their pricing tier
+    const customerData = await prisma.user.findUnique({
+      where: { id: customerId },
+      include: {
+        customerProfile: {
+          include: { pricingTier: true },
+        },
+      },
+    });
+    const vatRate = customerData?.customerProfile?.pricingTier?.vatRate
+      ? parseFloat(customerData.customerProfile.pricingTier.vatRate) / 100
+      : 0.2;
+
+    const round2 = (n) => Math.round(n * 100) / 100;
+
     let subtotal = 0;
-    let vatTotal = 0;
     let grandTotal = 0;
 
     const invoiceItems = [];
 
     for (const delivery of deliveries) {
-      const deliverySubtotal = parseFloat(delivery.subtotal || 0);
-      const deliveryVat = parseFloat(delivery.vatAmount || 0);
-      const deliveryTotal = parseFloat(delivery.totalPrice || 0);
+      const deliverySubtotal = round2(parseFloat(delivery.subtotal || 0));
+      // Recalculate VAT from subtotal × vatRate — fixes stale stored vatAmount
+      const deliveryVat = round2(deliverySubtotal * vatRate);
+      const deliveryTotal = round2(deliverySubtotal + deliveryVat);
 
       subtotal += deliverySubtotal;
-      vatTotal += deliveryVat;
       grandTotal += deliveryTotal;
 
       invoiceItems.push({
         deliveryId: delivery.id,
-        description: `Cust. Ref: ${delivery.spoNumber} / ${new Date(delivery.deliveryDate).toLocaleDateString()} / ${delivery.deliveryAddress}`,
+        description: `Cust. Ref: ${delivery.spoNumber} / ${new Date(delivery.deliveryDate).toLocaleDateString("en-GB")} / ${delivery.deliveryAddress}`,
         quantity: 1,
         unitCost: deliverySubtotal,
         vatAmount: deliveryVat,
@@ -138,12 +152,11 @@ class InvoiceGenerationService {
 
       if (delivery.extraCharges && delivery.extraCharges.length > 0) {
         for (const charge of delivery.extraCharges) {
-          const chargeAmount = parseFloat(charge.amount);
-          const chargeVat = chargeAmount * 0.2; // 20% VAT
-          const chargeTotal = chargeAmount + chargeVat;
+          const chargeAmount = round2(parseFloat(charge.amount));
+          const chargeVat = round2(chargeAmount * vatRate);
+          const chargeTotal = round2(chargeAmount + chargeVat);
 
           subtotal += chargeAmount;
-          vatTotal += chargeVat;
           grandTotal += chargeTotal;
 
           invoiceItems.push({
@@ -158,6 +171,11 @@ class InvoiceGenerationService {
         }
       }
     }
+
+    // Calculate invoice-level totals from recalculated subtotal
+    subtotal = round2(subtotal);
+    const vatTotal = round2(subtotal * vatRate);
+    grandTotal = round2(subtotal + vatTotal);
 
     const invoice = await prisma.invoice.create({
       data: {

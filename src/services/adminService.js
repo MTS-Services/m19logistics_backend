@@ -786,18 +786,34 @@ class AdminService {
       throw new Error("No deliveries to invoice for this period");
     }
 
-    const subtotal = deliveries.reduce(
-      (sum, d) => sum + parseFloat(d.subtotal),
-      0,
+    // Get customer's VAT rate from their pricing tier
+    const customer = await prisma.user.findUnique({
+      where: { id: customerId },
+      include: {
+        customerProfile: {
+          include: { pricingTier: true },
+        },
+      },
+    });
+    const vatRate = customer?.customerProfile?.pricingTier?.vatRate
+      ? parseFloat(customer.customerProfile.pricingTier.vatRate) / 100
+      : 0.2;
+
+    // Recalculate VAT per line from subtotal × vatRate (fixes stale stored vatAmount)
+    const round2 = (n) => Math.round(n * 100) / 100;
+
+    const invoiceLines = deliveries.map((d) => {
+      const lineSubtotal = round2(parseFloat(d.subtotal || 0));
+      const lineVat = round2(lineSubtotal * vatRate);
+      const lineTotal = round2(lineSubtotal + lineVat);
+      return { delivery: d, lineSubtotal, lineVat, lineTotal };
+    });
+
+    const subtotal = round2(
+      invoiceLines.reduce((s, l) => s + l.lineSubtotal, 0),
     );
-    const vatTotal = deliveries.reduce(
-      (sum, d) => sum + parseFloat(d.vatAmount),
-      0,
-    );
-    const grandTotal = deliveries.reduce(
-      (sum, d) => sum + parseFloat(d.totalPrice),
-      0,
-    );
+    const vatTotal = round2(subtotal * vatRate);
+    const grandTotal = round2(subtotal + vatTotal);
 
     // Reserve invoice number and create invoice atomically
     let invoice;
@@ -833,15 +849,17 @@ class AdminService {
           isPaid: false,
           paymentTerms: "30 Days (End of Month)",
           items: {
-            create: deliveries.map((delivery) => ({
-              deliveryId: delivery.id,
-              description: `Cust. Ref: ${delivery.spoNumber} / ${new Date(delivery.deliveryDate).toLocaleDateString()} / ${delivery.deliveryAddress}`,
-              quantity: 1,
-              unitCost: parseFloat(delivery.subtotal),
-              vatAmount: parseFloat(delivery.vatAmount),
-              total: parseFloat(delivery.totalPrice),
-              isAdditional: false,
-            })),
+            create: invoiceLines.map(
+              ({ delivery, lineSubtotal, lineVat, lineTotal }) => ({
+                deliveryId: delivery.id,
+                description: `Cust. Ref: ${delivery.spoNumber} / ${new Date(delivery.deliveryDate).toLocaleDateString("en-GB")} / ${delivery.deliveryAddress}`,
+                quantity: 1,
+                unitCost: lineSubtotal,
+                vatAmount: lineVat,
+                total: lineTotal,
+                isAdditional: false,
+              }),
+            ),
           },
         },
         include: {

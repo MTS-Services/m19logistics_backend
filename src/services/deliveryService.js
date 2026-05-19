@@ -206,6 +206,28 @@ class DeliveryService {
       );
     }
 
+    // If date or timeSlot is changing, update slot availability
+    const newDate = updateData.deliveryDate
+      ? new Date(updateData.deliveryDate)
+      : null;
+    const newTimeSlot = updateData.timeSlot || null;
+
+    const dateChanging =
+      newDate &&
+      new Date(delivery.deliveryDate).toDateString() !== newDate.toDateString();
+    const slotChanging = newTimeSlot && newTimeSlot !== delivery.timeSlot;
+
+    if ((dateChanging || slotChanging) && delivery.timeSlot !== "SAME_DAY") {
+      // Release old slot
+      await this.decrementSlotBooking(delivery.deliveryDate, delivery.timeSlot);
+      // Book new slot
+      const targetDate = newDate || delivery.deliveryDate;
+      const targetSlot = newTimeSlot || delivery.timeSlot;
+      if (targetSlot !== "SAME_DAY") {
+        await this.incrementSlotBooking(targetDate, targetSlot);
+      }
+    }
+
     return prisma.delivery.update({
       where: { id },
       data: {
@@ -432,27 +454,34 @@ class DeliveryService {
       ? parseFloat(customer.customerProfile.pricingTier.vatRate)
       : 20.0;
 
+    // Use the tier's own surcharge rate; fall back to config default
+    const surchargeRate = customer.customerProfile?.pricingTier?.surchargeRate
+      ? parseFloat(customer.customerProfile.pricingTier.surchargeRate)
+      : config.pricing.distanceSurchargeRate;
+
+    // Use the tier's own maxDistance as the base distance; fall back to config default
+    const baseDistance = customer.customerProfile?.pricingTier?.maxDistance
+      ? parseFloat(customer.customerProfile.pricingTier.maxDistance)
+      : config.pricing.baseDistance;
+
     const weightBlocks = Math.ceil(weight / config.pricing.weightBlock);
 
     let calculatedBasePrice = basePrice * weightBlocks;
 
-    // Calculate distance (simplified - would use Google Maps API in production)
+    // Calculate distance
     const distance = await this.calculateDistance(
       customer.customerProfile?.depotAddress,
       address,
     );
 
-    // Distance surcharge (per 45 miles beyond base)
+    // Distance surcharge: applied per baseDistance block beyond the included baseDistance
     let distanceSurcharge = 0;
-    if (distance > config.pricing.baseDistance) {
+    if (distance > baseDistance) {
       const extraDistanceBlocks = Math.ceil(
-        (distance - config.pricing.baseDistance) / config.pricing.baseDistance,
+        (distance - baseDistance) / baseDistance,
       );
       distanceSurcharge =
-        basePrice *
-        config.pricing.distanceSurchargeRate *
-        weightBlocks *
-        extraDistanceBlocks;
+        basePrice * surchargeRate * weightBlocks * extraDistanceBlocks;
     }
 
     const subtotal = calculatedBasePrice + distanceSurcharge;
