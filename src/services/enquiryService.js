@@ -1,5 +1,5 @@
-const prisma = require('../config/database');
-const emailService = require('./emailService');
+const prisma = require("../config/database");
+const emailService = require("./emailService");
 
 class EnquiryService {
   async createEnquiry(data) {
@@ -14,9 +14,11 @@ class EnquiryService {
       },
     });
 
-    emailService.sendEnquiryNotification(enquiry).catch(err =>
-      console.error('Enquiry notification email failed:', err.message)
-    );
+    emailService
+      .sendEnquiryNotification(enquiry)
+      .catch((err) =>
+        console.error("Enquiry notification email failed:", err.message),
+      );
 
     return enquiry;
   }
@@ -26,7 +28,7 @@ class EnquiryService {
 
     const where = {};
 
-    if (isRead !== undefined) where.isRead = isRead === 'true';
+    if (isRead !== undefined) where.isRead = isRead === "true";
 
     if (startDate || endDate) {
       where.createdAt = {};
@@ -36,7 +38,7 @@ class EnquiryService {
 
     return prisma.enquiry.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 

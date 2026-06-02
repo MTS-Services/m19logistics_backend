@@ -138,14 +138,24 @@ class EmailService {
     });
   }
 
-  async sendDriverAssignmentNotification(delivery, driver, customer) {
-    const driverSubject = `New Delivery Assignment – ${new Date(delivery.deliveryDate).toLocaleDateString()} – SPO: ${delivery.spoNumber || "N/A"}`;
+  async sendDriverAssignmentNotification(
+    delivery,
+    driver,
+    customer,
+    isReallocation = false,
+  ) {
+    const driverSubject = isReallocation
+      ? `Delivery Reassigned to You – ${new Date(delivery.deliveryDate).toLocaleDateString("en-GB")} – SPO: ${delivery.spoNumber || "N/A"}`
+      : `New Delivery Assignment – ${new Date(delivery.deliveryDate).toLocaleDateString("en-GB")} – SPO: ${delivery.spoNumber || "N/A"}`;
+
+    const driverIntro = isReallocation
+      ? `<p>Hello ${driver.fullName},</p><p>A delivery has been <strong>reassigned to you</strong>. Please review the details below and log in to accept or reject it.</p>`
+      : `<p>Hello ${driver.fullName},</p><p>You have been assigned a new delivery.</p>`;
 
     const driverHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">New Delivery Assignment</h2>
-        <p>Hello ${driver.fullName},</p>
-        <p>You have been assigned a new delivery.</p>
+        <h2 style="color: #2c3e50;">${isReallocation ? "Delivery Reassigned to You" : "New Delivery Assignment"}</h2>
+        ${driverIntro}
         
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr style="background-color: #f8f9fa;">
@@ -209,12 +219,18 @@ class EmailService {
     });
 
     // Notify customer that driver has been assigned
-    const customerSubject = `Your Delivery Has Been Scheduled – SPO: ${delivery.spoNumber || "N/A"}`;
+    const customerSubject = isReallocation
+      ? `Your Delivery Driver Has Been Updated – SPO: ${delivery.spoNumber || "N/A"}`
+      : `Your Delivery Has Been Scheduled – SPO: ${delivery.spoNumber || "N/A"}`;
+
+    const customerIntro = isReallocation
+      ? `<p>Hello ${customer.fullName},</p><p>Please note that the driver for your upcoming delivery has been <strong>updated</strong>. Your new driver details are below.</p>`
+      : `<p>Hello ${customer.fullName},</p><p>Your delivery has been assigned to a driver.</p>`;
+
     const customerHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">Delivery Scheduled</h2>
-        <p>Hello ${customer.fullName},</p>
-        <p>Your delivery has been assigned to a driver.</p>
+        <h2 style="color: #2c3e50;">${isReallocation ? "Your Delivery Driver Has Been Updated" : "Delivery Scheduled"}</h2>
+        ${customerIntro}
         
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr style="background-color: #f8f9fa;">

@@ -492,14 +492,21 @@ class AdminService {
   async allocateDelivery(deliveryId, driverId) {
     const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
+      include: {
+        driver: {
+          select: { id: true, fullName: true, email: true },
+        },
+      },
     });
 
     if (!delivery) {
       throw new Error("Delivery not found");
     }
 
-    if (delivery.status !== "RECEIVED") {
-      throw new Error("Can only allocate pending deliveries");
+    if (!["RECEIVED", "ALLOCATED"].includes(delivery.status)) {
+      throw new Error(
+        "Can only allocate or re-allocate pending/allocated deliveries",
+      );
     }
 
     const driver = await prisma.user.findUnique({
@@ -514,6 +521,10 @@ class AdminService {
     if (!driver.driverProfile?.isActiveDriver) {
       throw new Error("Driver is not active");
     }
+
+    const isReallocation =
+      delivery.status === "ALLOCATED" && delivery.driverId !== null;
+    const previousDriver = delivery.driver;
 
     const updated = await prisma.delivery.update({
       where: { id: deliveryId },
@@ -542,26 +553,40 @@ class AdminService {
       },
     });
 
+    // Audit log — distinguish first allocation from re-allocation
+    const auditDescription = isReallocation
+      ? `Delivery #${deliveryId} re-allocated from ${previousDriver?.fullName ?? "unknown"} to ${driver.fullName}`
+      : `Delivery #${deliveryId} allocated to ${driver.fullName}`;
+
     await prisma.auditLog.create({
       data: {
         userId: driverId,
         deliveryId: deliveryId,
-        action: "ALLOCATE_DELIVERY",
-        description: `Delivery #${deliveryId} allocated to ${driver.fullName}`,
+        action: isReallocation ? "REALLOCATE_DELIVERY" : "ALLOCATE_DELIVERY",
+        description: auditDescription,
       },
     });
 
+    // Notify new driver
     try {
       await emailService.sendDriverAssignmentNotification(
         updated,
         driver,
         updated.customer,
+        isReallocation,
       );
     } catch (emailError) {
-      console.error("Failed to send driver assignment emails:", emailError);
+      console.error(
+        "Failed to send driver assignment email to new driver:",
+        emailError,
+      );
     }
 
-    return updated;
+    return {
+      ...updated,
+      isReallocation,
+      previousDriver: previousDriver ?? null,
+    };
   }
 
   async updateDeliveryStatus(deliveryId, status, data = {}) {

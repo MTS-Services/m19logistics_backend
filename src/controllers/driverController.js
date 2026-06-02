@@ -1,5 +1,5 @@
-const driverService = require('../services/driverService');
-const prisma = require('../config/database');
+const driverService = require("../services/driverService");
+const prisma = require("../config/database");
 
 exports.getDashboard = async (req, res) => {
   try {
@@ -10,19 +10,21 @@ exports.getDashboard = async (req, res) => {
       data: dashboard,
     });
   } catch (error) {
-    console.error('Get dashboard error:', error);
+    console.error("Get dashboard error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve dashboard.',
+      message: "Failed to retrieve dashboard.",
       error: error.message,
     });
   }
 };
 
-
 exports.getAssignedDeliveries = async (req, res) => {
   try {
-    const deliveries = await driverService.getAssignedDeliveries(req.user.id, req.query);
+    const deliveries = await driverService.getAssignedDeliveries(
+      req.user.id,
+      req.query,
+    );
 
     res.json({
       success: true,
@@ -30,10 +32,10 @@ exports.getAssignedDeliveries = async (req, res) => {
       data: deliveries,
     });
   } catch (error) {
-    console.error('Get assigned deliveries error:', error);
+    console.error("Get assigned deliveries error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve deliveries.',
+      message: "Failed to retrieve deliveries.",
       error: error.message,
     });
   }
@@ -43,7 +45,7 @@ exports.getDeliveryDetails = async (req, res) => {
   try {
     const delivery = await driverService.getDeliveryDetails(
       parseInt(req.params.id),
-      req.user.id
+      req.user.id,
     );
 
     res.json({
@@ -51,8 +53,8 @@ exports.getDeliveryDetails = async (req, res) => {
       data: delivery,
     });
   } catch (error) {
-    console.error('Get delivery details error:', error);
-    res.status(error.message.includes('not found') ? 404 : 500).json({
+    console.error("Get delivery details error:", error);
+    res.status(error.message.includes("not found") ? 404 : 500).json({
       success: false,
       message: error.message,
     });
@@ -64,30 +66,29 @@ exports.uploadProofOfDelivery = async (req, res) => {
     if (!req.files || (!req.files.signature && !req.files.photo)) {
       return res.status(400).json({
         success: false,
-        message: 'At least one file (signature or photo) is required.',
+        message: "At least one file (signature or photo) is required.",
       });
     }
 
     const delivery = await driverService.uploadProofOfDelivery(
       parseInt(req.params.id),
       req.user.id,
-      req.files
+      req.files,
     );
 
     res.json({
       success: true,
-      message: 'Proof of delivery uploaded successfully.',
+      message: "Proof of delivery uploaded successfully.",
       data: delivery,
     });
   } catch (error) {
-    console.error('Upload proof error:', error);
-    res.status(error.message.includes('not found') ? 404 : 500).json({
+    console.error("Upload proof error:", error);
+    res.status(error.message.includes("not found") ? 404 : 500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 
 exports.respondToDelivery = async (req, res) => {
   try {
@@ -95,7 +96,7 @@ exports.respondToDelivery = async (req, res) => {
     const deliveryId = parseInt(req.params.id);
     const driverId = req.user.id;
 
-    if (!action || !['accept', 'reject'].includes(action)) {
+    if (!action || !["accept", "reject"].includes(action)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid action. Must be "accept" or "reject"',
@@ -104,13 +105,14 @@ exports.respondToDelivery = async (req, res) => {
 
     let delivery;
 
-    if (action === 'accept') {
+    if (action === "accept") {
       delivery = await driverService.acceptDelivery(deliveryId, driverId);
 
       res.json({
         success: true,
         isAccepted: true,
-        message: 'Delivery accepted successfully. You can now proceed with the delivery.',
+        message:
+          "Delivery accepted successfully. You can now proceed with the delivery.",
         data: delivery,
       });
     } else {
@@ -118,81 +120,82 @@ exports.respondToDelivery = async (req, res) => {
       if (!reason || reason.trim().length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Rejection reason is required',
+          message: "Rejection reason is required",
         });
       }
 
-      delivery = await driverService.rejectDelivery(deliveryId, driverId, reason);
+      delivery = await driverService.rejectDelivery(
+        deliveryId,
+        driverId,
+        reason,
+      );
 
       res.json({
         success: true,
         isAccepted: false,
-        message: 'Delivery rejected. Admin will be notified to reassign.',
+        message: "Delivery rejected. Admin will be notified to reassign.",
         data: delivery,
       });
     }
   } catch (error) {
-    console.error('Respond to delivery error:', error);
-    res.status(error.message.includes('not found') ? 404 : 400).json({
+    console.error("Respond to delivery error:", error);
+    res.status(error.message.includes("not found") ? 404 : 400).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 
 exports.completeDelivery = async (req, res) => {
   try {
     const delivery = await driverService.completeDelivery(
       parseInt(req.params.id),
       req.user.id,
-      req.body
+      req.body,
     );
 
     res.json({
       success: true,
-      message: 'Delivery marked as completed successfully.',
+      message: "Delivery marked as completed successfully.",
       data: delivery,
     });
   } catch (error) {
-    console.error('Complete delivery error:', error);
-    res.status(error.message.includes('not found') ? 404 : 500).json({
+    console.error("Complete delivery error:", error);
+    res.status(error.message.includes("not found") ? 404 : 500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 
 exports.submitFeedback = async (req, res) => {
   try {
     const feedback = await driverService.submitFeedback(
       parseInt(req.params.id),
       req.user.id,
-      req.body
+      req.body,
     );
 
     res.json({
       success: true,
-      message: 'Feedback submitted successfully.',
+      message: "Feedback submitted successfully.",
       data: feedback,
     });
   } catch (error) {
-    console.error('Submit feedback error:', error);
-    res.status(error.message.includes('not found') ? 404 : 500).json({
+    console.error("Submit feedback error:", error);
+    res.status(error.message.includes("not found") ? 404 : 500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-
 exports.getPerformanceMetrics = async (req, res) => {
   try {
     const metrics = await driverService.getPerformanceMetrics(
       req.user.id,
       req.query.startDate,
-      req.query.endDate
+      req.query.endDate,
     );
 
     res.json({
@@ -200,10 +203,10 @@ exports.getPerformanceMetrics = async (req, res) => {
       data: metrics,
     });
   } catch (error) {
-    console.error('Get performance metrics error:', error);
+    console.error("Get performance metrics error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve performance metrics.',
+      message: "Failed to retrieve performance metrics.",
       error: error.message,
     });
   }
@@ -218,20 +221,20 @@ exports.getSlotCapacity = async (req, res) => {
 
       const slots = await prisma.slotAvailability.findMany({
         where: {
-          date: targetDate
+          date: targetDate,
         },
-        orderBy: { timeSlot: 'asc' }
+        orderBy: { timeSlot: "asc" },
       });
 
       const driverDeliveries = await prisma.delivery.findMany({
         where: {
           driverId: req.user.id,
           deliveryDate: targetDate,
-          status: { in: ['ALLOCATED', 'DELIVERED'] }
+          status: { in: ["ALLOCATED", "DELIVERED"] },
         },
         select: {
-          timeSlot: true
-        }
+          timeSlot: true,
+        },
       });
 
       const deliveryCountBySlot = driverDeliveries.reduce((acc, del) => {
@@ -239,69 +242,61 @@ exports.getSlotCapacity = async (req, res) => {
         return acc;
       }, {});
 
-      const capacity = slots.map(slot => ({
+      const capacity = slots.map((slot) => ({
         timeSlot: slot.timeSlot,
         totalDeliveries: slot.booked,
         maxCapacity: slot.maxCapacity,
         isFull: slot.isFull,
-        myDeliveries: deliveryCountBySlot[slot.timeSlot] || 0
+        myDeliveries: deliveryCountBySlot[slot.timeSlot] || 0,
       }));
 
       return res.json({
         success: true,
         data: {
           date,
-          slots: capacity
-        }
+          slots: capacity,
+        },
       });
     }
 
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayString = today.toISOString().split('T')[0];
+    const todayString = today.toISOString().split("T")[0];
 
     const slots = await prisma.slotAvailability.findMany({
       where: {
         date: {
-          gte: today
-        }
+          gte: today,
+        },
       },
-      orderBy: [
-        { date: 'asc' },
-        { timeSlot: 'asc' }
-      ]
+      orderBy: [{ date: "asc" }, { timeSlot: "asc" }],
     });
-
 
     const driverDeliveries = await prisma.delivery.findMany({
       where: {
         driverId: req.user.id,
         deliveryDate: {
-          gte: today
+          gte: today,
         },
-        status: { in: ['ALLOCATED', 'DELIVERED'] }
+        status: { in: ["ALLOCATED", "DELIVERED"] },
       },
       select: {
         deliveryDate: true,
-        timeSlot: true
-      }
+        timeSlot: true,
+      },
     });
 
-
     const deliveryCountByDateSlot = driverDeliveries.reduce((acc, del) => {
-      const dateKey = del.deliveryDate.toISOString().split('T')[0];
+      const dateKey = del.deliveryDate.toISOString().split("T")[0];
       if (!acc[dateKey]) acc[dateKey] = {};
       acc[dateKey][del.timeSlot] = (acc[dateKey][del.timeSlot] || 0) + 1;
       return acc;
     }, {});
 
-
     const slotsByDate = {};
 
-    slots.forEach(slot => {
-      const dateKey = slot.date.toISOString().split('T')[0];
-
+    slots.forEach((slot) => {
+      const dateKey = slot.date.toISOString().split("T")[0];
 
       if (dateKey < todayString) {
         return;
@@ -310,7 +305,7 @@ exports.getSlotCapacity = async (req, res) => {
       if (!slotsByDate[dateKey]) {
         slotsByDate[dateKey] = {
           date: dateKey,
-          slots: []
+          slots: [],
         };
       }
 
@@ -319,28 +314,29 @@ exports.getSlotCapacity = async (req, res) => {
         totalDeliveries: slot.booked,
         maxCapacity: slot.maxCapacity,
         isFull: slot.isFull,
-        myDeliveries: (deliveryCountByDateSlot[dateKey] && deliveryCountByDateSlot[dateKey][slot.timeSlot]) || 0
+        myDeliveries:
+          (deliveryCountByDateSlot[dateKey] &&
+            deliveryCountByDateSlot[dateKey][slot.timeSlot]) ||
+          0,
       });
     });
-
 
     const slotsArray = Object.values(slotsByDate);
 
     res.json({
       success: true,
       count: slotsArray.length,
-      data: slotsArray
+      data: slotsArray,
     });
   } catch (error) {
-    console.error('Get slot capacity error:', error);
+    console.error("Get slot capacity error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve slot capacity.',
-      error: error.message
+      message: "Failed to retrieve slot capacity.",
+      error: error.message,
     });
   }
 };
-
 
 // ==================== DRIVER AVAILABILITY MANAGEMENT ====================
 
@@ -350,26 +346,27 @@ exports.getMyAvailability = async (req, res) => {
 
     // If ADMIN or MANAGER, they can specify driverId in query
     // Otherwise, use their own ID (for DRIVER role)
-    if (req.user.role === 'ADMIN' || req.user.role === 'MANAGER') {
+    if (req.user.role === "ADMIN" || req.user.role === "MANAGER") {
       driverId = req.query.driverId ? parseInt(req.query.driverId) : null;
 
       if (!driverId) {
         return res.status(400).json({
           success: false,
-          message: 'Admin/Manager must provide driverId query parameter to view driver availability.',
+          message:
+            "Admin/Manager must provide driverId query parameter to view driver availability.",
         });
       }
 
       // Verify driver exists
       const driver = await prisma.user.findUnique({
-        where: { id: driverId, role: 'DRIVER' },
+        where: { id: driverId, role: "DRIVER" },
         select: { id: true, fullName: true, email: true },
       });
 
       if (!driver) {
         return res.status(404).json({
           success: false,
-          message: 'Driver not found.',
+          message: "Driver not found.",
         });
       }
     } else {
@@ -393,15 +390,14 @@ exports.getMyAvailability = async (req, res) => {
       driverId: driverId,
     });
   } catch (error) {
-    console.error('Get driver availability error:', error);
+    console.error("Get driver availability error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve availability.',
+      message: "Failed to retrieve availability.",
       error: error.message,
     });
   }
 };
-
 
 exports.setMyAvailability = async (req, res) => {
   try {
@@ -417,18 +413,17 @@ exports.setMyAvailability = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Availability updated successfully.',
+      message: "Availability updated successfully.",
       data: availability,
     });
   } catch (error) {
-    console.error('Set driver availability error:', error);
-    res.status(error.message.includes('past date') ? 400 : 500).json({
+    console.error("Set driver availability error:", error);
+    res.status(error.message.includes("past date") ? 400 : 500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 
 exports.updateMyAvailability = async (req, res) => {
   try {
@@ -439,30 +434,36 @@ exports.updateMyAvailability = async (req, res) => {
     if (isNaN(availabilityId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid availability ID.',
+        message: "Invalid availability ID.",
       });
     }
 
     const availability = await driverService.updateDriverAvailability(
       availabilityId,
       driverId,
-      { isAvailable, notes }
+      { isAvailable, notes },
     );
 
     res.json({
       success: true,
-      message: 'Availability updated successfully.',
+      message: "Availability updated successfully.",
       data: availability,
     });
   } catch (error) {
-    console.error('Update driver availability error:', error);
-    res.status(error.message.includes('not found') || error.message.includes('Access denied') ? 404 : 500).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Update driver availability error:", error);
+    res
+      .status(
+        error.message.includes("not found") ||
+          error.message.includes("Access denied")
+          ? 404
+          : 500,
+      )
+      .json({
+        success: false,
+        message: error.message,
+      });
   }
 };
-
 
 exports.deleteMyAvailability = async (req, res) => {
   try {
@@ -472,7 +473,7 @@ exports.deleteMyAvailability = async (req, res) => {
     if (isNaN(availabilityId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid availability ID.',
+        message: "Invalid availability ID.",
       });
     }
 
@@ -480,17 +481,23 @@ exports.deleteMyAvailability = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Availability deleted successfully.',
+      message: "Availability deleted successfully.",
     });
   } catch (error) {
-    console.error('Delete driver availability error:', error);
-    res.status(error.message.includes('not found') || error.message.includes('Access denied') ? 404 : 500).json({
-      success: false,
-      message: error.message,
-    });
+    console.error("Delete driver availability error:", error);
+    res
+      .status(
+        error.message.includes("not found") ||
+          error.message.includes("Access denied")
+          ? 404
+          : 500,
+      )
+      .json({
+        success: false,
+        message: error.message,
+      });
   }
 };
-
 
 exports.bulkSetMyAvailability = async (req, res) => {
   try {
@@ -512,7 +519,7 @@ exports.bulkSetMyAvailability = async (req, res) => {
       data: result.data,
     });
   } catch (error) {
-    console.error('Bulk set driver availability error:', error);
+    console.error("Bulk set driver availability error:", error);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -520,33 +527,33 @@ exports.bulkSetMyAvailability = async (req, res) => {
   }
 };
 
-
 exports.getMyUpcomingAvailability = async (req, res) => {
   try {
     let driverId;
 
     // If ADMIN or MANAGER, they can specify driverId in query
     // Otherwise, use their own ID (for DRIVER role)
-    if (req.user.role === 'ADMIN' || req.user.role === 'MANAGER') {
+    if (req.user.role === "ADMIN" || req.user.role === "MANAGER") {
       driverId = req.query.driverId ? parseInt(req.query.driverId) : null;
 
       if (!driverId) {
         return res.status(400).json({
           success: false,
-          message: 'Admin/Manager must provide driverId query parameter to view driver availability.',
+          message:
+            "Admin/Manager must provide driverId query parameter to view driver availability.",
         });
       }
 
       // Verify driver exists
       const driver = await prisma.user.findUnique({
-        where: { id: driverId, role: 'DRIVER' },
+        where: { id: driverId, role: "DRIVER" },
         select: { id: true, fullName: true, email: true },
       });
 
       if (!driver) {
         return res.status(404).json({
           success: false,
-          message: 'Driver not found.',
+          message: "Driver not found.",
         });
       }
     } else {
@@ -556,7 +563,10 @@ exports.getMyUpcomingAvailability = async (req, res) => {
 
     const days = parseInt(req.query.days) || 14;
 
-    const availability = await driverService.getDriverUpcomingAvailability(driverId, days);
+    const availability = await driverService.getDriverUpcomingAvailability(
+      driverId,
+      days,
+    );
 
     res.json({
       success: true,
@@ -565,12 +575,11 @@ exports.getMyUpcomingAvailability = async (req, res) => {
       driverId: driverId,
     });
   } catch (error) {
-    console.error('Get driver upcoming availability error:', error);
+    console.error("Get driver upcoming availability error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve upcoming availability.',
+      message: "Failed to retrieve upcoming availability.",
       error: error.message,
     });
   }
 };
-

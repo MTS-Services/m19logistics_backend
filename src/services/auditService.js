@@ -1,7 +1,6 @@
-const prisma = require('../config/database');
+const prisma = require("../config/database");
 
 class AuditService {
-
   async getUserAuditLogs(userId, filters = {}) {
     const { startDate, endDate, action, deliveryId, limit = 5000 } = filters;
 
@@ -14,7 +13,7 @@ class AuditService {
       where.createdAt = { ...where.createdAt, lte: new Date(endDate) };
     }
     if (action) {
-      where.action = { contains: action, mode: 'insensitive' };
+      where.action = { contains: action, mode: "insensitive" };
     }
     if (deliveryId) {
       where.deliveryId = parseInt(deliveryId);
@@ -29,17 +28,24 @@ class AuditService {
             deliveryDate: true,
             deliveryAddress: true,
             status: true,
-          }
-        }
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: parseInt(limit),
     });
   }
 
-
   async getAllAuditLogs(filters = {}) {
-    const { userId, startDate, endDate, action, deliveryId, status, limit = 6000 } = filters;
+    const {
+      userId,
+      startDate,
+      endDate,
+      action,
+      deliveryId,
+      status,
+      limit = 50000,
+    } = filters;
 
     const where = {};
 
@@ -53,14 +59,14 @@ class AuditService {
       where.createdAt = { ...where.createdAt, lte: new Date(endDate) };
     }
     if (action) {
-      where.action = { contains: action, mode: 'insensitive' };
+      where.action = { contains: action, mode: "insensitive" };
     }
     if (deliveryId) {
       where.deliveryId = parseInt(deliveryId);
     }
     if (status) {
       where.delivery = {
-        status: status
+        status: status,
       };
     }
 
@@ -73,7 +79,7 @@ class AuditService {
             fullName: true,
             email: true,
             role: true,
-          }
+          },
         },
         delivery: {
           select: {
@@ -81,14 +87,13 @@ class AuditService {
             deliveryDate: true,
             deliveryAddress: true,
             status: true,
-          }
-        }
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: parseInt(limit),
     });
   }
-
 
   async getAuditLogById(id, userId = null) {
     const where = { id };
@@ -106,7 +111,7 @@ class AuditService {
             fullName: true,
             email: true,
             role: true,
-          }
+          },
         },
         delivery: {
           select: {
@@ -120,16 +125,15 @@ class AuditService {
                 customerProfile: {
                   select: {
                     loginId: true,
-                  }
-                }
-              }
-            }
-          }
-        }
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
   }
-
 
   async createAuditLog(data) {
     const {
