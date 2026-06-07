@@ -44,6 +44,7 @@ class JobApplicationService {
 
     return application;
   }
+  // Get all applications with optional filters
 
   async getAllJobApplications(filters = {}) {
     const {
