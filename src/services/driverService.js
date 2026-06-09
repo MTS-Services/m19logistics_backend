@@ -1,9 +1,8 @@
-const prisma = require('../config/database');
-const config = require('../config');
-const emailService = require('./emailService');
+const prisma = require("../config/database");
+const config = require("../config");
+const emailService = require("./emailService");
 
 class DriverService {
-
   async createProfile(userId, profileData) {
     return prisma.driverProfile.create({
       data: {
@@ -32,7 +31,7 @@ class DriverService {
         isActiveDriver: true,
         user: {
           isActive: true,
-          role: 'DRIVER',
+          role: "DRIVER",
         },
       },
       include: {
@@ -50,14 +49,12 @@ class DriverService {
     });
   }
 
-
   async toggleActiveStatus(userId, isActive) {
     return prisma.driverProfile.update({
       where: { userId },
       data: { isActiveDriver: isActive },
     });
   }
-
 
   async updateNotificationPreferences(userId, smsEnabled, emailEnabled) {
     return prisma.driverProfile.update({
@@ -74,7 +71,7 @@ class DriverService {
 
     const where = { driverId };
 
-    if (status && status !== 'ALL') {
+    if (status && status !== "ALL") {
       where.status = status;
     }
 
@@ -86,9 +83,9 @@ class DriverService {
 
     if (search) {
       where.OR = [
-        { spoNumber: { contains: search, mode: 'insensitive' } },
-        { deliveryAddress: { contains: search, mode: 'insensitive' } },
-        { customerName: { contains: search, mode: 'insensitive' } },
+        { spoNumber: { contains: search, mode: "insensitive" } },
+        { deliveryAddress: { contains: search, mode: "insensitive" } },
+        { customerName: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -106,26 +103,22 @@ class DriverService {
                 loginId: true,
                 storeName: true,
                 depotAddress: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         extraCharges: true,
         driverFeedback: true,
       },
-      orderBy: [
-        { deliveryDate: 'asc' },
-        { timeSlot: 'asc' }
-      ],
+      orderBy: [{ deliveryDate: "asc" }, { timeSlot: "asc" }],
     });
   }
-
 
   async getDeliveryDetails(deliveryId, driverId) {
     const delivery = await prisma.delivery.findFirst({
       where: {
         id: deliveryId,
-        driverId
+        driverId,
       },
       include: {
         customer: {
@@ -139,22 +132,22 @@ class DriverService {
                 loginId: true,
                 storeName: true,
                 depotAddress: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         extraCharges: true,
         driverFeedback: true,
         additionalDeliveries: {
           include: {
             extraCharges: true,
-          }
-        }
+          },
+        },
       },
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found or access denied');
+      throw new Error("Delivery not found or access denied");
     }
 
     return delivery;
@@ -171,45 +164,50 @@ class DriverService {
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found or not assigned to you');
+      throw new Error("Delivery not found or not assigned to you");
     }
 
-    if (delivery.status !== 'ALLOCATED') {
-      throw new Error('Can only accept deliveries with ALLOCATED status');
+    if (delivery.status !== "ALLOCATED") {
+      throw new Error("Can only accept deliveries with ALLOCATED status");
     }
 
     if (delivery.acceptedAt) {
-      throw new Error('Delivery already accepted');
+      throw new Error("Delivery already accepted");
     }
 
     if (delivery.rejectedAt) {
-      throw new Error('Delivery was already rejected');
+      throw new Error("Delivery was already rejected");
     }
 
-    return prisma.delivery.update({
-      where: { id: deliveryId },
-      data: {
-        acceptedAt: new Date(),
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            phone: true,
+    return prisma.delivery
+      .update({
+        where: { id: deliveryId },
+        data: {
+          acceptedAt: new Date(),
+        },
+        include: {
+          customer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true,
+            },
           },
         },
-      },
-    }).then(async (delivery) => {
-      // Send email notification to customer
-      try {
-        await emailService.sendDriverAcceptanceNotification(delivery, delivery.customer);
-      } catch (emailError) {
-        console.error('Failed to send driver acceptance email:', emailError);
-      }
-      return delivery;
-    });
+      })
+      .then(async (delivery) => {
+        // Send email notification to customer
+        try {
+          await emailService.sendDriverAcceptanceNotification(
+            delivery,
+            delivery.customer,
+          );
+        } catch (emailError) {
+          console.error("Failed to send driver acceptance email:", emailError);
+        }
+        return delivery;
+      });
   }
 
   async rejectDelivery(deliveryId, driverId, reason) {
@@ -221,29 +219,29 @@ class DriverService {
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found or not assigned to you');
+      throw new Error("Delivery not found or not assigned to you");
     }
 
-    if (delivery.status !== 'ALLOCATED') {
-      throw new Error('Can only reject deliveries with ALLOCATED status');
+    if (delivery.status !== "ALLOCATED") {
+      throw new Error("Can only reject deliveries with ALLOCATED status");
     }
 
     if (delivery.acceptedAt) {
-      throw new Error('Cannot reject an already accepted delivery');
+      throw new Error("Cannot reject an already accepted delivery");
     }
 
     if (delivery.rejectedAt) {
-      throw new Error('Delivery was already rejected');
+      throw new Error("Delivery was already rejected");
     }
 
     if (!reason || reason.trim().length === 0) {
-      throw new Error('Rejection reason is required');
+      throw new Error("Rejection reason is required");
     }
 
     const result = await prisma.delivery.update({
       where: { id: deliveryId },
       data: {
-        status: 'RECEIVED',
+        status: "RECEIVED",
         rejectedAt: new Date(),
         rejectionReason: reason,
         driverId: null,
@@ -263,32 +261,38 @@ class DriverService {
     try {
       const driver = await prisma.user.findUnique({
         where: { id: driverId },
-        select: { fullName: true, email: true }
+        select: { fullName: true, email: true },
       });
-      await emailService.sendDriverRejectionNotification(result, result.customer, driver, reason);
+      await emailService.sendDriverRejectionNotification(
+        result,
+        result.customer,
+        driver,
+        reason,
+      );
     } catch (emailError) {
-      console.error('Failed to send driver rejection email:', emailError);
+      console.error("Failed to send driver rejection email:", emailError);
     }
 
     return result;
   }
-
 
   async completeDelivery(deliveryId, driverId, completionData) {
     const delivery = await prisma.delivery.findFirst({
       where: {
         id: deliveryId,
         driverId,
-        status: 'ALLOCATED'
+        status: "ALLOCATED",
       },
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found, not assigned to you, or already completed');
+      throw new Error(
+        "Delivery not found, not assigned to you, or already completed",
+      );
     }
 
     if (!delivery.acceptedAt) {
-      throw new Error('You must accept the delivery before completing it');
+      throw new Error("You must accept the delivery before completing it");
     }
 
     const { receivedBy, signatureUrl, photoUrl } = completionData;
@@ -296,7 +300,7 @@ class DriverService {
     const updated = await prisma.delivery.update({
       where: { id: deliveryId },
       data: {
-        status: 'DELIVERED',
+        status: "DELIVERED",
         deliveredAt: new Date(),
         receivedBy,
         signatureUrl,
@@ -310,25 +314,25 @@ class DriverService {
             customerProfile: {
               select: {
                 loginId: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         driver: {
           select: {
             fullName: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     await prisma.auditLog.create({
       data: {
         userId: driverId,
         deliveryId: deliveryId,
-        action: 'COMPLETE_DELIVERY',
+        action: "COMPLETE_DELIVERY",
         description: `Delivery marked as DELIVERED by driver ${updated.driver.fullName}. Received by: ${receivedBy}`,
-      }
+      },
     });
 
     // Send email with proof of delivery attachments
@@ -340,26 +344,25 @@ class DriverService {
         receivedBy,
         completionData.driverNotes || null,
         signatureUrl,
-        photoUrl
+        photoUrl,
       );
     } catch (emailError) {
-      console.error('Failed to send delivery completion email:', emailError);
+      console.error("Failed to send delivery completion email:", emailError);
     }
 
     return updated;
   }
 
-
   async uploadProofOfDelivery(deliveryId, driverId, files) {
     const delivery = await prisma.delivery.findFirst({
       where: {
         id: deliveryId,
-        driverId
+        driverId,
       },
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found or access denied');
+      throw new Error("Delivery not found or access denied");
     }
 
     const updateData = {};
@@ -369,7 +372,9 @@ class DriverService {
     }
 
     if (files.photo && files.photo.length > 0) {
-      updateData.photoUrl = files.photo.map(f => `${config.backendUrl}/uploads/photos/${f.filename}`).join(',');
+      updateData.photoUrl = files.photo
+        .map((f) => `${config.backendUrl}/uploads/photos/${f.filename}`)
+        .join(",");
     }
 
     return prisma.delivery.update({
@@ -380,35 +385,35 @@ class DriverService {
         signatureUrl: true,
         photoUrl: true,
         status: true,
-      }
+      },
     });
   }
-
 
   async submitFeedback(deliveryId, driverId, feedbackData) {
     const delivery = await prisma.delivery.findFirst({
       where: {
         id: deliveryId,
-        driverId
+        driverId,
       },
     });
 
     if (!delivery) {
-      throw new Error('Delivery not found or access denied');
+      throw new Error("Delivery not found or access denied");
     }
 
     const { rating, comments, issues } = feedbackData;
 
-    const notes = `Rating: ${rating}/5\n${comments ? 'Comments: ' + comments : ''}${issues ? '\nIssues: ' + issues : ''}`.trim();
+    const notes =
+      `Rating: ${rating}/5\n${comments ? "Comments: " + comments : ""}${issues ? "\nIssues: " + issues : ""}`.trim();
 
     const existingFeedback = await prisma.driverFeedback.findUnique({
-      where: { deliveryId }
+      where: { deliveryId },
     });
 
     if (existingFeedback) {
       return prisma.driverFeedback.update({
         where: { deliveryId },
-        data: { notes }
+        data: { notes },
       });
     } else {
       return prisma.driverFeedback.create({
@@ -416,11 +421,10 @@ class DriverService {
           deliveryId,
           driverId,
           notes,
-        }
+        },
       });
     }
   }
-
 
   async getDriverDashboard(driverId) {
     const today = new Date();
@@ -428,47 +432,48 @@ class DriverService {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [allocated, completed, todayDeliveries, thisWeekDeliveries] = await Promise.all([
-      prisma.delivery.count({
-        where: { driverId, status: 'ALLOCATED' }
-      }),
+    const [allocated, completed, todayDeliveries, thisWeekDeliveries] =
+      await Promise.all([
+        prisma.delivery.count({
+          where: { driverId, status: "ALLOCATED" },
+        }),
 
-      prisma.delivery.count({
-        where: { driverId, status: 'DELIVERED' }
-      }),
+        prisma.delivery.count({
+          where: { driverId, status: "DELIVERED" },
+        }),
 
-      prisma.delivery.findMany({
-        where: {
-          driverId,
-          deliveryDate: {
-            gte: today,
-            lt: tomorrow,
-          }
-        },
-        include: {
-          customer: {
-            select: {
-              fullName: true,
-              customerProfile: {
-                select: {
-                  loginId: true,
-                }
-              }
-            }
-          }
-        },
-        orderBy: { timeSlot: 'asc' }
-      }),
+        prisma.delivery.findMany({
+          where: {
+            driverId,
+            deliveryDate: {
+              gte: today,
+              lt: tomorrow,
+            },
+          },
+          include: {
+            customer: {
+              select: {
+                fullName: true,
+                customerProfile: {
+                  select: {
+                    loginId: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { timeSlot: "asc" },
+        }),
 
-      prisma.delivery.count({
-        where: {
-          driverId,
-          deliveryDate: {
-            gte: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
-          }
-        }
-      }),
-    ]);
+        prisma.delivery.count({
+          where: {
+            driverId,
+            deliveryDate: {
+              gte: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
+            },
+          },
+        }),
+      ]);
 
     return {
       stats: {
@@ -480,7 +485,6 @@ class DriverService {
       todaySchedule: todayDeliveries,
     };
   }
-
 
   async getPerformanceMetrics(driverId, startDate, endDate) {
     const dateFilter = {};
@@ -494,20 +498,24 @@ class DriverService {
       },
       include: {
         driverFeedback: true,
-      }
+      },
     });
 
     const totalDeliveries = deliveries.length;
-    const completedOnTime = deliveries.filter(d => d.status === 'DELIVERED').length;
+    const completedOnTime = deliveries.filter(
+      (d) => d.status === "DELIVERED",
+    ).length;
 
     return {
       totalDeliveries,
       completedDeliveries: completedOnTime,
-      completionRate: totalDeliveries > 0 ? ((completedOnTime / totalDeliveries) * 100).toFixed(2) : 0,
-      feedbackCount: deliveries.filter(d => d.driverFeedback).length,
+      completionRate:
+        totalDeliveries > 0
+          ? ((completedOnTime / totalDeliveries) * 100).toFixed(2)
+          : 0,
+      feedbackCount: deliveries.filter((d) => d.driverFeedback).length,
     };
   }
-
 
   // ==================== DRIVER AVAILABILITY MANAGEMENT ====================
 
@@ -532,24 +540,20 @@ class DriverService {
 
     return prisma.driverAvailability.findMany({
       where,
-      orderBy: [
-        { date: 'asc' },
-        { timeSlot: 'asc' }
-      ],
+      orderBy: [{ date: "asc" }, { timeSlot: "asc" }],
     });
   }
-
 
   async setDriverAvailability(driverId, availabilityData) {
     const { date, timeSlot, isAvailable, notes } = availabilityData;
 
     // Validation
     if (!date || !timeSlot) {
-      throw new Error('Date and timeSlot are required');
+      throw new Error("Date and timeSlot are required");
     }
 
-    if (!['AM', 'PM', 'SAME_DAY'].includes(timeSlot)) {
-      throw new Error('Invalid timeSlot. Must be AM, PM, or SAME_DAY');
+    if (!["AM", "PM", "SAME_DAY"].includes(timeSlot)) {
+      throw new Error("Invalid timeSlot. Must be AM, PM, or SAME_DAY");
     }
 
     const availabilityDate = new Date(date);
@@ -558,7 +562,7 @@ class DriverService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (availabilityDate < today) {
-      throw new Error('Cannot set availability for past dates');
+      throw new Error("Cannot set availability for past dates");
     }
 
     // Check if entry already exists
@@ -568,8 +572,8 @@ class DriverService {
           driverId,
           date: availabilityDate,
           timeSlot,
-        }
-      }
+        },
+      },
     });
 
     if (existing) {
@@ -577,7 +581,8 @@ class DriverService {
       return prisma.driverAvailability.update({
         where: { id: existing.id },
         data: {
-          isAvailable: isAvailable !== undefined ? isAvailable : existing.isAvailable,
+          isAvailable:
+            isAvailable !== undefined ? isAvailable : existing.isAvailable,
           notes: notes !== undefined ? notes : existing.notes,
         },
       });
@@ -595,7 +600,6 @@ class DriverService {
     });
   }
 
-
   async updateDriverAvailability(availabilityId, driverId, updateData) {
     // Verify the availability belongs to this driver
     const availability = await prisma.driverAvailability.findUnique({
@@ -603,11 +607,13 @@ class DriverService {
     });
 
     if (!availability) {
-      throw new Error('Availability entry not found');
+      throw new Error("Availability entry not found");
     }
 
     if (availability.driverId !== driverId) {
-      throw new Error('Access denied. This availability entry does not belong to you');
+      throw new Error(
+        "Access denied. This availability entry does not belong to you",
+      );
     }
 
     const { isAvailable, notes } = updateData;
@@ -621,7 +627,7 @@ class DriverService {
     });
   }
 
-
+  // Note: Deletion of availability entries is allowed, but only by the driver who owns them
   async deleteDriverAvailability(availabilityId, driverId) {
     // Verify the availability belongs to this driver
     const availability = await prisma.driverAvailability.findUnique({
@@ -629,11 +635,13 @@ class DriverService {
     });
 
     if (!availability) {
-      throw new Error('Availability entry not found');
+      throw new Error("Availability entry not found");
     }
 
     if (availability.driverId !== driverId) {
-      throw new Error('Access denied. This availability entry does not belong to you');
+      throw new Error(
+        "Access denied. This availability entry does not belong to you",
+      );
     }
 
     return prisma.driverAvailability.delete({
@@ -641,23 +649,26 @@ class DriverService {
     });
   }
 
-
   async bulkSetDriverAvailability(driverId, bulkData) {
     const { startDate, endDate, timeSlots, isAvailable, notes } = bulkData;
 
     if (!startDate || !endDate) {
-      throw new Error('Start date and end date are required for bulk operation');
+      throw new Error(
+        "Start date and end date are required for bulk operation",
+      );
     }
 
     if (!timeSlots || !Array.isArray(timeSlots) || timeSlots.length === 0) {
-      throw new Error('At least one time slot must be specified');
+      throw new Error("At least one time slot must be specified");
     }
 
     // Validate time slots
-    const validSlots = ['AM', 'PM', 'SAME_DAY'];
+    const validSlots = ["AM", "PM", "SAME_DAY"];
     for (const slot of timeSlots) {
       if (!validSlots.includes(slot)) {
-        throw new Error(`Invalid timeSlot: ${slot}. Must be AM, PM, or SAME_DAY`);
+        throw new Error(
+          `Invalid timeSlot: ${slot}. Must be AM, PM, or SAME_DAY`,
+        );
       }
     }
 
@@ -668,11 +679,11 @@ class DriverService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (start < today) {
-      throw new Error('Start date cannot be in the past');
+      throw new Error("Start date cannot be in the past");
     }
 
     if (end < start) {
-      throw new Error('End date must be after start date');
+      throw new Error("End date must be after start date");
     }
 
     // Generate all dates in range
@@ -696,7 +707,10 @@ class DriverService {
           });
           results.push(result);
         } catch (error) {
-          console.error(`Failed to set availability for ${date.toISOString()} ${timeSlot}:`, error.message);
+          console.error(
+            `Failed to set availability for ${date.toISOString()} ${timeSlot}:`,
+            error.message,
+          );
         }
       }
     }
@@ -708,7 +722,6 @@ class DriverService {
       data: results,
     };
   }
-
 
   async getDriverUpcomingAvailability(driverId, days = 14) {
     const startDate = new Date();
@@ -724,12 +737,9 @@ class DriverService {
         date: {
           gte: startDate,
           lte: endDate,
-        }
+        },
       },
-      orderBy: [
-        { date: 'asc' },
-        { timeSlot: 'asc' }
-      ],
+      orderBy: [{ date: "asc" }, { timeSlot: "asc" }],
     });
   }
 }
