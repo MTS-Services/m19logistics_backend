@@ -122,17 +122,8 @@ class CronService {
 
   async generateWeeklyInvoices() {
     try {
-      const today = new Date();
-      const dayOfWeek = today.getDay();
-      const diff = dayOfWeek === 0 ? 7 : dayOfWeek;
-
-      const weekEndDate = new Date(today);
-      weekEndDate.setDate(today.getDate() - diff);
-      weekEndDate.setHours(23, 59, 59, 999);
-
-      const weekStartDate = new Date(weekEndDate);
-      weekStartDate.setDate(weekEndDate.getDate() - 6);
-      weekStartDate.setHours(0, 0, 0, 0);
+      const { weekStartDate, weekEndDate } =
+        invoiceGenerationService.getInvoiceWeekRange();
 
       console.log(
         `📅 Generating invoices for week: ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,

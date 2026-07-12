@@ -1,9 +1,18 @@
 const prisma = require("../config/database");
 
 class InvoiceGenerationService {
-  async generateWeeklyInvoicesForAllCustomers(weekStartDate, weekEndDate) {
+  normalizeWeekRange(weekStartDate, weekEndDate) {
     const start = new Date(weekStartDate);
+    start.setHours(0, 0, 0, 0);
+
     const end = new Date(weekEndDate);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+  }
+
+  async generateWeeklyInvoicesForAllCustomers(weekStartDate, weekEndDate) {
+    const { start, end } = this.normalizeWeekRange(weekStartDate, weekEndDate);
 
     // Get all customers who have delivered deliver
     const customersWithDeliveries = await prisma.delivery.groupBy({
@@ -64,14 +73,16 @@ class InvoiceGenerationService {
   }
 
   async generateInvoiceForCustomer(customerId, weekStartDate, weekEndDate) {
+    const { start, end } = this.normalizeWeekRange(weekStartDate, weekEndDate);
+
     // Get all delivered deliveries for this customer in the date range
     const deliveries = await prisma.delivery.findMany({
       where: {
         customerId,
         status: "DELIVERED",
         deliveredAt: {
-          gte: new Date(weekStartDate),
-          lte: new Date(weekEndDate),
+          gte: start,
+          lte: end,
         },
         invoiceItem: null,
       },
@@ -217,35 +228,42 @@ class InvoiceGenerationService {
     return invoice;
   }
 
-  getCurrentWeekRange() {
-    const today = new Date();
-    const day = today.getDay();
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+  /**
+   * Mon–Sun week for invoicing, ending on the most recent Sunday.
+   * On Sunday, includes today; Mon–Sat ends on the previous Sunday.
+   */
+  getInvoiceWeekRange(referenceDate = new Date()) {
+    const ref = new Date(referenceDate);
+    const daysSinceSunday = ref.getDay(); // Sun=0 … Sat=6
 
-    const monday = new Date(today.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
+    const weekEndDate = new Date(ref);
+    weekEndDate.setDate(ref.getDate() - daysSinceSunday);
+    weekEndDate.setHours(23, 59, 59, 999);
 
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    sunday.setHours(23, 59, 59, 999);
+    const weekStartDate = new Date(weekEndDate);
+    weekStartDate.setDate(weekEndDate.getDate() - 6);
+    weekStartDate.setHours(0, 0, 0, 0);
 
-    return {
-      weekStartDate: monday.toISOString().split("T")[0],
-      weekEndDate: sunday.toISOString().split("T")[0],
-    };
+    return { weekStartDate, weekEndDate };
   }
 
+  /** Week to invoice (Mon–Sun ending on the most recent Sunday). */
   getLastWeekRange() {
-    const { weekStartDate, weekEndDate } = this.getCurrentWeekRange();
-    const start = new Date(weekStartDate);
-    const end = new Date(weekEndDate);
+    return this.getInvoiceWeekRange();
+  }
 
-    start.setDate(start.getDate() - 7);
-    end.setDate(end.getDate() - 7);
+  toLocalDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 
+  getCurrentWeekRange() {
+    const { weekStartDate, weekEndDate } = this.getInvoiceWeekRange();
     return {
-      weekStartDate: start.toISOString().split("T")[0],
-      weekEndDate: end.toISOString().split("T")[0],
+      weekStartDate: this.toLocalDateString(weekStartDate),
+      weekEndDate: this.toLocalDateString(weekEndDate),
     };
   }
 }

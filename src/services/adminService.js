@@ -780,12 +780,18 @@ class AdminService {
   }
 
   async generateInvoice(customerId, weekStartDate, weekEndDate) {
+    const invoiceGenerationService = require("./invoiceGenerationService");
+    const { start, end } = invoiceGenerationService.normalizeWeekRange(
+      weekStartDate,
+      weekEndDate,
+    );
+
     // Guard: prevent duplicate invoice for same customer + overlapping week
     const existingInvoice = await prisma.invoice.findFirst({
       where: {
         customerId,
-        weekStartDate: { lte: new Date(weekEndDate) },
-        weekEndDate: { gte: new Date(weekStartDate) },
+        weekStartDate: { lte: end },
+        weekEndDate: { gte: start },
       },
     });
     if (existingInvoice) {
@@ -800,8 +806,8 @@ class AdminService {
         customerId,
         status: "DELIVERED",
         deliveredAt: {
-          gte: new Date(weekStartDate),
-          lte: new Date(weekEndDate),
+          gte: start,
+          lte: end,
         },
         invoiceItem: null,
       },
@@ -866,8 +872,8 @@ class AdminService {
           customerId,
           invoiceNumber,
           invoiceDate: new Date(),
-          weekStartDate: new Date(weekStartDate),
-          weekEndDate: new Date(weekEndDate),
+          weekStartDate: start,
+          weekEndDate: end,
           subtotal,
           vatTotal,
           grandTotal,
@@ -1800,14 +1806,15 @@ class AdminService {
       orderBy: { createdAt: "desc" },
     });
 
-    // Calculate this week's deliveries (Monday to Sunday)
+    // Calculate this week's deliveries (Monday to Sunday, including Sunday)
     const now = new Date();
+    const mondayOffset = now.getDay() === 0 ? -6 : 1 - now.getDay();
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
+    startOfWeek.setDate(now.getDate() + mondayOffset);
     startOfWeek.setHours(0, 0, 0, 0);
 
     const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
     return drivers.map((driver) => {
