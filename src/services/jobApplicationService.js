@@ -133,6 +133,20 @@ class JobApplicationService {
     });
   }
 
+  async getUnreadCount() {
+    return prisma.jobApplication.count({
+      where: { isRead: false },
+    });
+  }
+
+  async markAllAsRead() {
+    const result = await prisma.jobApplication.updateMany({
+      where: { isRead: false },
+      data: { isRead: true },
+    });
+    return { markedCount: result.count };
+  }
+
   async getJobApplicationStats() {
     const total = await prisma.jobApplication.count();
     const pending = await prisma.jobApplication.count({

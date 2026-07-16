@@ -139,3 +139,17 @@ exports.getJobApplicationStats = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.markAllJobApplicationsAsRead = async (req, res, next) => {
+  try {
+    const result = await jobApplicationService.markAllAsRead();
+
+    res.json({
+      success: true,
+      message: "All job applications marked as read",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

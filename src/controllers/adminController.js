@@ -966,6 +966,58 @@ exports.getAnalytics = async (req, res, next) => {
   }
 };
 
+exports.getUnreadCounts = async (req, res, next) => {
+  try {
+    const jobApplicationService = require("../services/jobApplicationService");
+
+    const [contacts, enquiries, jobApplications] = await Promise.all([
+      contactService.getUnreadCount(),
+      enquiryService.getUnreadCount(),
+      jobApplicationService.getUnreadCount(),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        contacts,
+        enquiries,
+        jobApplications,
+        total: contacts + enquiries + jobApplications,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.markAllContactsAsRead = async (req, res, next) => {
+  try {
+    const result = await contactService.markAllAsRead();
+
+    res.json({
+      success: true,
+      message: "All contacts marked as read",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.markAllEnquiriesAsRead = async (req, res, next) => {
+  try {
+    const result = await enquiryService.markAllAsRead();
+
+    res.json({
+      success: true,
+      message: "All enquiries marked as read",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getAllContacts = async (req, res, next) => {
   try {
     const contacts = await contactService.getAllContacts(req.query);
@@ -982,7 +1034,7 @@ exports.getAllContacts = async (req, res, next) => {
 
 exports.getContactById = async (req, res, next) => {
   try {
-    const contact = await contactService.getContactById(
+    let contact = await contactService.getContactById(
       parseInt(req.params.id),
     );
 
@@ -991,6 +1043,10 @@ exports.getContactById = async (req, res, next) => {
         success: false,
         message: "Contact not found",
       });
+    }
+
+    if (!contact.isRead) {
+      contact = await contactService.markContactAsRead(contact.id);
     }
 
     res.json({
@@ -1047,7 +1103,7 @@ exports.getAllEnquiries = async (req, res, next) => {
 
 exports.getEnquiryById = async (req, res, next) => {
   try {
-    const enquiry = await enquiryService.getEnquiryById(
+    let enquiry = await enquiryService.getEnquiryById(
       parseInt(req.params.id),
     );
 
@@ -1056,6 +1112,10 @@ exports.getEnquiryById = async (req, res, next) => {
         success: false,
         message: "Enquiry not found",
       });
+    }
+
+    if (!enquiry.isRead) {
+      enquiry = await enquiryService.markEnquiryAsRead(enquiry.id);
     }
 
     res.json({

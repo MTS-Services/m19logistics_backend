@@ -60,6 +60,20 @@ class EnquiryService {
       where: { id },
     });
   }
+
+  async getUnreadCount() {
+    return prisma.enquiry.count({
+      where: { isRead: false },
+    });
+  }
+
+  async markAllAsRead() {
+    const result = await prisma.enquiry.updateMany({
+      where: { isRead: false },
+      data: { isRead: true },
+    });
+    return { markedCount: result.count };
+  }
 }
 
 module.exports = new EnquiryService();

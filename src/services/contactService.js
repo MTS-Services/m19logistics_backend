@@ -56,6 +56,20 @@ class ContactService {
       where: { id },
     });
   }
+
+  async getUnreadCount() {
+    return prisma.contact.count({
+      where: { isRead: false },
+    });
+  }
+
+  async markAllAsRead() {
+    const result = await prisma.contact.updateMany({
+      where: { isRead: false },
+      data: { isRead: true },
+    });
+    return { markedCount: result.count };
+  }
 }
 
 module.exports = new ContactService();

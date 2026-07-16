@@ -460,7 +460,12 @@ router.get("/analytics/drivers", adminController.getDriverPerformance);
 
 router.get("/analytics/customers", adminController.getCustomerAnalytics);
 
+// Unread badge counts for sidebar (Contacts, Enquiries, Job Applications)
+router.get("/notifications/unread-counts", adminController.getUnreadCounts);
+
 router.get("/contacts", adminController.getAllContacts);
+
+router.post("/contacts/mark-all-read", adminController.markAllContactsAsRead);
 
 router.get("/contacts/:id", adminController.getContactById);
 
@@ -473,6 +478,11 @@ router.delete(
 );
 
 router.get("/enquiries", adminController.getAllEnquiries);
+
+router.post(
+  "/enquiries/mark-all-read",
+  adminController.markAllEnquiriesAsRead,
+);
 
 router.get("/enquiries/:id", adminController.getEnquiryById);
 
@@ -490,6 +500,11 @@ router.get("/job-applications", jobApplicationController.getAllJobApplications);
 router.get(
   "/job-applications/stats",
   jobApplicationController.getJobApplicationStats,
+);
+
+router.post(
+  "/job-applications/mark-all-read",
+  jobApplicationController.markAllJobApplicationsAsRead,
 );
 
 router.get(
