@@ -295,7 +295,8 @@ class DriverService {
       throw new Error("You must accept the delivery before completing it");
     }
 
-    const { receivedBy, signatureUrl, photoUrl } = completionData;
+    const { receivedBy, signatureUrl, photoUrl, photoUrls } = completionData;
+    const normalizedPhotoUrls = this.normalizePhotoUrls(photoUrls ?? photoUrl);
 
     const updated = await prisma.delivery.update({
       where: { id: deliveryId },
@@ -304,7 +305,7 @@ class DriverService {
         deliveredAt: new Date(),
         receivedBy,
         signatureUrl,
-        photoUrl,
+        photoUrls: normalizedPhotoUrls,
       },
       include: {
         customer: {
@@ -344,13 +345,27 @@ class DriverService {
         receivedBy,
         completionData.driverNotes || null,
         signatureUrl,
-        photoUrl,
+        normalizedPhotoUrls,
       );
     } catch (emailError) {
       console.error("Failed to send delivery completion email:", emailError);
     }
 
     return updated;
+  }
+
+  normalizePhotoUrls(input) {
+    if (!input) return [];
+    if (Array.isArray(input)) {
+      return input.map((url) => String(url).trim()).filter(Boolean);
+    }
+    if (typeof input === "string") {
+      return input
+        .split(",")
+        .map((url) => url.trim())
+        .filter(Boolean);
+    }
+    return [];
   }
 
   async uploadProofOfDelivery(deliveryId, driverId, files) {
@@ -372,9 +387,10 @@ class DriverService {
     }
 
     if (files.photo && files.photo.length > 0) {
-      updateData.photoUrl = files.photo
-        .map((f) => `${config.backendUrl}/uploads/photos/${f.filename}`)
-        .join(",");
+      const newPhotos = files.photo.map(
+        (f) => `${config.backendUrl}/uploads/photos/${f.filename}`,
+      );
+      updateData.photoUrls = [...(delivery.photoUrls || []), ...newPhotos];
     }
 
     return prisma.delivery.update({
@@ -383,7 +399,7 @@ class DriverService {
       select: {
         id: true,
         signatureUrl: true,
-        photoUrl: true,
+        photoUrls: true,
         status: true,
       },
     });
@@ -401,10 +417,8 @@ class DriverService {
       throw new Error("Delivery not found or access denied");
     }
 
-    const { rating, comments, issues } = feedbackData;
-
-    const notes =
-      `Rating: ${rating}/5\n${comments ? "Comments: " + comments : ""}${issues ? "\nIssues: " + issues : ""}`.trim();
+    const { comments } = feedbackData;
+    const notes = (comments || "").trim();
 
     const existingFeedback = await prisma.driverFeedback.findUnique({
       where: { deliveryId },

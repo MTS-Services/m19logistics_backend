@@ -85,11 +85,11 @@ const uploadMiddleware = {
 
   cv: upload.single('cv'),
 
-  photos: upload.array('photos', 5),
+  photos: upload.array('photos', 15),
 
   proofOfDelivery: upload.fields([
     { name: 'signature', maxCount: 1 },
-    { name: 'photo', maxCount: 3 }
+    { name: 'photo', maxCount: 15 }
   ]),
 };
 

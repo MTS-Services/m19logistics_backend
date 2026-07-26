@@ -169,7 +169,7 @@ model Delivery {
   deliveredAt  DateTime?
   receivedBy   String?
   signatureUrl String?
-  photoUrl     String?
+  photoUrls    String[] @default([])
 
   // Driver Acceptance/Rejection
   acceptedAt      DateTime?

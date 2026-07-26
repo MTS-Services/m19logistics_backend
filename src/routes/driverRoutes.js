@@ -65,9 +65,18 @@ router.post('/deliveries/:id/complete',
     body('signatureUrl')
       .optional()
       .isString().withMessage('Signature URL must be a string'),
+    body('photoUrls')
+      .optional()
+      .isArray().withMessage('photoUrls must be an array of image URLs'),
+    body('photoUrls.*')
+      .optional()
+      .isString().withMessage('Each photo URL must be a string'),
     body('photoUrl')
       .optional()
-      .isString().withMessage('Photo URL must be a string'),
+      .custom((value) => {
+        if (Array.isArray(value) || typeof value === 'string') return true;
+        throw new Error('photoUrl must be a string or array of strings');
+      }),
   ],
   driverController.completeDelivery
 );
@@ -76,16 +85,13 @@ router.post('/deliveries/:id/complete',
 router.post('/deliveries/:id/feedback',
   [
     param('id').isInt().withMessage('Delivery ID must be an integer'),
-    body('rating')
-      .isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
     body('comments')
-      .optional()
       .trim()
+      .notEmpty().withMessage('Comments is required')
       .isLength({ max: 500 }).withMessage('Comments must not exceed 500 characters'),
-    body('issues')
-      .optional()
-      .trim()
-      .isLength({ max: 500 }).withMessage('Issues must not exceed 500 characters'),
+    body('rating').optional().isInt({ min: 1, max: 5 }),
+    body('issues').optional().trim().isLength({ max: 500 }),
+    validate,
   ],
   driverController.submitFeedback
 );

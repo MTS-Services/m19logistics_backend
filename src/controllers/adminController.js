@@ -1034,9 +1034,7 @@ exports.getAllContacts = async (req, res, next) => {
 
 exports.getContactById = async (req, res, next) => {
   try {
-    let contact = await contactService.getContactById(
-      parseInt(req.params.id),
-    );
+    let contact = await contactService.getContactById(parseInt(req.params.id));
 
     if (!contact) {
       return res.status(404).json({
@@ -1103,9 +1101,7 @@ exports.getAllEnquiries = async (req, res, next) => {
 
 exports.getEnquiryById = async (req, res, next) => {
   try {
-    let enquiry = await enquiryService.getEnquiryById(
-      parseInt(req.params.id),
-    );
+    let enquiry = await enquiryService.getEnquiryById(parseInt(req.params.id));
 
     if (!enquiry) {
       return res.status(404).json({

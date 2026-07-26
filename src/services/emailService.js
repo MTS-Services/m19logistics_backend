@@ -277,9 +277,20 @@ class EmailService {
     receivedBy,
     driverNotes,
     signatureUrl,
-    photoUrl,
+    photoUrls,
   ) {
     const subject = `M19 Logistics – Completed Delivery Confirmation (SPO: ${delivery.spoNumber || "N/A"})`;
+    const photos = Array.isArray(photoUrls)
+      ? photoUrls
+      : photoUrls
+        ? [photoUrls]
+        : [];
+    const photoLinks = photos
+      .map(
+        (url, index) =>
+          `<p><strong>Delivery Photo ${index + 1}:</strong> <a href="${url}">View Photo</a></p>`,
+      )
+      .join("");
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -317,7 +328,7 @@ class EmailService {
         </table>
 
         ${signatureUrl ? `<p><strong>Signature:</strong> <a href="${signatureUrl}">View Signature</a></p>` : ""}
-        ${photoUrl ? `<p><strong>Delivery Photo:</strong> <a href="${photoUrl}">View Photo</a></p>` : ""}
+        ${photoLinks}
         
         <p style="color: #6c757d; font-size: 12px; margin-top: 30px;">
           Thank you for choosing M19 Logistics.<br>
