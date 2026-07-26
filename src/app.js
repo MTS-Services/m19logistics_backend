@@ -14,8 +14,8 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*",
-    credentials: false,
+    origin: ["https://dev.m19logistics.com", "http://localhost:5173"],
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
@@ -51,7 +51,7 @@ app.use("/api", routes);
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Welcome to M19 Logistics API",
+    message: "Welcome to development M19 Logistics API",
     version: "1.0.0",
     documentation: "/api/health",
   });
