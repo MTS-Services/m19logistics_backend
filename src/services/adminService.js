@@ -907,7 +907,14 @@ class AdminService {
   }
 
   async getAllInvoices(filters = {}) {
-    const { customerId, isPaid, startDate, endDate } = filters;
+    const {
+      customerId,
+      isPaid,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 10,
+    } = filters;
 
     const where = {};
 
@@ -920,26 +927,62 @@ class AdminService {
       if (endDate) where.invoiceDate.lte = new Date(endDate);
     }
 
-    return prisma.invoice.findMany({
-      where,
-      include: {
-        customer: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            customerProfile: {
-              select: {
-                loginId: true,
-                storeName: true,
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [invoices, totalCount, paidAgg, unpaidAgg] = await Promise.all([
+      prisma.invoice.findMany({
+        where,
+        include: {
+          customer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              customerProfile: {
+                select: {
+                  loginId: true,
+                  storeName: true,
+                },
               },
             },
           },
+          items: true,
         },
-        items: true,
+        orderBy: { invoiceDate: "desc" },
+        skip,
+        take: limitNum,
+      }),
+      prisma.invoice.count({ where }),
+      prisma.invoice.aggregate({
+        where: { ...where, isPaid: true },
+        _sum: { grandTotal: true },
+      }),
+      prisma.invoice.aggregate({
+        where: { ...where, isPaid: false },
+        _sum: { grandTotal: true },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limitNum) || 1;
+
+    return {
+      invoices,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalCount,
+        totalPages,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1,
       },
-      orderBy: { invoiceDate: "desc" },
-    });
+      summary: {
+        totalInvoices: totalCount,
+        totalPaid: parseFloat(paidAgg._sum.grandTotal || 0).toFixed(2),
+        totalUnpaid: parseFloat(unpaidAgg._sum.grandTotal || 0).toFixed(2),
+      },
+    };
   }
 
   async markInvoiceAsPaid(invoiceId) {
