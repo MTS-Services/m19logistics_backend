@@ -23,9 +23,62 @@ router.get('/availability/upcoming',
   driverController.getMyUpcomingAvailability
 );
 
+const contractorController = require('../controllers/contractorController');
+
+// Contractor invoices – contractor sees own; admin/manager can see all (or filter by contractorId)
+router.get(
+  '/contractor/invoices',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  contractorController.getInvoices
+);
+
+router.get(
+  '/contractor/invoices/:id',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  contractorController.getInvoiceById
+);
+
+router.delete(
+  '/contractor/invoices/:id',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  contractorController.deleteInvoice
+);
+
 // ==================== DRIVER-ONLY ROUTES ====================
 // All routes below require DRIVER role only
 router.use(authorize('DRIVER'));
+
+// Contractor portal (only works when driverType = CONTRACTOR)
+router.get('/contractor/dashboard', contractorController.getDashboard);
+router.get('/contractor/profile', contractorController.getProfile);
+router.put(
+  '/contractor/profile',
+  [
+    body('payType').custom((value) => {
+      if (value !== undefined) {
+        throw new Error('Contractors cannot change Pay Type');
+      }
+      return true;
+    }),
+    body('rate').custom((value) => {
+      if (value !== undefined) {
+        throw new Error('Contractors cannot change Rate');
+      }
+      return true;
+    }),
+    validate,
+  ],
+  contractorController.updateProfile
+);
+router.post(
+  '/contractor/invoices/generate',
+  [
+    body('periodStart').optional().isISO8601(),
+    body('periodEnd').optional().isISO8601(),
+    validate,
+  ],
+  contractorController.generateInvoice
+);
 
 router.get('/dashboard', driverController.getDashboard);
 

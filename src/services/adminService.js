@@ -68,7 +68,36 @@ class AdminService {
   }
 
   async createUser(userData) {
-    const { email, password, role, ...profileData } = userData;
+    let { email, password, role, ...profileData } = userData;
+
+    // CONTRACTOR is not a DB role — map to DRIVER + driverType CONTRACTOR
+    const requestedContractor =
+      role === "CONTRACTOR" ||
+      profileData.driverType === "CONTRACTOR" ||
+      userData.driverType === "CONTRACTOR";
+
+    if (role === "CONTRACTOR") {
+      role = "DRIVER";
+      userData = { ...userData, role: "DRIVER", driverType: "CONTRACTOR" };
+    }
+
+    if (role === "DRIVER" && requestedContractor) {
+      return this.createDriver({
+        ...userData,
+        role: "DRIVER",
+        driverType: "CONTRACTOR",
+        username: userData.username || email.split("@")[0],
+      });
+    }
+
+    if (role === "DRIVER") {
+      return this.createDriver({
+        ...userData,
+        role: "DRIVER",
+        driverType: userData.driverType || "EMPLOYEE",
+        username: userData.username || email.split("@")[0],
+      });
+    }
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -82,7 +111,7 @@ class AdminService {
 
     const data = {
       email,
-      username: email.split("@")[0],
+      username: userData.username || email.split("@")[0],
       password: hashedPassword,
       fullName: userData.fullName,
       phone: userData.phone,
@@ -98,13 +127,6 @@ class AdminService {
           loginId: profileData.loginId,
           pricingTierId: profileData.pricingTierId,
           customBasePrice: profileData.customBasePrice,
-        },
-      };
-    } else if (role === "DRIVER") {
-      data.driverProfile = {
-        create: {
-          vehicleRegistration: profileData.vehicleRegistration,
-          isActiveDriver: profileData.isActiveDriver !== false,
         },
       };
     } else if (role === "MANAGER") {
@@ -131,6 +153,11 @@ class AdminService {
       throw new Error("Invalid user ID");
     }
 
+    const {
+      pickDriverProfileFields,
+      getDocumentExpirySummary,
+    } = require("../utils/contractorHelpers");
+
     // Fields that belong to CustomerProfile, not User
     const CUSTOMER_PROFILE_FIELDS = [
       "storeName",
@@ -141,11 +168,35 @@ class AdminService {
       "ccEmail",
       "accessScope",
     ];
-    // Fields that belong to DriverProfile
+
+    // Fields that belong to DriverProfile (employee + contractor)
     const DRIVER_PROFILE_FIELDS = [
+      "driverType",
       "vehicleRegistration",
-      "isActiveDriver",
+      "driverLicenseNumber",
       "licenseNumber",
+      "address",
+      "isActiveDriver",
+      "enableSmsNotifications",
+      "enableEmailNotifications",
+      "tradingName",
+      "contactName",
+      "tradingAddress",
+      "isVatRegistered",
+      "vatNumber",
+      "vehicleMake",
+      "vehicleModel",
+      "motExpiry",
+      "insuranceExpiry",
+      "goodsInTransitExpiry",
+      "publicLiabilityExpiry",
+      "bankName",
+      "accountName",
+      "sortCode",
+      "accountNumber",
+      "bankReference",
+      "payType",
+      "rate",
     ];
 
     const {
@@ -159,18 +210,29 @@ class AdminService {
 
     // Separate profile-level fields from user-level fields
     const customerProfileFields = {};
-    const driverProfileFields = {};
+    const rawDriverProfileFields = {};
     const data = {};
 
     for (const [key, value] of Object.entries(rest)) {
       if (CUSTOMER_PROFILE_FIELDS.includes(key)) {
         customerProfileFields[key] = value;
       } else if (DRIVER_PROFILE_FIELDS.includes(key)) {
-        driverProfileFields[key] = value;
+        rawDriverProfileFields[key] = value;
       } else {
         data[key] = value;
       }
     }
+
+    // Normalize licenseNumber → driverLicenseNumber
+    if (rawDriverProfileFields.licenseNumber !== undefined) {
+      rawDriverProfileFields.driverLicenseNumber =
+        rawDriverProfileFields.licenseNumber;
+      delete rawDriverProfileFields.licenseNumber;
+    }
+
+    const driverProfileFields = pickDriverProfileFields(rawDriverProfileFields, {
+      allowPayFields: true,
+    });
 
     if (password) {
       data.password = await bcrypt.hash(password, 10);
@@ -209,7 +271,7 @@ class AdminService {
       data.managerProfile = { update: managerProfileOverride };
     }
 
-    return prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id },
       data,
       include: {
@@ -218,6 +280,22 @@ class AdminService {
         managerProfile: true,
       },
     });
+
+    delete updated.password;
+    return {
+      ...updated,
+      displayRole:
+        updated.driverProfile?.driverType === "CONTRACTOR"
+          ? "Contractor"
+          : updated.role === "DRIVER"
+            ? "Driver"
+            : updated.role,
+      ...(updated.driverProfile?.driverType === "CONTRACTOR"
+        ? {
+            documentStatus: getDocumentExpirySummary(updated.driverProfile),
+          }
+        : {}),
+    };
   }
 
   async deleteUser(id) {
@@ -1810,7 +1888,7 @@ class AdminService {
   }
 
   async getAllDrivers(filters = {}) {
-    const { isActive, search, status } = filters;
+    const { isActive, search, status, driverType } = filters;
 
     const where = {
       role: "DRIVER",
@@ -1818,6 +1896,10 @@ class AdminService {
 
     if (isActive !== undefined) {
       where.isActive = isActive === "true";
+    }
+
+    if (driverType && ["EMPLOYEE", "CONTRACTOR"].includes(driverType)) {
+      where.driverProfile = { driverType };
     }
 
     if (search) {
@@ -1884,6 +1966,10 @@ class AdminService {
         profilePicture: driver.profilePicture,
         isActive: driver.isActive,
         createdAt: driver.createdAt,
+        displayRole:
+          driver.driverProfile?.driverType === "CONTRACTOR"
+            ? "Contractor"
+            : "Driver",
         driverProfile: driver.driverProfile,
         performance: {
           totalDeliveries,
@@ -1931,6 +2017,16 @@ class AdminService {
 
     return {
       ...driver,
+      displayRole:
+        driver.driverProfile?.driverType === "CONTRACTOR"
+          ? "Contractor"
+          : "Driver",
+      documentStatus:
+        driver.driverProfile?.driverType === "CONTRACTOR"
+          ? require("../utils/contractorHelpers").getDocumentExpirySummary(
+              driver.driverProfile,
+            )
+          : undefined,
       statistics: {
         totalDeliveries,
         completedDeliveries,
@@ -1951,10 +2047,20 @@ class AdminService {
       fullName,
       phone,
       profilePicture,
-      vehicleRegistration,
-      driverLicenseNumber,
-      address,
+      driverType = "EMPLOYEE",
     } = driverData;
+
+    const {
+      validateContractorFields,
+      pickDriverProfileFields,
+    } = require("../utils/contractorHelpers");
+
+    if (!username) {
+      throw new Error("Username is required");
+    }
+    if (!phone) {
+      throw new Error("Phone is required");
+    }
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -1964,17 +2070,37 @@ class AdminService {
       throw new Error("Email already exists");
     }
 
-    if (username) {
-      const existingUsername = await prisma.user.findUnique({
-        where: { username },
-      });
+    const existingUsername = await prisma.user.findUnique({
+      where: { username },
+    });
+    if (existingUsername) {
+      throw new Error("Username already exists");
+    }
 
-      if (existingUsername) {
-        throw new Error("Username already exists");
-      }
+    const validationErrors = validateContractorFields(driverData, {
+      isCreate: true,
+    });
+    if (validationErrors.length) {
+      throw new Error(validationErrors.join("; "));
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const profileFields = pickDriverProfileFields(
+      { ...driverData, driverType },
+      { allowPayFields: true },
+    );
+
+    // Defaults for employee-friendly creates
+    if (!profileFields.driverType) profileFields.driverType = "EMPLOYEE";
+    if (profileFields.isActiveDriver === undefined) {
+      profileFields.isActiveDriver = true;
+    }
+    if (profileFields.enableSmsNotifications === undefined) {
+      profileFields.enableSmsNotifications = true;
+    }
+    if (profileFields.enableEmailNotifications === undefined) {
+      profileFields.enableEmailNotifications = true;
+    }
 
     const driver = await prisma.user.create({
       data: {
@@ -1986,15 +2112,9 @@ class AdminService {
         profilePicture,
         role: "DRIVER",
         isActive: true,
+        requirePasswordReset: true,
         driverProfile: {
-          create: {
-            vehicleRegistration: vehicleRegistration || "",
-            driverLicenseNumber: driverLicenseNumber || "",
-            address: address || "",
-            isActiveDriver: true,
-            enableSmsNotifications: true,
-            enableEmailNotifications: true,
-          },
+          create: profileFields,
         },
       },
       include: {
@@ -2008,10 +2128,25 @@ class AdminService {
       console.error("Failed to send welcome email:", emailError);
     }
 
-    return driver;
+    delete driver.password;
+    return {
+      ...driver,
+      displayRole:
+        driver.driverProfile?.driverType === "CONTRACTOR"
+          ? "Contractor"
+          : "Driver",
+    };
   }
 
   async updateDriver(id, updateData) {
+    const {
+      validateContractorFields,
+      pickDriverProfileFields,
+    } = require("../utils/contractorHelpers");
+    const {
+      getDocumentExpirySummary,
+    } = require("../utils/contractorHelpers");
+
     const {
       email,
       username,
@@ -2019,10 +2154,7 @@ class AdminService {
       phone,
       profilePicture,
       isActive,
-      vehicleRegistration,
-      driverLicenseNumber,
-      address,
-      isActiveDriver,
+      password,
     } = updateData;
 
     const driver = await prisma.user.findUnique({
@@ -2038,20 +2170,24 @@ class AdminService {
       const existingEmail = await prisma.user.findUnique({
         where: { email },
       });
-
-      if (existingEmail) {
-        throw new Error("Email already exists");
-      }
+      if (existingEmail) throw new Error("Email already exists");
     }
 
     if (username && username !== driver.username) {
       const existingUsername = await prisma.user.findUnique({
         where: { username },
       });
+      if (existingUsername) throw new Error("Username already exists");
+    }
 
-      if (existingUsername) {
-        throw new Error("Username already exists");
-      }
+    const nextType =
+      updateData.driverType || driver.driverProfile?.driverType || "EMPLOYEE";
+    const validationErrors = validateContractorFields(
+      { ...updateData, driverType: nextType },
+      { isCreate: false },
+    );
+    if (validationErrors.length) {
+      throw new Error(validationErrors.join("; "));
     }
 
     const userUpdateData = {};
@@ -2062,15 +2198,14 @@ class AdminService {
     if (profilePicture !== undefined)
       userUpdateData.profilePicture = profilePicture;
     if (isActive !== undefined) userUpdateData.isActive = isActive;
+    if (password) {
+      userUpdateData.password = await bcrypt.hash(password, 10);
+      userUpdateData.requirePasswordReset = false;
+    }
 
-    const profileUpdateData = {};
-    if (vehicleRegistration !== undefined)
-      profileUpdateData.vehicleRegistration = vehicleRegistration;
-    if (driverLicenseNumber !== undefined)
-      profileUpdateData.driverLicenseNumber = driverLicenseNumber;
-    if (address !== undefined) profileUpdateData.address = address;
-    if (isActiveDriver !== undefined)
-      profileUpdateData.isActiveDriver = isActiveDriver;
+    const profileUpdateData = pickDriverProfileFields(updateData, {
+      allowPayFields: true,
+    });
 
     const updatedDriver = await prisma.user.update({
       where: { id },
@@ -2087,7 +2222,15 @@ class AdminService {
       },
     });
 
-    return updatedDriver;
+    delete updatedDriver.password;
+    return {
+      ...updatedDriver,
+      displayRole:
+        updatedDriver.driverProfile?.driverType === "CONTRACTOR"
+          ? "Contractor"
+          : "Driver",
+      documentStatus: getDocumentExpirySummary(updatedDriver.driverProfile),
+    };
   }
 
   async deleteDriver(id) {

@@ -23,8 +23,18 @@ router.post(
       .withMessage("Password must be at least 6 characters"),
     body("fullName").notEmpty().withMessage("Full name is required"),
     body("role")
-      .isIn(["ADMIN", "DRIVER", "CUSTOMER", "MANAGER"])
+      .isIn(["ADMIN", "DRIVER", "CUSTOMER", "MANAGER", "CONTRACTOR"])
       .withMessage("Invalid role"),
+    body("driverType")
+      .optional()
+      .isIn(["EMPLOYEE", "CONTRACTOR"])
+      .withMessage("driverType must be EMPLOYEE or CONTRACTOR"),
+    body("username").optional().isString(),
+    body("phone").optional().isString(),
+    body("payType")
+      .optional()
+      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"]),
+    body("rate").optional().isFloat({ min: 0 }),
     validate,
   ],
   adminController.createUser,
@@ -78,22 +88,34 @@ router.post(
       .withMessage("Password must be at least 6 characters"),
     body("fullName").notEmpty().withMessage("Full name is required"),
     body("phone").notEmpty().withMessage("Phone number is required"),
-    body("username")
+    body("username").notEmpty().withMessage("Username is required"),
+    body("driverType")
       .optional()
-      .isString()
-      .withMessage("Username must be a string"),
-    body("vehicleRegistration")
+      .isIn(["EMPLOYEE", "CONTRACTOR"])
+      .withMessage("driverType must be EMPLOYEE or CONTRACTOR"),
+    body("vehicleRegistration").optional().isString(),
+    body("driverLicenseNumber").optional().isString(),
+    body("address").optional().isString(),
+    body("tradingName").optional().isString(),
+    body("contactName").optional().isString(),
+    body("tradingAddress").optional().isString(),
+    body("isVatRegistered").optional().isBoolean(),
+    body("vatNumber").optional().isString(),
+    body("vehicleMake").optional().isString(),
+    body("vehicleModel").optional().isString(),
+    body("motExpiry").optional().isISO8601(),
+    body("insuranceExpiry").optional().isISO8601(),
+    body("goodsInTransitExpiry").optional().isISO8601(),
+    body("publicLiabilityExpiry").optional().isISO8601(),
+    body("bankName").optional().isString(),
+    body("accountName").optional().isString(),
+    body("sortCode").optional().isString(),
+    body("accountNumber").optional().isString(),
+    body("bankReference").optional().isString(),
+    body("payType")
       .optional()
-      .isString()
-      .withMessage("Vehicle registration must be a string"),
-    body("driverLicenseNumber")
-      .optional()
-      .isString()
-      .withMessage("Driver license number must be a string"),
-    body("address")
-      .optional()
-      .isString()
-      .withMessage("Address must be a string"),
+      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"]),
+    body("rate").optional().isFloat({ min: 0 }),
     validate,
   ],
   adminController.createDriver,
@@ -108,36 +130,54 @@ router.put(
       .notEmpty()
       .withMessage("Full name cannot be empty"),
     body("phone").optional().notEmpty().withMessage("Phone cannot be empty"),
-    body("username")
+    body("username").optional().isString(),
+    body("isActive").optional().isBoolean(),
+    body("password").optional().isLength({ min: 6 }),
+    body("driverType")
       .optional()
-      .isString()
-      .withMessage("Username must be a string"),
-    body("isActive")
+      .isIn(["EMPLOYEE", "CONTRACTOR"]),
+    body("vehicleRegistration").optional().isString(),
+    body("driverLicenseNumber").optional().isString(),
+    body("address").optional().isString(),
+    body("isActiveDriver").optional().isBoolean(),
+    body("tradingName").optional().isString(),
+    body("contactName").optional().isString(),
+    body("tradingAddress").optional().isString(),
+    body("isVatRegistered").optional().isBoolean(),
+    body("vatNumber").optional().isString(),
+    body("vehicleMake").optional().isString(),
+    body("vehicleModel").optional().isString(),
+    body("motExpiry").optional().isISO8601(),
+    body("insuranceExpiry").optional().isISO8601(),
+    body("goodsInTransitExpiry").optional().isISO8601(),
+    body("publicLiabilityExpiry").optional().isISO8601(),
+    body("bankName").optional().isString(),
+    body("accountName").optional().isString(),
+    body("sortCode").optional().isString(),
+    body("accountNumber").optional().isString(),
+    body("bankReference").optional().isString(),
+    body("payType")
       .optional()
-      .isBoolean()
-      .withMessage("isActive must be a boolean"),
-    body("vehicleRegistration")
-      .optional()
-      .isString()
-      .withMessage("Vehicle registration must be a string"),
-    body("driverLicenseNumber")
-      .optional()
-      .isString()
-      .withMessage("Driver license number must be a string"),
-    body("address")
-      .optional()
-      .isString()
-      .withMessage("Address must be a string"),
-    body("isActiveDriver")
-      .optional()
-      .isBoolean()
-      .withMessage("isActiveDriver must be a boolean"),
+      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"]),
+    body("rate").optional().isFloat({ min: 0 }),
     validate,
   ],
   adminController.updateDriver,
 );
 
 router.delete("/drivers/:id", adminController.deleteDriver);
+
+const contractorController = require("../controllers/contractorController");
+
+router.get(
+  "/contractor-invoices",
+  contractorController.adminGetInvoices,
+);
+
+router.post(
+  "/contractor-invoices/:id/mark-paid",
+  contractorController.adminMarkPaid,
+);
 
 router.get("/deliveries", adminController.getAllDeliveries);
 
