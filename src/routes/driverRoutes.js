@@ -33,6 +33,12 @@ router.get(
 );
 
 router.get(
+  '/contractor/invoices/number/:invoiceNumber/export/pdf',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  contractorController.exportInvoicePDFByNumber
+);
+
+router.get(
   '/contractor/invoices/:id',
   authorize('DRIVER', 'ADMIN', 'MANAGER'),
   contractorController.getInvoiceById

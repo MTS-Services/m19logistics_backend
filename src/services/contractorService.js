@@ -267,6 +267,56 @@ class ContractorService {
     return invoice;
   }
 
+  async getInvoiceByNumber(invoiceNumber, { userId, isAdminOrManager }) {
+    const invoice = await prisma.contractorInvoice.findUnique({
+      where: { invoiceNumber },
+      include: {
+        contractor: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            driverProfile: {
+              select: {
+                tradingName: true,
+                payType: true,
+                rate: true,
+              },
+            },
+          },
+        },
+        items: {
+          include: {
+            delivery: {
+              select: {
+                id: true,
+                spoNumber: true,
+                deliveryAddress: true,
+                customerName: true,
+                deliveredAt: true,
+                deliveryDate: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
+
+    if (!isAdminOrManager) {
+      await this.requireContractor(userId);
+      if (invoice.contractorId !== userId) {
+        throw new Error("You can only download your own invoices");
+      }
+    }
+
+    return invoice;
+  }
+
   async generateInvoice(userId, { periodStart, periodEnd } = {}) {
     const user = await this.requireContractor(userId);
     const profile = user.driverProfile;

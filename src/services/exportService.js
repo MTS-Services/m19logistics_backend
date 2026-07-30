@@ -629,6 +629,134 @@ class ExportService {
       doc.on("error", reject);
     });
   }
+
+  generateContractorInvoicePDF(invoice, companyInfo = null) {
+    const doc = new PDFDocument({ margin: 50 });
+
+    const companyName = companyInfo?.name || "M19 Logistics";
+    const companyAddress = companyInfo?.address || "Wrexham, United Kingdom";
+    const companyPhone = companyInfo?.primaryPhone || "07818077110";
+    const companyEmail = companyInfo?.email || "invoices@m19logistics.com";
+
+    const contractor =
+      invoice.contractor || invoice.contractorProfile || {};
+    const tradingName =
+      contractor.driverProfile?.tradingName ||
+      contractor.fullName ||
+      "Contractor";
+    const rate = parseFloat(invoice.rate || 0);
+    const amount = parseFloat(invoice.amount || 0);
+
+    doc
+      .fontSize(20)
+      .text(companyName, 50, 50)
+      .fontSize(10)
+      .text(`Address: ${companyAddress}`, 50, 75)
+      .text(`Phone: ${companyPhone}`, 50, 90)
+      .text(`Email: ${companyEmail}`, 50, 105);
+
+    doc.fontSize(16).text("CONTRACTOR INVOICE", 320, 50, { width: 230 });
+
+    const topY = 150;
+    doc
+      .fontSize(10)
+      .text(`Invoice Number: ${invoice.invoiceNumber}`, 50, topY)
+      .text(
+        `Issued: ${new Date(invoice.issuedAt || invoice.createdAt).toLocaleDateString("en-GB")}`,
+        50,
+        topY + 15,
+      )
+      .text(`Status: ${invoice.status}`, 50, topY + 30)
+      .text(
+        `Period: ${new Date(invoice.periodStart).toLocaleDateString("en-GB")} – ${new Date(invoice.periodEnd).toLocaleDateString("en-GB")}`,
+        50,
+        topY + 45,
+      );
+
+    doc
+      .text("From (Contractor):", 350, topY)
+      .text(tradingName, 350, topY + 15)
+      .text(contractor.fullName || "", 350, topY + 30)
+      .text(contractor.email || "", 350, topY + 45)
+      .text(contractor.phone || "", 350, topY + 60);
+
+    doc
+      .text("Bill To:", 50, topY + 80)
+      .text(companyName, 50, topY + 95)
+      .text(companyAddress, 50, topY + 110)
+      .text(`Rate: £${rate.toFixed(2)} per job`, 50, topY + 125)
+      .text(`Jobs: ${invoice.jobCount || invoice.items?.length || 0}`, 50, topY + 140);
+
+    const tableTop = topY + 175;
+    doc
+      .fontSize(9)
+      .font("Helvetica-Bold")
+      .text("SPO", 50, tableTop)
+      .text("Description", 150, tableTop)
+      .text("Amount", 480, tableTop);
+
+    doc
+      .moveTo(50, tableTop + 14)
+      .lineTo(555, tableTop + 14)
+      .stroke();
+
+    doc.font("Helvetica");
+    let itemY = tableTop + 24;
+    const items = invoice.items || [];
+
+    items.forEach((item) => {
+      if (itemY > 720) {
+        doc.addPage();
+        itemY = 50;
+      }
+
+      const spo = item.spoNumber || item.delivery?.spoNumber || "N/A";
+      const description = item.description || "Completed delivery";
+      const lineAmount = parseFloat(item.amount || rate || 0);
+
+      doc
+        .fontSize(9)
+        .text(spo, 50, itemY, { width: 90, ellipsis: true })
+        .text(description, 150, itemY, { width: 310, height: 28 })
+        .text(`£${lineAmount.toFixed(2)}`, 480, itemY, { width: 70 });
+
+      itemY += 32;
+    });
+
+    itemY += 20;
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text(`Total Amount: £${amount.toFixed(2)}`, 350, itemY, {
+        width: 200,
+        align: "right",
+      });
+
+    doc
+      .font("Helvetica")
+      .fontSize(9)
+      .fillColor("#666666")
+      .text(
+        "Note: Amounts are based on the contractor rate only.",
+        50,
+        itemY + 40,
+        { width: 500 },
+      );
+
+    doc.end();
+    return doc;
+  }
+
+  async generateContractorInvoicePDFBuffer(invoice) {
+    const companyInfo = await prisma.companyInformation.findFirst();
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      const doc = this.generateContractorInvoicePDF(invoice, companyInfo);
+      doc.on("data", (chunk) => chunks.push(chunk));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
+    });
+  }
 }
 
 module.exports = new ExportService();

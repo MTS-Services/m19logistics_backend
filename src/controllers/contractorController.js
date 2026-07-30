@@ -152,6 +152,45 @@ exports.deleteInvoice = async (req, res, next) => {
   }
 };
 
+exports.exportInvoicePDFByNumber = async (req, res) => {
+  try {
+    const { invoiceNumber } = req.params;
+    if (!invoiceNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Invoice number is required",
+      });
+    }
+
+    const isAdminOrManager =
+      req.user.role === "ADMIN" || req.user.role === "MANAGER";
+
+    const invoice = await contractorService.getInvoiceByNumber(invoiceNumber, {
+      userId: req.user.id,
+      isAdminOrManager,
+    });
+
+    const exportService = require("../services/exportService");
+    const pdfBuffer =
+      await exportService.generateContractorInvoicePDFBuffer(invoice);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Contractor-Invoice-${invoice.invoiceNumber}.pdf`,
+    );
+    res.send(pdfBuffer);
+  } catch (error) {
+    let status = 500;
+    if (error.message.includes("not found")) status = 404;
+    if (error.message.includes("only download your own")) status = 403;
+    res.status(status).json({
+      success: false,
+      message: error.message || "Failed to generate contractor invoice PDF",
+    });
+  }
+};
+
 // Admin
 exports.adminGetInvoices = async (req, res, next) => {
   try {
