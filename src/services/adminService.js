@@ -1431,6 +1431,8 @@ class AdminService {
       completedToday,
 
       recentBookings,
+      contractorPayoutThisMonth,
+      contractorPayoutLastMonth,
     ] = await Promise.all([
       prisma.delivery.count(),
 
@@ -1525,6 +1527,21 @@ class AdminService {
           },
         },
       }),
+
+      prisma.contractorInvoice.aggregate({
+        _sum: { amount: true },
+        where: { issuedAt: { gte: startOfMonth } },
+      }),
+
+      prisma.contractorInvoice.aggregate({
+        _sum: { amount: true },
+        where: {
+          issuedAt: {
+            gte: startOfLastMonth,
+            lte: endOfLastMonth,
+          },
+        },
+      }),
     ]);
 
     const calculateChange = (current, previous) => {
@@ -1537,6 +1554,12 @@ class AdminService {
     );
     const revenueLastMonthValue = parseFloat(
       revenueLastMonth._sum.grandTotal || 0,
+    );
+    const contractorPayoutThisMonthValue = parseFloat(
+      contractorPayoutThisMonth._sum.amount || 0,
+    );
+    const contractorPayoutLastMonthValue = parseFloat(
+      contractorPayoutLastMonth._sum.amount || 0,
     );
 
     return {
@@ -1562,6 +1585,17 @@ class AdminService {
           formatted: `£${revenueThisMonthValue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
           change: calculateChange(revenueThisMonthValue, revenueLastMonthValue),
           changeText: `${Math.abs(calculateChange(revenueThisMonthValue, revenueLastMonthValue))}% from last month`,
+        },
+        // Separate from revenue — contractor payout / business expense
+        contractorPayout: {
+          amount: contractorPayoutThisMonthValue,
+          currency: "GBP",
+          formatted: `£${contractorPayoutThisMonthValue.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+          change: calculateChange(
+            contractorPayoutThisMonthValue,
+            contractorPayoutLastMonthValue,
+          ),
+          changeText: `${Math.abs(calculateChange(contractorPayoutThisMonthValue, contractorPayoutLastMonthValue))}% from last month`,
         },
       },
       statusCards: {
@@ -1700,6 +1734,10 @@ class AdminService {
       activeCustomers,
       activeDrivers,
       recentDeliveries,
+      contractorPayoutTotal,
+      contractorPayoutPaid,
+      contractorPayoutOutstanding,
+      contractorInvoiceCount,
     ] = await Promise.all([
       // Total deliveries
       prisma.delivery.count({
@@ -1761,6 +1799,32 @@ class AdminService {
           },
         },
       }),
+
+      // Contractor payouts (separate from admin revenue)
+      prisma.contractorInvoice.aggregate({
+        _sum: { amount: true },
+        where: startDate || endDate ? { issuedAt: dateFilter } : {},
+      }),
+
+      prisma.contractorInvoice.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: "PAID",
+          ...(startDate || endDate ? { issuedAt: dateFilter } : {}),
+        },
+      }),
+
+      prisma.contractorInvoice.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: "OUTSTANDING",
+          ...(startDate || endDate ? { issuedAt: dateFilter } : {}),
+        },
+      }),
+
+      prisma.contractorInvoice.count({
+        where: startDate || endDate ? { issuedAt: dateFilter } : {},
+      }),
     ]);
 
     return {
@@ -1779,6 +1843,17 @@ class AdminService {
         unpaidInvoices: totalInvoices - paidInvoices,
         activeCustomers,
         activeDrivers,
+        // Separate from totalRevenue — contractor payout / business expense
+        contractorPayout: parseFloat(
+          contractorPayoutTotal._sum.amount || 0,
+        ),
+        contractorPayoutPaid: parseFloat(
+          contractorPayoutPaid._sum.amount || 0,
+        ),
+        contractorPayoutOutstanding: parseFloat(
+          contractorPayoutOutstanding._sum.amount || 0,
+        ),
+        contractorInvoiceCount,
       },
       deliveriesByStatus: deliveriesByStatus.reduce((acc, item) => {
         acc[item.status.toLowerCase()] = item._count;
