@@ -110,7 +110,6 @@ model DriverProfile {
   userId                   Int        @unique
   driverType               DriverType @default(EMPLOYEE)
 
-  // Shared / employee fields
   vehicleRegistration      String?
   driverLicenseNumber      String?
   address                  String?
@@ -118,14 +117,12 @@ model DriverProfile {
   enableSmsNotifications   Boolean    @default(false)
   enableEmailNotifications Boolean    @default(true)
 
-  // Contractor – personal
   tradingName              String?
   contactName              String?
   tradingAddress           String?
   isVatRegistered          Boolean    @default(false)
   vatNumber                String?
 
-  // Contractor – vehicle
   vehicleMake              String?
   vehicleModel             String?
   motExpiry                DateTime?  @db.Date
@@ -133,14 +130,12 @@ model DriverProfile {
   goodsInTransitExpiry     DateTime?  @db.Date
   publicLiabilityExpiry    DateTime?  @db.Date
 
-  // Contractor – bank
   bankName                 String?
   accountName              String?
   sortCode                 String?
   accountNumber            String?
   bankReference            String?
 
-  // Contractor – pay (admin-only writable)
   payType                  PayType?
   rate                     Decimal?   @db.Decimal(10, 2)
 
