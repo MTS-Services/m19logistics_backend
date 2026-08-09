@@ -42,6 +42,7 @@ class EnquiryService {
     });
   }
 
+  // Get an enquiry by ID
   async getEnquiryById(id) {
     return prisma.enquiry.findUnique({
       where: { id },
