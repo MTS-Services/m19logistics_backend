@@ -70,6 +70,7 @@ class AuthController {
         requirePasswordReset: true,
       };
 
+      // Create a user
       const user = await userService.createUser(userData);
 
       let profile = null;
