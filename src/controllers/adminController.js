@@ -22,6 +22,7 @@ exports.getAllUsers = async (req, res, next) => {
   }
 };
 
+// Get a user by ID
 exports.getUserById = async (req, res, next) => {
   try {
     const user = await adminService.getUserById(parseInt(req.params.id));
