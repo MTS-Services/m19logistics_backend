@@ -10,6 +10,7 @@ const config = require("./config");
 const routes = require("./routes");
 const errorHandler = require("./middleware/errorHandler");
 
+// Initialize the app
 const app = express();
 
 app.use(
