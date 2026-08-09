@@ -42,6 +42,7 @@ exports.getUserById = async (req, res, next) => {
   }
 };
 
+// Create a user
 exports.createUser = async (req, res, next) => {
   try {
     const user = await adminService.createUser(req.body);
