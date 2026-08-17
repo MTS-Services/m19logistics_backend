@@ -57,49 +57,13 @@ exports.getInvoices = async (req, res, next) => {
 
 exports.getInvoiceById = async (req, res, next) => {
   try {
-    const invoiceId = parseInt(req.params.id);
     const isAdminOrManager =
       req.user.role === "ADMIN" || req.user.role === "MANAGER";
 
-    let data;
-    if (isAdminOrManager) {
-      const prisma = require("../config/database");
-      data = await prisma.contractorInvoice.findUnique({
-        where: { id: invoiceId },
-        include: {
-          contractor: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              driverProfile: {
-                select: { tradingName: true, payType: true, rate: true },
-              },
-            },
-          },
-          items: {
-            include: {
-              delivery: {
-                select: {
-                  id: true,
-                  spoNumber: true,
-                  deliveryAddress: true,
-                  customerName: true,
-                  deliveredAt: true,
-                },
-              },
-            },
-          },
-        },
-      });
-      if (!data) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Invoice not found" });
-      }
-    } else {
-      data = await contractorService.getInvoiceById(req.user.id, invoiceId);
-    }
+    const data = await contractorService.getInvoiceByRef(req.params.id, {
+      userId: req.user.id,
+      isAdminOrManager,
+    });
 
     res.json({ success: true, data });
   } catch (error) {
@@ -121,19 +85,37 @@ exports.generateInvoice = async (req, res, next) => {
   }
 };
 
-exports.deleteInvoice = async (req, res, next) => {
+exports.updateInvoice = async (req, res, next) => {
   try {
-    const invoiceId = parseInt(req.params.id);
-    if (isNaN(invoiceId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid invoice ID",
-      });
-    }
-
     const isAdminOrManager =
       req.user.role === "ADMIN" || req.user.role === "MANAGER";
 
+    const invoiceId = await contractorService.resolveInvoiceId(req.params.id);
+    const data = await contractorService.updateInvoice(invoiceId, req.body, {
+      userId: req.user.id,
+      isAdminOrManager,
+    });
+
+    res.json({
+      success: true,
+      message: "Contractor invoice updated successfully",
+      data,
+    });
+  } catch (error) {
+    let status = 400;
+    if (error.message.includes("not found")) status = 404;
+    if (error.message.includes("only edit your own")) status = 403;
+    if (error.message.includes("cannot be edited")) status = 403;
+    res.status(status).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteInvoice = async (req, res, next) => {
+  try {
+    const isAdminOrManager =
+      req.user.role === "ADMIN" || req.user.role === "MANAGER";
+
+    const invoiceId = await contractorService.resolveInvoiceId(req.params.id);
     const data = await contractorService.deleteInvoice(invoiceId, {
       userId: req.user.id,
       isAdminOrManager,

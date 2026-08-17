@@ -44,6 +44,27 @@ router.get(
   contractorController.getInvoiceById
 );
 
+router.put(
+  '/contractor/invoices/:id',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  [
+    body('notes').optional({ nullable: true }).isString(),
+    body('rate')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Rate must be a non-negative number'),
+    body('items').optional().isArray().withMessage('Items must be an array'),
+    body('items.*.id').isInt().withMessage('Item id is required'),
+    body('items.*.description').optional().isString().trim().notEmpty(),
+    body('items.*.amount')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Item amount must be a non-negative number'),
+    validate,
+  ],
+  contractorController.updateInvoice
+);
+
 router.delete(
   '/contractor/invoices/:id',
   authorize('DRIVER', 'ADMIN', 'MANAGER'),

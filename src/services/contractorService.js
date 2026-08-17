@@ -267,6 +267,69 @@ class ContractorService {
     return invoice;
   }
 
+  /**
+   * Resolve numeric id or invoiceNumber (e.g. INV-C-2026-0001) to invoice id.
+   */
+  async resolveInvoiceId(ref) {
+    const value = String(ref || "").trim();
+    if (!value) throw new Error("Invoice id or invoiceNumber is required");
+
+    if (/^\d+$/.test(value)) {
+      const invoice = await prisma.contractorInvoice.findUnique({
+        where: { id: parseInt(value, 10) },
+        select: { id: true },
+      });
+      if (!invoice) throw new Error("Invoice not found");
+      return invoice.id;
+    }
+
+    const invoice = await prisma.contractorInvoice.findUnique({
+      where: { invoiceNumber: value },
+      select: { id: true },
+    });
+    if (!invoice) throw new Error("Invoice not found");
+    return invoice.id;
+  }
+
+  async getInvoiceByRef(ref, { userId, isAdminOrManager }) {
+    const invoiceId = await this.resolveInvoiceId(ref);
+
+    if (isAdminOrManager) {
+      const invoice = await prisma.contractorInvoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+          contractor: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              driverProfile: {
+                select: { tradingName: true, payType: true, rate: true },
+              },
+            },
+          },
+          items: {
+            include: {
+              delivery: {
+                select: {
+                  id: true,
+                  spoNumber: true,
+                  deliveryAddress: true,
+                  customerName: true,
+                  deliveredAt: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!invoice) throw new Error("Invoice not found");
+      return invoice;
+    }
+
+    return this.getInvoiceById(userId, invoiceId);
+  }
+
   async getInvoiceByNumber(invoiceNumber, { userId, isAdminOrManager }) {
     const invoice = await prisma.contractorInvoice.findUnique({
       where: { invoiceNumber },
@@ -457,6 +520,131 @@ class ContractorService {
       where: { id: invoiceId },
       data: { status: "PAID", paidAt: new Date() },
       include: { items: true },
+    });
+  }
+
+  /**
+   * Edit unpaid contractor invoice.
+   * - Admin/Manager: any unpaid invoice
+   * - Contractor: own unpaid invoice only
+   * Editable: notes, rate, and existing line items (description, amount)
+   */
+  async updateInvoice(invoiceId, payload, { userId, isAdminOrManager }) {
+    const invoice = await prisma.contractorInvoice.findUnique({
+      where: { id: invoiceId },
+      include: { items: true },
+    });
+
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
+
+    if (!isAdminOrManager) {
+      await this.requireContractor(userId);
+      if (invoice.contractorId !== userId) {
+        throw new Error("You can only edit your own invoices");
+      }
+    }
+
+    if (invoice.status === "PAID") {
+      throw new Error("Paid invoices cannot be edited");
+    }
+
+    const { notes, rate, items } = payload || {};
+    const data = {};
+
+    if (notes !== undefined) {
+      data.notes = notes === null || notes === "" ? null : String(notes);
+    }
+
+    if (rate !== undefined) {
+      const rateNum = parseFloat(rate);
+      if (Number.isNaN(rateNum) || rateNum < 0) {
+        throw new Error("Rate must be a non-negative number");
+      }
+      data.rate = rateNum;
+    }
+
+    if (items !== undefined && !Array.isArray(items)) {
+      throw new Error("Items must be an array");
+    }
+
+    const existingById = new Map(invoice.items.map((item) => [item.id, item]));
+    const itemUpdates = [];
+
+    if (Array.isArray(items)) {
+      for (const row of items) {
+        const itemId = parseInt(row.id, 10);
+        if (Number.isNaN(itemId) || !existingById.has(itemId)) {
+          throw new Error(`Invoice item not found: ${row.id}`);
+        }
+
+        const itemData = {};
+        if (row.description !== undefined) {
+          const desc = String(row.description || "").trim();
+          if (!desc) throw new Error("Item description cannot be empty");
+          itemData.description = desc;
+        }
+        if (row.amount !== undefined) {
+          const amountNum = parseFloat(row.amount);
+          if (Number.isNaN(amountNum) || amountNum < 0) {
+            throw new Error("Item amount must be a non-negative number");
+          }
+          itemData.amount = amountNum;
+        }
+
+        if (Object.keys(itemData).length) {
+          itemUpdates.push({ id: itemId, data: itemData });
+        }
+      }
+    }
+
+    return prisma.$transaction(async (tx) => {
+      for (const update of itemUpdates) {
+        await tx.contractorInvoiceItem.update({
+          where: { id: update.id },
+          data: update.data,
+        });
+      }
+
+      if (!Array.isArray(items) && data.rate !== undefined) {
+        await tx.contractorInvoiceItem.updateMany({
+          where: { invoiceId },
+          data: { amount: data.rate },
+        });
+      }
+
+      const refreshedItems = await tx.contractorInvoiceItem.findMany({
+        where: { invoiceId },
+      });
+
+      data.jobCount = refreshedItems.length;
+      data.amount = Number(
+        refreshedItems
+          .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
+          .toFixed(2),
+      );
+
+      return tx.contractorInvoice.update({
+        where: { id: invoiceId },
+        data,
+        include: {
+          items: {
+            include: {
+              delivery: {
+                select: {
+                  id: true,
+                  spoNumber: true,
+                  deliveryAddress: true,
+                  customerName: true,
+                  deliveredAt: true,
+                  deliveryDate: true,
+                },
+              },
+            },
+          },
+        },
+      });
     });
   }
 
