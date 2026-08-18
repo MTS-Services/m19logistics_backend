@@ -24,6 +24,7 @@ process.on("SIGTERM", () => {
     process.exit(0);
   });
 });
+// test cron job
 
 process.on("SIGINT", () => {
   console.log("\nSIGINT signal received: closing HTTP server");
