@@ -960,6 +960,7 @@ class AdminService {
       data: {
         isPaid: true,
         paidAt: new Date(),
+        status: "Paid",
       },
     });
   }
@@ -1100,6 +1101,16 @@ class AdminService {
         } else {
           invoiceUpdateData[field] = updateData[field];
         }
+      }
+    }
+
+    if (
+      updateData.status !== undefined &&
+      String(updateData.status).toLowerCase() === "paid"
+    ) {
+      invoiceUpdateData.isPaid = true;
+      if (!invoice.paidAt) {
+        invoiceUpdateData.paidAt = new Date();
       }
     }
 

@@ -397,14 +397,26 @@ class CronService {
 
   async sendWeeklyInvoiceReminder() {
     try {
-      // Only send reminders for invoices older than 7 days that are still unpaid
-      const sevenDaysAgo = new Date();
+      // Only send reminders for unpaid invoices that are overdue
+      const now = new Date();
+      const startOfToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      );
+      const sevenDaysAgo = new Date(startOfToday);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
       const unpaidInvoices = await prisma.invoice.findMany({
         where: {
           isPaid: false,
-          invoiceDate: { lte: sevenDaysAgo },
+          NOT: {
+            status: { equals: "Paid", mode: "insensitive" },
+          },
+          OR: [
+            { dueDate: { lt: startOfToday } },
+            { dueDate: null, invoiceDate: { lte: sevenDaysAgo } },
+          ],
         },
         include: {
           customer: {

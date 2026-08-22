@@ -249,6 +249,7 @@ class InvoiceService {
       data: {
         isPaid: true,
         paidAt: new Date(),
+        status: "Paid",
       },
     });
   }
