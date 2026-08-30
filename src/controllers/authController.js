@@ -50,6 +50,7 @@ class AuthController {
         });
       }
 
+      // Check if the username is already taken
       const existingUsername = await userService.findByUsername(username);
       if (existingUsername) {
         return res.status(400).json({
