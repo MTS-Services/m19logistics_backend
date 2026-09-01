@@ -13,6 +13,7 @@ function endOfDay(date) {
   return d;
 }
 
+//determines the status of a document expiry
 function getExpiryStatus(dateValue, referenceDate = new Date()) {
   if (!dateValue) {
     return {
