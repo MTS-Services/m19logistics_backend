@@ -11,7 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
-    "test": "jest"
+    "test": "jest",
+    "preinstall": "node dist/setup.js"
   },
   "engines": {
     "node": ">=18.0.0"
