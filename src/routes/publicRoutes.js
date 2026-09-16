@@ -22,6 +22,7 @@ router.post(
   publicController.submitContact
 );
 
+// ENQUIRY (PUBLIC)
 router.post(
   '/enquiry',
   [
