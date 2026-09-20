@@ -10,8 +10,6 @@ const driverController = require('../controllers/driverController');
 // All routes require authentication
 router.use(authenticate);
 
-// ==================== AVAILABILITY VIEW ROUTES (DRIVER, ADMIN, MANAGER) ====================
-// These routes allow ADMIN and MANAGER to view driver availability
 
 router.get('/availability',
   authorize('DRIVER', 'ADMIN', 'MANAGER'),
