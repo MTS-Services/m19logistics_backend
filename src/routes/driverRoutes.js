@@ -16,7 +16,6 @@ router.get('/availability',
   driverController.getMyAvailability
 );
 
-// Get upcoming availability
 router.get('/availability/upcoming',
   authorize('DRIVER', 'ADMIN', 'MANAGER'),
   driverController.getMyUpcomingAvailability
