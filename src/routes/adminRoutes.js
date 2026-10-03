@@ -10,7 +10,7 @@ router.use(authenticate);
 router.use(authorize("ADMIN", "MANAGER"));
 
 router.get("/users", adminController.getAllUsers);
-
+// get user by id
 router.get("/users/:id", adminController.getUserById);
 
 router.post(
