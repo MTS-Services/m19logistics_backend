@@ -258,7 +258,7 @@ function pickDriverProfileFields(data, { allowPayFields = true } = {}) {
   }
   return result;
 }
-
+// TODO: Add a function to validate the contractor profile
 module.exports = {
   PAY_TYPES,
   DRIVER_TYPES,
