@@ -13,19 +13,28 @@ const errorHandler = require("./middleware/errorHandler");
 // Initialize the app
 const app = express();
 
-app.use(
-  cors({
-    origin: [
-      "https://m19logistics.com",
-      "https://www.m19logistics.com",
-      "https://dev.m19logistics.com",
-      "http://localhost:5173",
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
+const corsOptions = {
+  origin(origin, callback) {
+    if (
+      !origin ||
+      origin === "https://m19logistics.com" ||
+      origin === "https://www.m19logistics.com" ||
+      origin === "https://dev.m19logistics.com" ||
+      origin === "http://localhost:5173" ||
+      /^https:\/\/([a-z0-9-]+\.)?m19logistics\.com$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 // limit the size of the request body to 10mb
 
 // Add CORS middleware
