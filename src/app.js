@@ -15,7 +15,12 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["https://dev.m19logistics.com", "http://localhost:5173"],
+    origin: [
+      "https://m19logistics.com",
+      "https://www.m19logistics.com",
+      "https://dev.m19logistics.com",
+      "http://localhost:5173",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

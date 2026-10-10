@@ -45,5 +45,4 @@ temp/
 # Database backups (contain live customer data)
 backups/
 branch_structure.json
-temp_auto_push.bat
-temp_interactive_push.bat
+
