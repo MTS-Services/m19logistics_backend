@@ -462,7 +462,7 @@ class AuthController {
             message: "Invalid user role.",
           });
       }
-      // Get the complete user
+      // Get the complete user here
       const completeUser = await userService.findById(userId);
 
       res.json({
