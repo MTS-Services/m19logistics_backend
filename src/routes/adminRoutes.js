@@ -10,7 +10,7 @@ router.use(authenticate);
 router.use(authorize("ADMIN", "MANAGER"));
 
 router.get("/users", adminController.getAllUsers);
-
+// get user by id
 router.get("/users/:id", adminController.getUserById);
 
 router.post(
@@ -23,8 +23,18 @@ router.post(
       .withMessage("Password must be at least 6 characters"),
     body("fullName").notEmpty().withMessage("Full name is required"),
     body("role")
-      .isIn(["ADMIN", "DRIVER", "CUSTOMER", "MANAGER"])
+      .isIn(["ADMIN", "DRIVER", "CUSTOMER", "MANAGER", "CONTRACTOR"])
       .withMessage("Invalid role"),
+    body("driverType")
+      .optional()
+      .isIn(["EMPLOYEE", "CONTRACTOR"])
+      .withMessage("driverType must be EMPLOYEE or CONTRACTOR"),
+    body("username").optional().isString(),
+    body("phone").optional().isString(),
+    body("payType")
+      .optional()
+      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"]),
+    body("rate").optional().isFloat({ min: 0 }),
     validate,
   ],
   adminController.createUser,
@@ -78,22 +88,31 @@ router.post(
       .withMessage("Password must be at least 6 characters"),
     body("fullName").notEmpty().withMessage("Full name is required"),
     body("phone").notEmpty().withMessage("Phone number is required"),
-    body("username")
+    body("username").optional().isString(),
+    body("driverType").optional().isIn(["EMPLOYEE", "CONTRACTOR"]),
+    body("vehicleRegistration").optional().isString(),
+    body("driverLicenseNumber").optional().isString(),
+    body("address").optional().isString(),
+    body("tradingName").optional().isString(),
+    body("contactName").optional().isString(),
+    body("tradingAddress").optional().isString(),
+    body("isVatRegistered").optional().isBoolean(),
+    body("vatNumber").optional().isString(),
+    body("vehicleMake").optional().isString(),
+    body("vehicleModel").optional().isString(),
+    body("motExpiry").optional().isISO8601(),
+    body("insuranceExpiry").optional().isISO8601(),
+    body("goodsInTransitExpiry").optional().isISO8601(),
+    body("publicLiabilityExpiry").optional().isISO8601(),
+    body("bankName").optional().isString(),
+    body("accountName").optional().isString(),
+    body("sortCode").optional().isString(),
+    body("accountNumber").optional().isString(),
+    body("bankReference").optional().isString(),
+    body("payType")
       .optional()
-      .isString()
-      .withMessage("Username must be a string"),
-    body("vehicleRegistration")
-      .optional()
-      .isString()
-      .withMessage("Vehicle registration must be a string"),
-    body("driverLicenseNumber")
-      .optional()
-      .isString()
-      .withMessage("Driver license number must be a string"),
-    body("address")
-      .optional()
-      .isString()
-      .withMessage("Address must be a string"),
+      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"]),
+    body("rate").optional().isFloat({ min: 0 }),
     validate,
   ],
   adminController.createDriver,
@@ -108,36 +127,49 @@ router.put(
       .notEmpty()
       .withMessage("Full name cannot be empty"),
     body("phone").optional().notEmpty().withMessage("Phone cannot be empty"),
-    body("username")
+    body("username").optional().isString(),
+    body("isActive").optional().isBoolean(),
+    body("password").optional().isLength({ min: 6 }),
+    body("driverType").optional().isIn(["EMPLOYEE", "CONTRACTOR"]),
+    body("vehicleRegistration").optional().isString(),
+    body("driverLicenseNumber").optional().isString(),
+    body("address").optional().isString(),
+    body("isActiveDriver").optional().isBoolean(),
+    body("tradingName").optional().isString(),
+    body("contactName").optional().isString(),
+    body("tradingAddress").optional().isString(),
+    body("isVatRegistered").optional().isBoolean(),
+    body("vatNumber").optional().isString(),
+    body("vehicleMake").optional().isString(),
+    body("vehicleModel").optional().isString(),
+    body("motExpiry").optional().isISO8601(),
+    body("insuranceExpiry").optional().isISO8601(),
+    body("goodsInTransitExpiry").optional().isISO8601(),
+    body("publicLiabilityExpiry").optional().isISO8601(),
+    body("bankName").optional().isString(),
+    body("accountName").optional().isString(),
+    body("sortCode").optional().isString(),
+    body("accountNumber").optional().isString(),
+    body("bankReference").optional().isString(),
+    body("payType")
       .optional()
-      .isString()
-      .withMessage("Username must be a string"),
-    body("isActive")
-      .optional()
-      .isBoolean()
-      .withMessage("isActive must be a boolean"),
-    body("vehicleRegistration")
-      .optional()
-      .isString()
-      .withMessage("Vehicle registration must be a string"),
-    body("driverLicenseNumber")
-      .optional()
-      .isString()
-      .withMessage("Driver license number must be a string"),
-    body("address")
-      .optional()
-      .isString()
-      .withMessage("Address must be a string"),
-    body("isActiveDriver")
-      .optional()
-      .isBoolean()
-      .withMessage("isActiveDriver must be a boolean"),
+      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"]),
+    body("rate").optional().isFloat({ min: 0 }),
     validate,
   ],
   adminController.updateDriver,
 );
 
 router.delete("/drivers/:id", adminController.deleteDriver);
+
+const contractorController = require("../controllers/contractorController");
+
+router.get("/contractor-invoices", contractorController.adminGetInvoices);
+
+router.post(
+  "/contractor-invoices/:id/mark-paid",
+  contractorController.adminMarkPaid,
+);
 
 router.get("/deliveries", adminController.getAllDeliveries);
 
@@ -221,8 +253,6 @@ router.get(
   adminController.getDeliveryExtraCharges,
 );
 
-//  PRICING TIER MANAGEMENT
-
 router.get("/pricing-tiers", adminController.getAllPricingTiers);
 
 router.post(
@@ -296,8 +326,6 @@ router.delete(
   authorize("ADMIN"),
   adminController.deletePricingTier,
 );
-
-//INVOICE MANAGEMENT
 
 router.get("/invoices", adminController.getAllInvoices);
 
@@ -417,8 +445,6 @@ router.put(
   adminController.updateInvoice,
 );
 
-// SLOT AVAILABILITY MANAGEMENT
-
 router.get("/slots", adminController.getSlotAvailability);
 
 router.post(
@@ -452,15 +478,12 @@ router.put(
 
 router.get("/dashboard", adminController.getDashboard);
 
-// ANALYTICS DASHBOARD
-
 router.get("/analytics", adminController.getAnalytics);
 
 router.get("/analytics/drivers", adminController.getDriverPerformance);
 
 router.get("/analytics/customers", adminController.getCustomerAnalytics);
 
-// Unread badge counts for sidebar (Contacts, Enquiries, Job Applications)
 router.get("/notifications/unread-counts", adminController.getUnreadCounts);
 
 router.get("/contacts", adminController.getAllContacts);
@@ -479,10 +502,7 @@ router.delete(
 
 router.get("/enquiries", adminController.getAllEnquiries);
 
-router.post(
-  "/enquiries/mark-all-read",
-  adminController.markAllEnquiriesAsRead,
-);
+router.post("/enquiries/mark-all-read", adminController.markAllEnquiriesAsRead);
 
 router.get("/enquiries/:id", adminController.getEnquiryById);
 
@@ -533,8 +553,6 @@ router.delete(
   jobApplicationController.deleteJobApplication,
 );
 
-// AUDIT LOGS (ADMIN)
-
 router.get("/audit-logs", adminController.getAllAuditLogs);
 
 router.get("/audit-logs/:id", adminController.getAuditLogById);
@@ -543,7 +561,6 @@ router.get("/invoices/:id/export/pdf", adminController.exportInvoicePDF);
 
 router.get("/deliveries/export", adminController.exportDeliveries);
 
-// Export Analytics (Excel or CSV)
 router.get("/analytics/export", adminController.exportAnalytics);
 
 const settingsController = require("../controllers/settingsController");
@@ -562,7 +579,6 @@ router.get(
   settingsController.getSettingsByCategory,
 );
 
-// Get invoice generation config
 router.get(
   "/settings/invoice/config",
   authorize("ADMIN"),
@@ -636,7 +652,6 @@ router.put(
   settingsController.updateBankingDetails,
 );
 
-// Update system configuration
 router.put(
   "/settings/system",
   authorize("ADMIN"),
@@ -689,12 +704,8 @@ router.put(
   settingsController.updateSingleSetting,
 );
 
-// ==================== DRIVER AVAILABILITY ROUTES (ADMIN/MANAGER) ====================
-
-// Get all drivers' availability (with optional filters)
 router.get("/driver-availability", adminController.getAllDriversAvailability);
 
-// Get specific driver's availability
 router.get("/drivers/:id/availability", adminController.getDriverAvailability);
 
 module.exports = router;

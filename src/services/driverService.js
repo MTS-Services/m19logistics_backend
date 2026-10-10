@@ -489,7 +489,11 @@ class DriverService {
         }),
       ]);
 
-    return {
+    const profile = await prisma.driverProfile.findUnique({
+      where: { userId: driverId },
+    });
+
+    const base = {
       stats: {
         pendingDeliveries: allocated,
         completedDeliveries: completed,
@@ -497,7 +501,42 @@ class DriverService {
         thisWeekDeliveries,
       },
       todaySchedule: todayDeliveries,
+      driverType: profile?.driverType || "EMPLOYEE",
+      displayRole:
+        profile?.driverType === "CONTRACTOR" ? "Contractor" : "Driver",
     };
+
+    if (profile?.driverType === "CONTRACTOR") {
+      const {
+        getDocumentExpirySummary,
+        getPayPeriodRange,
+      } = require("../utils/contractorHelpers");
+      const rate = parseFloat(profile.rate || 0);
+      const payType = profile.payType || "WEEKLY";
+      const { periodStart, periodEnd, label } = getPayPeriodRange(payType);
+      const periodJobs = await prisma.delivery.count({
+        where: {
+          driverId,
+          status: "DELIVERED",
+          deliveredAt: { gte: periodStart, lte: periodEnd },
+        },
+      });
+
+      base.contractor = {
+        payType,
+        rate,
+        currentPeriod: {
+          label,
+          periodStart,
+          periodEnd,
+          completedJobs: periodJobs,
+          currentEarnings: Number((periodJobs * rate).toFixed(2)),
+        },
+        documentStatus: getDocumentExpirySummary(profile),
+      };
+    }
+
+    return base;
   }
 
   async getPerformanceMetrics(driverId, startDate, endDate) {

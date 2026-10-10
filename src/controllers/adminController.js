@@ -6,7 +6,6 @@ const auditService = require("../services/auditService");
 const exportService = require("../services/exportService");
 
 // ==================== USER MANAGEMENT ====================
-// New branch
 
 exports.getAllUsers = async (req, res, next) => {
   try {
@@ -22,6 +21,7 @@ exports.getAllUsers = async (req, res, next) => {
   }
 };
 
+// Get a user by ID
 exports.getUserById = async (req, res, next) => {
   try {
     const user = await adminService.getUserById(parseInt(req.params.id));
@@ -43,6 +43,7 @@ exports.getUserById = async (req, res, next) => {
 };
 
 // Create a user
+// create a new user
 exports.createUser = async (req, res, next) => {
   try {
     const user = await adminService.createUser(req.body);
@@ -657,26 +658,14 @@ exports.sendInvoiceReminders = async (req, res, next) => {
 
 exports.getAllInvoices = async (req, res, next) => {
   try {
-    const invoices = await adminService.getAllInvoices(req.query);
-
-    // Calculate summary statistics
-    const totalInvoices = invoices.length;
-    const totalPaid = invoices
-      .filter((inv) => inv.isPaid)
-      .reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
-    const totalUnpaid = invoices
-      .filter((inv) => !inv.isPaid)
-      .reduce((sum, inv) => sum + parseFloat(inv.grandTotal || 0), 0);
+    const result = await adminService.getAllInvoices(req.query);
 
     res.json({
       success: true,
-      data: invoices,
-      count: invoices.length,
-      summary: {
-        totalInvoices,
-        totalPaid: totalPaid.toFixed(2),
-        totalUnpaid: totalUnpaid.toFixed(2),
-      },
+      data: result.invoices,
+      count: result.invoices.length,
+      pagination: result.pagination,
+      summary: result.summary,
     });
   } catch (error) {
     next(error);

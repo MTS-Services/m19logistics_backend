@@ -10,17 +10,20 @@ const config = require("./config");
 const routes = require("./routes");
 const errorHandler = require("./middleware/errorHandler");
 
+// Initialize the app
 const app = express();
 
 app.use(
   cors({
-    origin: "*",
-    credentials: false,
+    origin: ["https://dev.m19logistics.com", "http://localhost:5173"],
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 // limit the size of the request body to 10mb
+
+// Add CORS middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
@@ -51,7 +54,7 @@ app.use("/api", routes);
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Welcome to M19 Logistics API",
+    message: "Welcome to development M19 Logistics API",
     version: "1.0.0",
     documentation: "/api/health",
   });

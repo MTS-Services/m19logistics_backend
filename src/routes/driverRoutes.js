@@ -10,8 +10,6 @@ const driverController = require('../controllers/driverController');
 // All routes require authentication
 router.use(authenticate);
 
-// ==================== AVAILABILITY VIEW ROUTES (DRIVER, ADMIN, MANAGER) ====================
-// These routes allow ADMIN and MANAGER to view driver availability
 
 router.get('/availability',
   authorize('DRIVER', 'ADMIN', 'MANAGER'),
@@ -23,9 +21,89 @@ router.get('/availability/upcoming',
   driverController.getMyUpcomingAvailability
 );
 
+const contractorController = require('../controllers/contractorController');
+
+// Contractor invoices – contractor sees own; admin/manager can see all (or filter by contractorId)
+router.get(
+  '/contractor/invoices',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  contractorController.getInvoices
+);
+
+router.get(
+  '/contractor/invoices/number/:invoiceNumber/export/pdf',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  contractorController.exportInvoicePDFByNumber
+);
+
+router.get(
+  '/contractor/invoices/:id',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  contractorController.getInvoiceById
+);
+
+router.put(
+  '/contractor/invoices/:id',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  [
+    body('notes').optional({ nullable: true }).isString(),
+    body('rate')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Rate must be a non-negative number'),
+    body('items').optional().isArray().withMessage('Items must be an array'),
+    body('items.*.id').isInt().withMessage('Item id is required'),
+    body('items.*.description').optional().isString().trim().notEmpty(),
+    body('items.*.amount')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Item amount must be a non-negative number'),
+    validate,
+  ],
+  contractorController.updateInvoice
+);
+
+router.delete(
+  '/contractor/invoices/:id',
+  authorize('DRIVER', 'ADMIN', 'MANAGER'),
+  contractorController.deleteInvoice
+);
+
 // ==================== DRIVER-ONLY ROUTES ====================
 // All routes below require DRIVER role only
 router.use(authorize('DRIVER'));
+
+// Contractor portal (only works when driverType = CONTRACTOR)
+router.get('/contractor/dashboard', contractorController.getDashboard);
+router.get('/contractor/profile', contractorController.getProfile);
+router.put(
+  '/contractor/profile',
+  [
+    body('payType').custom((value) => {
+      if (value !== undefined) {
+        throw new Error('Contractors cannot change Pay Type');
+      }
+      return true;
+    }),
+    body('rate').custom((value) => {
+      if (value !== undefined) {
+        throw new Error('Contractors cannot change Rate');
+      }
+      return true;
+    }),
+    validate,
+  ],
+  contractorController.updateProfile
+);
+router.post(
+  '/contractor/invoices/generate',
+  [
+    body('periodStart').optional().isISO8601(),
+    body('periodEnd').optional().isISO8601(),
+    validate,
+  ],
+  contractorController.generateInvoice
+);
 
 router.get('/dashboard', driverController.getDashboard);
 

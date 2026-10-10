@@ -50,6 +50,7 @@ class AuthController {
         });
       }
 
+      // Check if the username is already taken
       const existingUsername = await userService.findByUsername(username);
       if (existingUsername) {
         return res.status(400).json({
@@ -71,6 +72,7 @@ class AuthController {
         requirePasswordReset: true,
       };
 
+      // Create a user
       const user = await userService.createUser(userData);
 
       let profile = null;
@@ -182,11 +184,22 @@ class AuthController {
 
       delete user.password;
 
+      const displayRole =
+        user.role === "DRIVER" &&
+        user.driverProfile?.driverType === "CONTRACTOR"
+          ? "Contractor"
+          : user.role === "DRIVER"
+            ? "Driver"
+            : user.role;
+
       res.json({
         success: true,
         message: "Login successful.",
         data: {
-          user,
+          user: {
+            ...user,
+            displayRole,
+          },
           token,
           requirePasswordReset: user.requirePasswordReset,
         },
@@ -220,10 +233,30 @@ class AuthController {
   async getProfile(req, res) {
     try {
       const user = await userService.findById(req.user.id);
+      const {
+        getDocumentExpirySummary,
+      } = require("../utils/contractorHelpers");
+
+      const displayRole =
+        user.role === "DRIVER" &&
+        user.driverProfile?.driverType === "CONTRACTOR"
+          ? "Contractor"
+          : user.role === "DRIVER"
+            ? "Driver"
+            : user.role;
 
       res.json({
         success: true,
-        data: user,
+        data: {
+          ...user,
+          displayRole,
+          ...(user.driverProfile?.driverType === "CONTRACTOR"
+            ? {
+                documentStatus: getDocumentExpirySummary(user.driverProfile),
+                payFieldsReadOnly: true,
+              }
+            : {}),
+        },
       });
     } catch (error) {
       console.error("Get profile error:", error);
