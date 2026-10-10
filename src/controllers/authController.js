@@ -58,6 +58,7 @@ class AuthController {
         });
       }
 
+      // Validate the contractor profile
       const hashedPassword = await authService.hashPassword(password);
 
       const userData = {
