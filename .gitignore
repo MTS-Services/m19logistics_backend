@@ -41,3 +41,6 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Database backups (contain live customer data)
+backups/
