@@ -5,7 +5,7 @@ const validate = require('../middleware/validate');
 
 const router = express.Router();
 
-// SLOT AVAILABILITY (PUBLIC)
+// SLOT AVAILABILITY (PUBLIC)www
 
 router.get('/slots/availability', publicController.getSlotAvailability);
 
