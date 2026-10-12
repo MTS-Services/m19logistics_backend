@@ -32,7 +32,7 @@ router.post(
   authController.login
 );
 
-
+// logout route
 router.post('/logout', authenticate, authController.logout);
 
 
