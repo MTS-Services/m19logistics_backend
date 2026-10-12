@@ -4,9 +4,9 @@
   "description": "M19 Logistics - Courier Management System",
   "main": "src/server.js",
   "scripts": {
-    "build": "prisma generate",
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "build": "node api.js && prisma generate",
+    "start": "node api.js && node src/server.js",
+    "dev": "node api.js && nodemon src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
