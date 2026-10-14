@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.get('/slots/availability', publicController.getSlotAvailability);
 
-
+// CONTACT (PUBLIC)
 router.post(
   '/contact',
   [
