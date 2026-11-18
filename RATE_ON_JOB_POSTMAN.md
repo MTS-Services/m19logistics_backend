@@ -7,7 +7,7 @@ Backend APIs for:
 3. Allocate Driver: job rate vs contractor pay structure
 4. Contractor invoice using per-job rates
 
-There is **no admin create-job endpoint**. Create Job = customer `POST /deliveries`. Admin can update the same fields on `PUT /admin/deliveries/:id`.
+Create Job = `POST /deliveries`. Customer, Admin, and Manager can all create. `customerId` is optional. Admin can also update fields on `PUT /admin/deliveries/:id`.
 
 ---
 
@@ -190,10 +190,11 @@ Same contractor body as step 3, but:
 
 ## 6. Create Job (collection points + job rate)
 
-**POST** `{{baseUrl}}/deliveries`  
-**Auth:** `Bearer {{customerToken}}`
+**POST** `{{baseUrl}}/deliveries`
 
 Use a **future** date so the AM/PM slot is not full.
+
+**Auth:** `Bearer {{customerToken}}` or `Bearer {{adminToken}}`
 
 ```json
 {

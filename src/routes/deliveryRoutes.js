@@ -16,7 +16,7 @@ router.get("/stats", authorize("CUSTOMER"), deliveryController.getStats);
 
 router.post(
   "/",
-  authorize("CUSTOMER"),
+  authorize("CUSTOMER", "ADMIN", "MANAGER"),
   [
     body("spoNumber").trim().notEmpty().withMessage("SPO number is required"),
     body("deliveryDate")

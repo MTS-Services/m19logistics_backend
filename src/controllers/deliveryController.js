@@ -6,7 +6,24 @@ class DeliveryController {
 
   async createDelivery(req, res) {
     try {
-      const customerId = req.user.id;
+      const isStaff =
+        req.user.role === 'ADMIN' || req.user.role === 'MANAGER';
+      let customerId = req.user.id;
+
+      if (isStaff && req.body.customerId != null && req.body.customerId !== '') {
+        customerId = parseInt(req.body.customerId, 10);
+        const customer = await prisma.user.findUnique({
+          where: { id: customerId },
+          select: { id: true, role: true },
+        });
+        if (!customer || customer.role !== 'CUSTOMER') {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid customerId. Must be an existing CUSTOMER user.',
+          });
+        }
+      }
+
       const {
         spoNumber,
         deliveryDate,
@@ -43,7 +60,7 @@ class DeliveryController {
       // Create audit log
       await prisma.auditLog.create({
         data: {
-          userId: customerId,
+          userId: req.user.id,
           deliveryId: delivery.id,
           action: 'CREATE_DELIVERY',
           description: `Created delivery request ${delivery.spoNumber}`,
