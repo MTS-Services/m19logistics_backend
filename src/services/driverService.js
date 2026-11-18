@@ -510,16 +510,18 @@ class DriverService {
       const {
         getDocumentExpirySummary,
         getPayPeriodRange,
+        sumJobPayAmounts,
       } = require("../utils/contractorHelpers");
       const rate = parseFloat(profile.rate || 0);
       const payType = profile.payType || "WEEKLY";
       const { periodStart, periodEnd, label } = getPayPeriodRange(payType);
-      const periodJobs = await prisma.delivery.count({
+      const periodJobs = await prisma.delivery.findMany({
         where: {
           driverId,
           status: "DELIVERED",
           deliveredAt: { gte: periodStart, lte: periodEnd },
         },
+        select: { contractorRate: true },
       });
 
       base.contractor = {
@@ -529,8 +531,8 @@ class DriverService {
           label,
           periodStart,
           periodEnd,
-          completedJobs: periodJobs,
-          currentEarnings: Number((periodJobs * rate).toFixed(2)),
+          completedJobs: periodJobs.length,
+          currentEarnings: sumJobPayAmounts(periodJobs, rate),
         },
         documentStatus: getDocumentExpirySummary(profile),
       };

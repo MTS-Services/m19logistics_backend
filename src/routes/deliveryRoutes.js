@@ -5,6 +5,7 @@ const auditController = require("../controllers/auditController");
 const authenticate = require("../middleware/authenticate");
 const authorize = require("../middleware/authorize");
 const validate = require("../middleware/validate");
+const { jobExtraFieldValidators } = require("../utils/deliveryFields");
 
 const router = express.Router();
 
@@ -44,6 +45,7 @@ router.post(
       .notEmpty()
       .withMessage("Requested by field is required"),
     body("specialInstructions").optional().trim(),
+    ...jobExtraFieldValidators,
     validate,
   ],
   deliveryController.createDelivery,
@@ -81,6 +83,7 @@ router.put(
     body("requestedBy").optional().trim(),
     body("customerPhone").optional().trim(),
     body("customerName").optional().trim(),
+    ...jobExtraFieldValidators,
     validate,
   ],
   deliveryController.updateDelivery,

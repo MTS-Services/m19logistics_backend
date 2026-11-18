@@ -27,8 +27,7 @@ Thumbs.db
 public/uploads/*
 !public/uploads/.gitkeep
 
-# Prisma
-prisma/migrations/
+# Prisma — keep migration history in git
 
 # Build
 dist/

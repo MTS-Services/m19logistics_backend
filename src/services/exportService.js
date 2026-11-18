@@ -646,6 +646,13 @@ class ExportService {
       "Contractor";
     const rate = parseFloat(invoice.rate || 0);
     const amount = parseFloat(invoice.amount || 0);
+    const itemRates = [
+      ...new Set(
+        (invoice.items || []).map((item) => parseFloat(item.amount || rate || 0)),
+      ),
+    ];
+    const rateLabel =
+      itemRates.length > 1 ? "Rate: per job" : `Rate: £${rate.toFixed(2)} per job`;
 
     doc
       .fontSize(20)
@@ -684,7 +691,7 @@ class ExportService {
       .text("Bill To:", 50, topY + 80)
       .text(companyName, 50, topY + 95)
       .text(companyAddress, 50, topY + 110)
-      .text(`Rate: £${rate.toFixed(2)} per job`, 50, topY + 125)
+      .text(rateLabel, 50, topY + 125)
       .text(`Jobs: ${invoice.jobCount || invoice.items?.length || 0}`, 50, topY + 140);
 
     const tableTop = topY + 175;

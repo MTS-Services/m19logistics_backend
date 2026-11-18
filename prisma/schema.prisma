@@ -25,6 +25,7 @@ enum PayType {
   WEEKLY
   FORTNIGHTLY
   FOUR_WEEKLY
+  RATE_ON_JOB
 }
 
 enum ContractorInvoiceStatus {
@@ -236,6 +237,8 @@ model Delivery {
   timeSlot            TimeSlot
   weight              Decimal  @db.Decimal(10, 2)
   deliveryAddress     String
+  collectionPoints    String[] @default([])
+  contractorRate      Decimal? @db.Decimal(10, 2)
   customerName        String
   customerPhone       String
   spoNumber           String

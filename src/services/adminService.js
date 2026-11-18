@@ -2,6 +2,10 @@ const prisma = require("../config/database");
 const bcrypt = require("bcryptjs");
 const emailService = require("./emailService");
 const deliveryService = require("./deliveryService");
+const {
+  pickJobExtraFields,
+  resolveAllocateContractorRate,
+} = require("../utils/deliveryFields");
 
 class AdminService {
   // ==================== USER MANAGEMENT ====================
@@ -504,6 +508,7 @@ class AdminService {
       data: {
         ...updateData,
         ...pricing,
+        ...pickJobExtraFields(updateData),
       },
       include: {
         customer: {
@@ -567,7 +572,7 @@ class AdminService {
     return { message: "Delivery deleted successfully" };
   }
 
-  async allocateDelivery(deliveryId, driverId) {
+  async allocateDelivery(deliveryId, driverId, payload = {}) {
     const delivery = await prisma.delivery.findUnique({
       where: { id: deliveryId },
       include: {
@@ -603,6 +608,12 @@ class AdminService {
     const isReallocation =
       delivery.status === "ALLOCATED" && delivery.driverId !== null;
     const previousDriver = delivery.driver;
+    const rateUpdate = resolveAllocateContractorRate({
+      isContractor: driver.driverProfile?.driverType === "CONTRACTOR",
+      payType: driver.driverProfile?.payType,
+      existingRate: delivery.contractorRate,
+      payload,
+    });
 
     const updated = await prisma.delivery.update({
       where: { id: deliveryId },
@@ -614,6 +625,7 @@ class AdminService {
         acceptedAt: null,
         rejectedAt: null,
         rejectionReason: null,
+        ...rateUpdate,
       },
       include: {
         customer: {
@@ -624,8 +636,16 @@ class AdminService {
         },
         driver: {
           select: {
+            id: true,
             fullName: true,
             email: true,
+            driverProfile: {
+              select: {
+                driverType: true,
+                payType: true,
+                rate: true,
+              },
+            },
           },
         },
       },

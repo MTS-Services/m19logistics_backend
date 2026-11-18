@@ -4,6 +4,8 @@ const {
   getPayPeriodRange,
   pickDriverProfileFields,
   validateContractorFields,
+  getJobPayAmount,
+  sumJobPayAmounts,
 } = require("../utils/contractorHelpers");
 
 class ContractorService {
@@ -75,7 +77,7 @@ class ContractorService {
       ]);
 
     const completedJobs = periodJobs.length;
-    const currentEarnings = completedJobs * rate;
+    const currentEarnings = sumJobPayAmounts(periodJobs, rate);
 
     return {
       contractor: {
@@ -110,7 +112,7 @@ class ContractorService {
           job.customer?.fullName,
         deliveryDate: job.deliveryDate,
         deliveredAt: job.deliveredAt,
-        amount: rate,
+        amount: getJobPayAmount(job, rate),
         status: "Completed",
       })),
       recentInvoices: recentInvoices.map((inv) => ({
@@ -257,6 +259,7 @@ class ContractorService {
                 deliveryAddress: true,
                 customerName: true,
                 deliveredAt: true,
+                contractorRate: true,
               },
             },
           },
@@ -317,6 +320,7 @@ class ContractorService {
                   deliveryAddress: true,
                   customerName: true,
                   deliveredAt: true,
+                  contractorRate: true,
                 },
               },
             },
@@ -359,6 +363,7 @@ class ContractorService {
                 customerName: true,
                 deliveredAt: true,
                 deliveryDate: true,
+                contractorRate: true,
               },
             },
           },
@@ -383,9 +388,12 @@ class ContractorService {
   async generateInvoice(userId, { periodStart, periodEnd } = {}) {
     const user = await this.requireContractor(userId);
     const profile = user.driverProfile;
-    const rate = parseFloat(profile.rate || 0);
+    const profileRate = parseFloat(profile.rate || 0);
 
-    if (!profile.payType || !rate) {
+    if (!profile.payType) {
+      throw new Error("Pay Type must be set by admin before generating invoices");
+    }
+    if (profile.payType !== "RATE_ON_JOB" && !profileRate) {
       throw new Error("Pay Type and Rate must be set by admin before generating invoices");
     }
 
@@ -416,8 +424,36 @@ class ContractorService {
       throw new Error("No uninvoiced completed deliveries found for this period");
     }
 
-    const jobCount = deliveries.length;
-    const amount = Number((jobCount * rate).toFixed(2));
+    if (profile.payType === "RATE_ON_JOB") {
+      const missingRate = deliveries.filter(
+        (delivery) =>
+          delivery.contractorRate == null || delivery.contractorRate === "",
+      );
+      if (missingRate.length) {
+        const refs = missingRate
+          .map((delivery) => delivery.spoNumber || `#${delivery.id}`)
+          .join(", ");
+        throw new Error(
+          `contractorRate is required on Rate on Job deliveries before invoicing: ${refs}`,
+        );
+      }
+    }
+
+    const items = deliveries.map((delivery) => {
+      const amount = getJobPayAmount(delivery, profileRate);
+      return {
+        deliveryId: delivery.id,
+        spoNumber: delivery.spoNumber,
+        description: `${delivery.spoNumber} / ${delivery.customerName || "Delivery"} / ${delivery.deliveryAddress}`,
+        amount,
+      };
+    });
+    const uniqueRates = [...new Set(items.map((item) => item.amount))];
+    const headerRate = uniqueRates.length === 1 ? uniqueRates[0] : profileRate;
+    const jobCount = items.length;
+    const amount = Number(
+      items.reduce((sum, item) => sum + item.amount, 0).toFixed(2),
+    );
     const invoiceNumber = await this.getNextInvoiceNumber();
 
     const invoice = await prisma.contractorInvoice.create({
@@ -427,16 +463,11 @@ class ContractorService {
         periodStart: start,
         periodEnd: end,
         jobCount,
-        rate,
+        rate: headerRate,
         amount,
         status: "OUTSTANDING",
         items: {
-          create: deliveries.map((d) => ({
-            deliveryId: d.id,
-            spoNumber: d.spoNumber,
-            description: `${d.spoNumber} / ${d.customerName || "Delivery"} / ${d.deliveryAddress}`,
-            amount: rate,
-          })),
+          create: items,
         },
       },
       include: { items: true },
@@ -639,6 +670,7 @@ class ContractorService {
                   customerName: true,
                   deliveredAt: true,
                   deliveryDate: true,
+                  contractorRate: true,
                 },
               },
             },

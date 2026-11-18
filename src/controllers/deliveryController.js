@@ -1,5 +1,6 @@
 const deliveryService = require('../services/deliveryService');
 const prisma = require('../config/database');
+const { pickJobExtraFields } = require('../utils/deliveryFields');
 
 class DeliveryController {
 
@@ -36,6 +37,7 @@ class DeliveryController {
         customerPhone,
         requestedBy,
         specialInstructions,
+        ...pickJobExtraFields(req.body),
       });
 
       // Create audit log

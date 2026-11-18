@@ -1,6 +1,7 @@
 const prisma = require("../config/database");
 const config = require("../config");
 const emailService = require("./emailService");
+const { pickJobExtraFields } = require("../utils/deliveryFields");
 
 class DeliveryService {
   async createDelivery(customerId, deliveryData) {
@@ -58,6 +59,7 @@ class DeliveryService {
         customerId,
         ...deliveryData,
         ...pricing,
+        ...pickJobExtraFields(deliveryData),
         status: "RECEIVED",
       },
       include: {
@@ -233,6 +235,7 @@ class DeliveryService {
       data: {
         ...updateData,
         ...pricing,
+        ...pickJobExtraFields(updateData),
       },
       include: {
         customer: {

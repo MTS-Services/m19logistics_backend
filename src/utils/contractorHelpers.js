@@ -1,4 +1,4 @@
-const PAY_TYPES = ["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"];
+const PAY_TYPES = ["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY", "RATE_ON_JOB"];
 const DRIVER_TYPES = ["EMPLOYEE", "CONTRACTOR"];
 
 function startOfDay(date) {
@@ -99,13 +99,13 @@ function getPayPeriodRange(payType, referenceDate = new Date()) {
   monday.setDate(today.getDate() + mondayOffset);
   monday.setHours(0, 0, 0, 0);
 
-  if (payType === "WEEKLY") {
+  if (payType === "WEEKLY" || payType === "RATE_ON_JOB") {
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     return {
       periodStart: monday,
       periodEnd: endOfDay(sunday),
-      label: "Weekly",
+      label: payType === "RATE_ON_JOB" ? "Rate on Job" : "Weekly",
     };
   }
 
@@ -169,7 +169,9 @@ function validateContractorFields(data, { isCreate = false } = {}) {
   }
 
   if (data.payType && !PAY_TYPES.includes(data.payType)) {
-    errors.push("Pay Type must be Daily, Weekly, Fortnightly, or Four Weekly");
+    errors.push(
+      "Pay Type must be Daily, Weekly, Fortnightly, Four Weekly, or Rate on Job",
+    );
   }
 
   if (data.rate !== undefined && data.rate !== null && data.rate !== "") {
@@ -197,6 +199,27 @@ function validateContractorFields(data, { isCreate = false } = {}) {
   }
 
   return errors;
+}
+
+function parseMoney(value) {
+  const amount = parseFloat(value);
+  if (!Number.isFinite(amount) || amount < 0) return 0;
+  return amount;
+}
+
+function getJobPayAmount(delivery, profileRate = 0) {
+  if (delivery?.contractorRate != null && delivery.contractorRate !== "") {
+    return Number(parseMoney(delivery.contractorRate).toFixed(2));
+  }
+  return Number(parseMoney(profileRate).toFixed(2));
+}
+
+function sumJobPayAmounts(deliveries, profileRate = 0) {
+  return Number(
+    (deliveries || [])
+      .reduce((sum, delivery) => sum + getJobPayAmount(delivery, profileRate), 0)
+      .toFixed(2),
+  );
 }
 
 function pickDriverProfileFields(data, { allowPayFields = true } = {}) {
@@ -269,4 +292,7 @@ module.exports = {
   pickDriverProfileFields,
   startOfDay,
   endOfDay,
+  parseMoney,
+  getJobPayAmount,
+  sumJobPayAmounts,
 };

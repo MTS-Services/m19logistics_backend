@@ -5,6 +5,10 @@ const adminController = require("../controllers/adminController");
 const authenticate = require("../middleware/authenticate");
 const authorize = require("../middleware/authorize");
 const validate = require("../middleware/validate");
+const {
+  jobExtraFieldValidators,
+  contractorRateValidators,
+} = require("../utils/deliveryFields");
 
 router.use(authenticate);
 router.use(authorize("ADMIN", "MANAGER"));
@@ -33,7 +37,7 @@ router.post(
     body("phone").optional().isString(),
     body("payType")
       .optional()
-      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"]),
+      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY", "RATE_ON_JOB"]),
     body("rate").optional().isFloat({ min: 0 }),
     validate,
   ],
@@ -111,7 +115,7 @@ router.post(
     body("bankReference").optional().isString(),
     body("payType")
       .optional()
-      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"]),
+      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY", "RATE_ON_JOB"]),
     body("rate").optional().isFloat({ min: 0 }),
     validate,
   ],
@@ -153,7 +157,7 @@ router.put(
     body("bankReference").optional().isString(),
     body("payType")
       .optional()
-      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY"]),
+      .isIn(["DAILY", "WEEKLY", "FORTNIGHTLY", "FOUR_WEEKLY", "RATE_ON_JOB"]),
     body("rate").optional().isFloat({ min: 0 }),
     validate,
   ],
@@ -207,6 +211,7 @@ router.put(
       .notEmpty()
       .withMessage("SPO number is required"),
     body("specialInstructions").optional().isString(),
+    ...jobExtraFieldValidators,
     validate,
   ],
   adminController.updateDelivery,
@@ -216,7 +221,11 @@ router.delete("/deliveries/:id", adminController.deleteDelivery);
 
 router.post(
   "/deliveries/:id/allocate",
-  [body("driverId").isInt().withMessage("Driver ID is required"), validate],
+  [
+    body("driverId").isInt().withMessage("Driver ID is required"),
+    ...contractorRateValidators,
+    validate,
+  ],
   adminController.allocateDelivery,
 );
 

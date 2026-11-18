@@ -306,6 +306,7 @@ exports.allocateDelivery = async (req, res, next) => {
     const delivery = await adminService.allocateDelivery(
       parseInt(req.params.id),
       parseInt(driverId),
+      req.body,
     );
 
     res.json({
