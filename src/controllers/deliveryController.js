@@ -151,7 +151,7 @@ class DeliveryController {
         });
       }
 
-      const customerId = req.user.role === 'CUSTOMER' ? req.user.id : null;
+      const customerId = req.user.id;
 
       const delivery = await deliveryService.getDeliveryById(
         deliveryId,

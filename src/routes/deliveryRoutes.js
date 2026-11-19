@@ -53,7 +53,7 @@ router.post(
 
 router.get(
   "/",
-  authorize("CUSTOMER"),
+  authorize("CUSTOMER", "ADMIN", "MANAGER"),
   [
     query("status")
       .optional()
@@ -65,7 +65,11 @@ router.get(
   deliveryController.getMyDeliveries,
 );
 
-router.get("/:id", authorize("CUSTOMER"), deliveryController.getDeliveryById);
+router.get(
+  "/:id",
+  authorize("CUSTOMER", "ADMIN", "MANAGER"),
+  deliveryController.getDeliveryById,
+);
 
 router.put(
   "/:id",
